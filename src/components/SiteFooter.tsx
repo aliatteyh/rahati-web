@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { BusinessConfig } from "@/lib/types";
+import { NewsletterForm } from "./NewsletterForm";
 
 export function SiteFooter({
   locale,
@@ -27,6 +28,13 @@ export function SiteFooter({
             <span className="text-lg font-bold text-ink">{brand}</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-muted">{dict.footer.tagline}</p>
+          <h3 className="mt-6 text-sm font-semibold text-ink">
+            {dict.footer.newsletter}
+          </h3>
+          <p className="mt-1 max-w-xs text-sm text-muted">
+            {dict.footer.newsletterSub}
+          </p>
+          <NewsletterForm dict={dict.footer as unknown as Record<string, string>} />
         </div>
 
         <div>

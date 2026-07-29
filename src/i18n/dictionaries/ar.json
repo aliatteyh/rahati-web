@@ -257,7 +257,15 @@
   "footer": {
     "tagline": "خدمات منزلية موثوقة عند بابك.",
     "quickLinks": "روابط سريعة",
-    "rights": "جميع الحقوق محفوظة."
+    "rights": "جميع الحقوق محفوظة.",
+    "newsletter": "ابقَ على اطّلاع",
+    "newsletterSub": "اشترك لتصلك العروض وتحديثات الخدمات.",
+    "emailPlaceholder": "بريدك الإلكتروني",
+    "subscribe": "اشترك",
+    "subscribing": "جارٍ الاشتراك…",
+    "subscribed": "شكراً لاشتراكك!",
+    "alreadySubscribed": "هذا البريد مشترك مسبقاً.",
+    "subscribeError": "حدث خطأ. حاول مرة أخرى."
   },
   "common": {
     "loading": "جارٍ التحميل…",

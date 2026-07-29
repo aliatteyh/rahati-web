@@ -257,7 +257,15 @@
   "footer": {
     "tagline": "Trusted home services at your door.",
     "quickLinks": "Quick links",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "newsletter": "Stay in the loop",
+    "newsletterSub": "Subscribe for offers and service updates.",
+    "emailPlaceholder": "Your email",
+    "subscribe": "Subscribe",
+    "subscribing": "Subscribing…",
+    "subscribed": "Thanks for subscribing!",
+    "alreadySubscribed": "This email is already subscribed.",
+    "subscribeError": "Something went wrong. Please try again."
   },
   "common": {
     "loading": "Loading…",
