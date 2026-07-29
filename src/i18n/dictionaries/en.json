@@ -102,7 +102,15 @@
     "loadError": "Couldn't load data. Please try again.",
     "book": "Book a service",
     "serviceAreaSub": "Areas where our services are available.",
-    "changeLocation": "Change my location"
+    "changeLocation": "Change my location",
+    "wallet": "Wallet",
+    "walletTitle": "Wallet & points",
+    "walletBalance": "Wallet balance",
+    "loyaltyPoints": "Loyalty points",
+    "points": "points",
+    "transactionHistory": "Transaction history",
+    "noTransactions": "No transactions yet.",
+    "walletUnavailable": "Wallet and loyalty points are not enabled."
   },
   "hero": {
     "badge": "Trusted home services",

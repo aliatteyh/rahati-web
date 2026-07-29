@@ -50,6 +50,7 @@ export function AccountMenu({
     { href: `${base}/profile`, label: dict.profile },
     { href: `${base}/bookings`, label: dict.bookings },
     { href: `${base}/coupons`, label: dict.coupons },
+    { href: `${base}/wallet`, label: dict.wallet },
     { href: `${base}/favourites`, label: dict.favourites },
     { href: `${base}/service-area`, label: dict.serviceArea },
   ];

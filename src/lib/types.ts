@@ -111,4 +111,6 @@ export interface BusinessConfig {
   professional_discount_tiers?: ProfessionalTier[];
   material_charge?: number | string;
   additional_charge_fee_amount?: number | string;
+  wallet_status?: number | string;
+  loyalty_point_status?: number | string;
 }

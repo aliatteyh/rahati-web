@@ -102,7 +102,15 @@
     "loadError": "تعذّر تحميل البيانات. حاول مرة أخرى.",
     "book": "احجز خدمة",
     "serviceAreaSub": "المناطق التي تتوفّر فيها خدماتنا.",
-    "changeLocation": "غيّر موقعي"
+    "changeLocation": "غيّر موقعي",
+    "wallet": "المحفظة",
+    "walletTitle": "المحفظة والنقاط",
+    "walletBalance": "رصيد المحفظة",
+    "loyaltyPoints": "نقاط الولاء",
+    "points": "نقطة",
+    "transactionHistory": "سجل الحركات",
+    "noTransactions": "لا توجد حركات بعد.",
+    "walletUnavailable": "المحفظة ونقاط الولاء غير مفعّلة."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
