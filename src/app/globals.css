@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  /* Rahati brand palette (matches the Flutter app) */
+  --color-primary: #0d9488;
+  --color-primary-dark: #0b7268;
+  --color-primary-light: #e6f5f3;
+  --color-accent: #ff7a45;
+  --color-accent-dark: #e85f2b;
+  --color-ink: #10201d;
+  --color-muted: #64766f;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f5faf9;
+  --color-border: #e5efec;
+
+  --font-sans: var(--font-tajawal), system-ui, sans-serif;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: var(--color-ink);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mirror directional icons in RTL */
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
