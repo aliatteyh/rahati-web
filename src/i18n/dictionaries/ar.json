@@ -110,7 +110,9 @@
     "points": "نقطة",
     "transactionHistory": "سجل الحركات",
     "noTransactions": "لا توجد حركات بعد.",
-    "walletUnavailable": "المحفظة ونقاط الولاء غير مفعّلة."
+    "walletUnavailable": "المحفظة ونقاط الولاء غير مفعّلة.",
+    "notifications": "الإشعارات",
+    "noNotifications": "لا توجد إشعارات بعد."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",

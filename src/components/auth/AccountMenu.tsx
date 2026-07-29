@@ -51,6 +51,7 @@ export function AccountMenu({
     { href: `${base}/bookings`, label: dict.bookings },
     { href: `${base}/coupons`, label: dict.coupons },
     { href: `${base}/wallet`, label: dict.wallet },
+    { href: `${base}/notifications`, label: dict.notifications },
     { href: `${base}/favourites`, label: dict.favourites },
     { href: `${base}/service-area`, label: dict.serviceArea },
   ];

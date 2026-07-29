@@ -110,7 +110,9 @@
     "points": "points",
     "transactionHistory": "Transaction history",
     "noTransactions": "No transactions yet.",
-    "walletUnavailable": "Wallet and loyalty points are not enabled."
+    "walletUnavailable": "Wallet and loyalty points are not enabled.",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications yet."
   },
   "hero": {
     "badge": "Trusted home services",
