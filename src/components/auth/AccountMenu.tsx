@@ -48,6 +48,7 @@ export function AccountMenu({
 
   const items: { href: string; label: string }[] = [
     { href: `${base}/profile`, label: dict.profile },
+    { href: `${base}/pro-member`, label: dict.proMember },
     { href: `${base}/bookings`, label: dict.bookings },
     { href: `${base}/coupons`, label: dict.coupons },
     { href: `${base}/wallet`, label: dict.wallet },
