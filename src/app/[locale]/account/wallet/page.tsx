@@ -2,6 +2,7 @@ import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
 import { authGet } from "@/lib/account";
+import { ConfirmActionButton } from "@/components/account/ConfirmActionButton";
 
 interface Trx {
   id?: string;
@@ -22,6 +23,7 @@ interface WalletData {
 interface LoyaltyData {
   loyalty_point?: number | string;
   loyalty_point_value_per_currency_unit?: number | string;
+  min_loyalty_point_to_transfer?: number | string;
   transactions?: { data?: Trx[] } | Trx[];
 }
 
@@ -118,6 +120,8 @@ export default async function WalletPage({
   const points = Number(loyalty.loyalty_point ?? 0);
   const unitValue = Number(loyalty.loyalty_point_value_per_currency_unit ?? 0);
   const pointsWorth = unitValue > 0 ? points * unitValue : null;
+  const minTransfer = Number(loyalty.min_loyalty_point_to_transfer ?? 0);
+  const canTransfer = points > 0 && points >= minTransfer;
 
   return (
     <div className="space-y-8">
@@ -149,6 +153,21 @@ export default async function WalletPage({
               <p className="mt-1 text-xs text-muted">
                 ≈ {formatPrice(pointsWorth, currency)}
               </p>
+            )}
+            {canTransfer && (
+              <div className="mt-3">
+                <ConfirmActionButton
+                  endpoint="/api/wallet/transfer"
+                  body={{ point: points, locale }}
+                  labels={{
+                    action: a.transferToWallet,
+                    confirm: a.confirmTransfer,
+                    cancel: a.cancel,
+                    processing: a.processing,
+                    error: a.transferError,
+                  }}
+                />
+              </div>
             )}
           </div>
         )}

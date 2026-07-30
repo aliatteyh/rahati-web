@@ -3,6 +3,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
 import { authGet } from "@/lib/account";
 import { SubscribeButton } from "@/components/subscription/SubscribeButton";
+import { ConfirmActionButton } from "@/components/account/ConfirmActionButton";
 
 interface Plan {
   id: string;
@@ -37,6 +38,11 @@ interface Details {
   faqs?: Faq[];
 }
 
+interface Terms {
+  title?: string;
+  content?: string;
+}
+
 export default async function ProMemberPage({
   params,
 }: {
@@ -47,9 +53,10 @@ export default async function ProMemberPage({
   const dict = getDictionary(locale);
   const a = dict.account as unknown as Record<string, string>;
 
-  const [details, config] = await Promise.all([
+  const [details, config, terms] = await Promise.all([
     authGet<Details>("/api/v1/customer/subscription/details", locale, {}),
     getConfig(locale),
+    authGet<Terms>("/api/v1/customer/subscription/terms-and-conditions", locale, {}),
   ]);
   const currency = config.currency_symbol || config.currency_code || "";
   const plans = (details.plans ?? []).filter((p) => p.is_active !== 0);
@@ -142,8 +149,24 @@ export default async function ProMemberPage({
                   </p>
                 )}
                 {subscribed ? (
-                  <div className="mt-3 rounded-xl bg-primary/10 py-2 text-center text-sm font-semibold text-primary-dark">
-                    {a.currentPlan}
+                  <div className="mt-3 space-y-2">
+                    <div className="rounded-xl bg-primary/10 py-2 text-center text-sm font-semibold text-primary-dark">
+                      {a.currentPlan}
+                    </div>
+                    <div className="flex justify-center">
+                      <ConfirmActionButton
+                        endpoint="/api/subscription/cancel"
+                        body={{ locale }}
+                        tone="danger"
+                        labels={{
+                          action: a.cancelSubscription,
+                          confirm: a.confirmCancel,
+                          cancel: a.keep,
+                          processing: a.processing,
+                          error: a.subscribeError,
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <SubscribeButton
@@ -174,6 +197,19 @@ export default async function ProMemberPage({
             ))}
           </div>
         </section>
+      )}
+
+      {/* Terms & conditions */}
+      {terms?.content && (
+        <details className="rounded-2xl border border-border bg-surface px-4 py-3">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-ink">
+            {a.terms}
+          </summary>
+          <div
+            className="prose prose-sm mt-2 max-w-none text-sm text-muted"
+            dangerouslySetInnerHTML={{ __html: terms.content }}
+          />
+        </details>
       )}
     </div>
   );

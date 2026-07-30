@@ -139,7 +139,11 @@
     "cancelling": "Cancelling…",
     "confirmCancel": "Yes, cancel",
     "keep": "Keep",
-    "cancelError": "Couldn't cancel. Try again."
+    "cancelError": "Couldn't cancel. Try again.",
+    "transferToWallet": "Transfer to wallet",
+    "confirmTransfer": "Confirm transfer",
+    "transferError": "Transfer failed. Try again.",
+    "cancelSubscription": "Cancel subscription"
   },
   "hero": {
     "badge": "Trusted home services",
