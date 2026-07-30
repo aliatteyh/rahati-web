@@ -126,7 +126,10 @@ export function ReviewsSection({
                       .join(" ") || "—";
                   const stars = r.review_rating ?? r.rating ?? 0;
                   const text = r.review || r.comment || "";
-                  const rr = r.review_reply ?? r.reviewReply;
+                  const replyRows =
+                    r.review_replies && r.review_replies.length > 0
+                      ? r.review_replies
+                      : [r.review_reply ?? r.reviewReply].filter(Boolean);
                   return (
                     <li key={r.id ?? i} className="border-b border-border pb-5">
                       <div className="flex items-center gap-3">
@@ -146,16 +149,21 @@ export function ReviewsSection({
                         </div>
                       </div>
                       {text && <p className="mt-3 text-muted">{text}</p>}
-                      {rr?.reply && (
-                        <div className="mt-3 rounded-lg border-s-2 border-primary bg-surface-soft p-3 sm:ms-13">
-                          {rr.reply_by_name && (
-                            <p className="text-xs font-semibold text-primary-dark">
-                              {rr.reply_by_name}
-                            </p>
-                          )}
-                          <p className="mt-0.5 text-sm text-muted">{rr.reply}</p>
-                        </div>
-                      )}
+                      {replyRows
+                        .filter((rr) => rr?.reply)
+                        .map((rr, ri) => (
+                          <div
+                            key={ri}
+                            className="mt-3 rounded-lg border-s-2 border-primary bg-surface-soft p-3 sm:ms-13"
+                          >
+                            {rr!.reply_by_name && (
+                              <p className="text-xs font-semibold text-primary-dark">
+                                {rr!.reply_by_name}
+                              </p>
+                            )}
+                            <p className="mt-0.5 text-sm text-muted">{rr!.reply}</p>
+                          </div>
+                        ))}
                     </li>
                   );
                 })}

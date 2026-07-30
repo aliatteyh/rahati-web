@@ -6,11 +6,15 @@ import type { Locale } from "@/i18n/config";
 
 type Dict = Record<string, string>;
 
+export interface ReviewReplyItem {
+  reply: string;
+  replyBy: string;
+}
+
 export interface ExistingReview {
   rating: number;
   comment: string;
-  reply: string;
-  replyBy: string;
+  replies: ReviewReplyItem[];
 }
 
 function Stars({ value, onPick, hover, onHover }: {
@@ -112,14 +116,14 @@ export function ServiceReview({
           )}
         </div>
         {existing.comment && <p className="mt-1 text-sm text-ink">{existing.comment}</p>}
-        {existing.reply && (
-          <div className="mt-2 rounded-lg border-s-2 border-primary bg-surface p-2">
+        {existing.replies.map((rp, i) => (
+          <div key={i} className="mt-2 rounded-lg border-s-2 border-primary bg-surface p-2">
             <p className="text-xs font-semibold text-primary-dark">
-              {existing.replyBy || dict.providerReply}
+              {rp.replyBy || dict.providerReply}
             </p>
-            <p className="text-sm text-muted">{existing.reply}</p>
+            <p className="text-sm text-muted">{rp.reply}</p>
           </div>
-        )}
+        ))}
       </div>
     );
   }
