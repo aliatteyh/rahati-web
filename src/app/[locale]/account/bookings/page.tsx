@@ -2,6 +2,7 @@ import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
 import { authGetList } from "@/lib/account";
+import { CancelBookingButton } from "@/components/account/CancelBookingButton";
 
 interface Booking {
   id?: string;
@@ -23,6 +24,13 @@ export default async function BookingsPage({
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
   const a = dict.account as unknown as Record<string, string>;
+  const cancelDict = {
+    cancelBooking: a.cancelBooking,
+    cancelling: a.cancelling,
+    confirmCancel: a.confirmCancel,
+    keep: a.keep,
+    cancelError: a.cancelError,
+  };
 
   const [bookings, config] = await Promise.all([
     authGetList<Booking>(
@@ -66,6 +74,15 @@ export default async function BookingsPage({
                     </span>
                   )}
                 </div>
+                {b.booking_status === "pending" && b.id && (
+                  <div className="mt-3 flex justify-end">
+                    <CancelBookingButton
+                      bookingId={b.id}
+                      locale={locale}
+                      dict={cancelDict}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}

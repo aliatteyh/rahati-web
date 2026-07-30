@@ -134,7 +134,12 @@
     "confirmWallet": "Pay from wallet",
     "cancel": "Cancel",
     "subscribeError": "Couldn't complete. Please try again.",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "cancelBooking": "Cancel booking",
+    "cancelling": "Cancelling…",
+    "confirmCancel": "Yes, cancel",
+    "keep": "Keep",
+    "cancelError": "Couldn't cancel. Try again."
   },
   "hero": {
     "badge": "Trusted home services",
