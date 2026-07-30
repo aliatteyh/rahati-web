@@ -63,6 +63,8 @@ function toBrowseServices(services: Service[]): BrowseService[] {
       image: s.thumbnail_full_path ?? s.image_full_path ?? s.cover_image_full_path ?? null,
       variants,
       minPrice,
+      avgRating: s.avg_rating,
+      ratingCount: s.rating_count,
     };
   });
 }

@@ -18,6 +18,8 @@ export interface BrowseService {
   image?: string | null;
   variants: BrowseVariant[];
   minPrice: number;
+  avgRating?: number;
+  ratingCount?: number;
 }
 
 export function SubcategoryBrowser({
@@ -115,6 +117,8 @@ export function SubcategoryBrowser({
                 name: s.name,
                 slug: s.slug,
                 image_full_path: s.image,
+                avg_rating: s.avgRating,
+                rating_count: s.ratingCount,
               };
               return (
                 <ServiceCard

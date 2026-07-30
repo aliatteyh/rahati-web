@@ -49,7 +49,13 @@ interface Booking {
   additional_charge?: number | string;
   detail?: Detail[];
   customer?: Person;
-  provider?: { company_name?: string; name?: string; phone?: string; logo_full_path?: string | null };
+  provider?: {
+    company_name?: string;
+    name?: string;
+    phone?: string;
+    logo_full_path?: string | null;
+    avg_rating?: number;
+  };
   serviceman?: { user?: Person; avg_rating?: number };
   status_histories?: StatusHistory[];
 }
@@ -236,6 +242,11 @@ export default async function BookingDetailPage({
             </div>
             <p className="mt-2 text-sm font-medium text-ink">{providerName || "—"}</p>
             {b.provider?.phone && <p className="text-xs text-muted">{b.provider.phone}</p>}
+            {b.provider?.avg_rating != null && Number(b.provider.avg_rating) > 0 && (
+              <p className="mt-1 text-xs font-medium text-accent-dark">
+                ★ {Number(b.provider.avg_rating).toFixed(1)}
+              </p>
+            )}
           </section>
         )}
         {(fullName(serviceman) || serviceman?.phone) && (
