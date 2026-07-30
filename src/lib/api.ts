@@ -2,6 +2,7 @@ import type { Locale } from "@/i18n/config";
 import { getZoneId } from "./zone";
 import type {
   AddOn,
+  Banner,
   BusinessConfig,
   Category,
   Service,
@@ -50,6 +51,13 @@ async function apiGetList<T>(
 
 export function getConfig(locale: Locale): Promise<BusinessConfig> {
   return apiGet<BusinessConfig>("/api/v1/customer/config", locale, {});
+}
+
+export function getBanners(locale: Locale, limit = 10): Promise<Banner[]> {
+  return apiGetList<Banner>(
+    `/api/v1/customer/banner?limit=${limit}&offset=1`,
+    locale
+  );
 }
 
 export function getCategories(locale: Locale, limit = 100): Promise<Category[]> {

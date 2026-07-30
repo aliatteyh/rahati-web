@@ -114,3 +114,12 @@ export interface BusinessConfig {
   wallet_status?: number | string;
   loyalty_point_status?: number | string;
 }
+
+export interface Banner {
+  id?: string;
+  banner_image_full_path?: string | null;
+  resource_type?: "service" | "category" | "link" | string;
+  redirect_link?: string | null;
+  service?: { slug?: string } | null;
+  category?: { slug?: string } | null;
+}

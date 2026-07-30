@@ -2,11 +2,13 @@ import Link from "next/link";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import {
+  getBanners,
   getCategories,
   getConfig,
   getPopularServices,
   formatPrice,
 } from "@/lib/api";
+import { BannerCarousel } from "@/components/BannerCarousel";
 import { CategoryCard } from "@/components/CategoryCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -23,10 +25,11 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [categories, popular, config] = await Promise.all([
+  const [categories, popular, config, banners] = await Promise.all([
     getCategories(locale),
     getPopularServices(locale, 8),
     getConfig(locale),
+    getBanners(locale),
   ]);
   const currency = config.currency_symbol || dict.common.currency;
 
@@ -114,6 +117,9 @@ export default async function HomePage({
           </div>
         </div>
       </section>
+
+      {/* Promotional banners */}
+      <BannerCarousel banners={banners} locale={locale} />
 
       {/* Categories */}
       {categories.length > 0 && (
