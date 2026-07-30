@@ -16,10 +16,24 @@ function target(b: Banner, locale: Locale): { href: string; external: boolean } 
   return null;
 }
 
-function Slide({ b, locale }: { b: Banner; locale: Locale }) {
+function Slide({
+  b,
+  locale,
+  variant = "strip",
+}: {
+  b: Banner;
+  locale: Locale;
+  variant?: "strip" | "hero";
+}) {
   const img = (
-    <div className="aspect-[16/6] w-full overflow-hidden rounded-2xl sm:aspect-[16/5]">
-      <Thumb src={b.banner_image_full_path} alt="" />
+    <div
+      className={
+        variant === "hero"
+          ? "aspect-square w-full overflow-hidden rounded-[2rem] shadow-lg"
+          : "aspect-[16/6] w-full overflow-hidden rounded-2xl sm:aspect-[16/5]"
+      }
+    >
+      <Thumb src={b.banner_image_full_path} alt="" rounded={variant === "hero" ? "rounded-[2rem]" : "rounded-2xl"} />
     </div>
   );
   const t = target(b, locale);
@@ -40,9 +54,11 @@ function Slide({ b, locale }: { b: Banner; locale: Locale }) {
 export function BannerCarousel({
   banners,
   locale,
+  variant = "strip",
 }: {
   banners: Banner[];
   locale: Locale;
+  variant?: "strip" | "hero";
 }) {
   const slides = banners.filter((b) => b.banner_image_full_path);
   const [i, setI] = useState(0);
@@ -57,24 +73,45 @@ export function BannerCarousel({
 
   const active = i % slides.length;
 
+  const dots = slides.length > 1 && (
+    <div
+      className={
+        variant === "hero"
+          ? "absolute inset-x-0 bottom-4 flex justify-center gap-2"
+          : "mt-3 flex justify-center gap-2"
+      }
+    >
+      {slides.map((_, idx) => (
+        <button
+          key={idx}
+          type="button"
+          onClick={() => setI(idx)}
+          aria-label={`Slide ${idx + 1}`}
+          className={`h-2 rounded-full transition-all ${
+            idx === active
+              ? "w-6 bg-primary"
+              : variant === "hero"
+                ? "w-2 bg-white/70"
+                : "w-2 bg-border"
+          }`}
+        />
+      ))}
+    </div>
+  );
+
+  if (variant === "hero") {
+    return (
+      <div className="relative">
+        <Slide b={slides[active]} locale={locale} variant="hero" />
+        {dots}
+      </div>
+    );
+  }
+
   return (
     <section className="mx-auto max-w-6xl px-4 pt-8">
       <Slide b={slides[active]} locale={locale} />
-      {slides.length > 1 && (
-        <div className="mt-3 flex justify-center gap-2">
-          {slides.map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setI(idx)}
-              aria-label={`Slide ${idx + 1}`}
-              className={`h-2 rounded-full transition-all ${
-                idx === active ? "w-6 bg-primary" : "w-2 bg-border"
-              }`}
-            />
-          ))}
-        </div>
-      )}
+      {dots}
     </section>
   );
 }

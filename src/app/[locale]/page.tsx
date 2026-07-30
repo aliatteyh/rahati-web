@@ -106,20 +106,22 @@ export default async function HomePage({
               ))}
             </div>
           </div>
-          <div className="relative hidden md:block">
-            <div className="aspect-square rounded-[2rem] bg-primary/10" />
-            <div className="absolute inset-6 rounded-[1.5rem] bg-gradient-to-br from-primary to-primary-dark opacity-90" />
-            <div className="absolute inset-0 grid place-items-center">
-              <span className="text-6xl font-bold text-white/90">
-                {(config.business_name || dict.brand).charAt(0)}
-              </span>
+          {banners.length > 0 ? (
+            /* Promotional banners inside the hero showcase box */
+            <BannerCarousel banners={banners} locale={locale} variant="hero" />
+          ) : (
+            <div className="relative hidden md:block">
+              <div className="aspect-square rounded-[2rem] bg-primary/10" />
+              <div className="absolute inset-6 rounded-[1.5rem] bg-gradient-to-br from-primary to-primary-dark opacity-90" />
+              <div className="absolute inset-0 grid place-items-center">
+                <span className="text-6xl font-bold text-white/90">
+                  {(config.business_name || dict.brand).charAt(0)}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
-
-      {/* Promotional banners */}
-      <BannerCarousel banners={banners} locale={locale} />
 
       {/* Categories */}
       {categories.length > 0 && (
