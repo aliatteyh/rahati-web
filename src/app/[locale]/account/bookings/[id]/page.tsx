@@ -5,8 +5,20 @@ import { getConfig, formatPrice } from "@/lib/api";
 import { authGet } from "@/lib/account";
 import { Thumb } from "@/components/Thumb";
 import { CancelBookingButton } from "@/components/account/CancelBookingButton";
-import { ReviewForm } from "@/components/account/ReviewForm";
+import { ServiceReview, type ExistingReview } from "@/components/account/ServiceReview";
 import { BookingDetailTabs } from "@/components/account/BookingDetailTabs";
+
+interface ReviewRow {
+  review_rating?: number;
+  review_comment?: string;
+  created_at?: string;
+  review_reply?: { reply?: string } | null;
+  reviewReply?: { reply?: string } | null;
+}
+interface ReviewServiceRow {
+  id?: string;
+  reviews?: ReviewRow[];
+}
 
 interface Person {
   first_name?: string;
@@ -86,11 +98,39 @@ export default async function BookingDetailPage({
   const dict = getDictionary(locale);
   const a = dict.account as unknown as Record<string, string>;
 
-  const [b, config] = await Promise.all([
+  const [b, config, reviewServices] = await Promise.all([
     authGet<Booking>(`/api/v1/customer/booking/${encodeURIComponent(id)}`, locale, {}),
     getConfig(locale),
+    authGet<ReviewServiceRow[]>(
+      `/api/v1/customer/review?booking_id=${encodeURIComponent(id)}`,
+      locale,
+      []
+    ),
   ]);
   const currency = config.currency_symbol || config.currency_code || "";
+
+  // Map serviceId -> the customer's existing review (rating, comment, reply, when).
+  const reviewMap = new Map<string, { review: ExistingReview; createdAt?: string }>();
+  for (const s of Array.isArray(reviewServices) ? reviewServices : []) {
+    const r = s.reviews?.[0];
+    if (s.id && r && r.review_rating) {
+      reviewMap.set(String(s.id), {
+        review: {
+          rating: Number(r.review_rating),
+          comment: r.review_comment ?? "",
+          reply: (r.review_reply ?? r.reviewReply)?.reply ?? "",
+        },
+        createdAt: r.created_at,
+      });
+    }
+  }
+  const editStatus = Number(config.review_edit_time_status) === 1;
+  const editHours = Number(config.review_edit_time ?? 0);
+  const canEditReview = (createdAt?: string) => {
+    if (!editStatus || editHours <= 0 || !createdAt) return false;
+    const deadline = new Date(createdAt).getTime() + editHours * 3600 * 1000;
+    return Date.now() < deadline;
+  };
 
   if (!b || !b.id) {
     return (
@@ -114,13 +154,13 @@ export default async function BookingDetailPage({
   const statusLabel = (s?: string) => a[`status_${s}`] ?? pretty(s);
 
   const reviewDict = {
-    rate: a.rate,
     submitReview: a.submitReview,
     reviewPlaceholder: a.reviewPlaceholder,
-    reviewThanks: a.reviewThanks,
     reviewError: a.reviewError,
     processing: a.processing,
     cancel: a.cancel,
+    editReview: a.editReview,
+    providerReply: a.providerReply,
   };
 
   /* ---------------- Booking Details tab ---------------- */
@@ -162,11 +202,13 @@ export default async function BookingDetailPage({
                   )}
                 </div>
                 {b.booking_status === "completed" && serviceId && b.id && (
-                  <ReviewForm
+                  <ServiceReview
                     bookingId={b.id}
                     serviceId={serviceId}
                     locale={locale}
                     dict={reviewDict}
+                    existing={reviewMap.get(String(serviceId))?.review ?? null}
+                    canEdit={canEditReview(reviewMap.get(String(serviceId))?.createdAt)}
                   />
                 )}
               </li>

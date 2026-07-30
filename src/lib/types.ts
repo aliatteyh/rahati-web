@@ -113,6 +113,8 @@ export interface BusinessConfig {
   additional_charge_fee_amount?: number | string;
   wallet_status?: number | string;
   loyalty_point_status?: number | string;
+  review_edit_time_status?: number | string;
+  review_edit_time?: number | string;
 }
 
 export interface Banner {
