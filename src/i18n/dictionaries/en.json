@@ -159,7 +159,8 @@
     "subtotal": "Subtotal",
     "discount": "Discount",
     "tax": "VAT / Tax",
-    "address": "Address"
+    "address": "Address",
+    "bookAgain": "Book again"
   },
   "hero": {
     "badge": "Trusted home services",

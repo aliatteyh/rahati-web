@@ -9,7 +9,7 @@ import { ReviewForm } from "@/components/account/ReviewForm";
 interface Detail {
   id?: string;
   service_id?: string;
-  service?: { id?: string; name?: string };
+  service?: { id?: string; name?: string; slug?: string };
   quantity?: number;
   total_cost?: number | string;
 }
@@ -132,6 +132,16 @@ export default async function BookingDetailPage({
                       <span className="font-semibold text-ink">
                         {formatPrice(s.total_cost, currency)}
                       </span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex items-center gap-3">
+                    {s.service?.slug && (
+                      <Link
+                        href={`/${locale}/service/${s.service.slug}`}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        {a.bookAgain} →
+                      </Link>
                     )}
                   </div>
                   {b.booking_status === "completed" && serviceId && b.id && (
