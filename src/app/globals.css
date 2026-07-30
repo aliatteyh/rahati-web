@@ -39,3 +39,15 @@ body {
 [dir="rtl"] .rtl-flip {
   transform: scaleX(-1);
 }
+
+/* Print: show only the invoice, hide site chrome */
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}
