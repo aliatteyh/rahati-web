@@ -143,7 +143,15 @@
     "transferToWallet": "حوّل إلى المحفظة",
     "confirmTransfer": "تأكيد التحويل",
     "transferError": "فشل التحويل. حاول مرة أخرى.",
-    "cancelSubscription": "إلغاء الاشتراك"
+    "cancelSubscription": "إلغاء الاشتراك",
+    "confirmDelete": "نعم، احذف",
+    "deleteError": "تعذّر الحذف. حاول مرة أخرى.",
+    "addressAddHint": "أضف عناوين جديدة عند الدفع أثناء حجز خدمة.",
+    "rate": "قيّم الخدمة",
+    "submitReview": "إرسال التقييم",
+    "reviewPlaceholder": "شاركنا تجربتك (اختياري)",
+    "reviewThanks": "شكراً لتقييمك!",
+    "reviewError": "تعذّر الإرسال. حاول مرة أخرى."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",

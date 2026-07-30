@@ -3,6 +3,12 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
 import { authGetList } from "@/lib/account";
 import { CancelBookingButton } from "@/components/account/CancelBookingButton";
+import { ReviewForm } from "@/components/account/ReviewForm";
+
+interface BookingDetail {
+  service_id?: string;
+  service?: { id?: string; name?: string };
+}
 
 interface Booking {
   id?: string;
@@ -13,6 +19,7 @@ interface Booking {
   total_amount?: number | string;
   created_at?: string;
   service_name?: string;
+  detail?: BookingDetail[];
 }
 
 export default async function BookingsPage({
@@ -30,6 +37,15 @@ export default async function BookingsPage({
     confirmCancel: a.confirmCancel,
     keep: a.keep,
     cancelError: a.cancelError,
+  };
+  const reviewDict = {
+    rate: a.rate,
+    submitReview: a.submitReview,
+    reviewPlaceholder: a.reviewPlaceholder,
+    reviewThanks: a.reviewThanks,
+    reviewError: a.reviewError,
+    processing: a.processing,
+    cancel: a.cancel,
   };
 
   const [bookings, config] = await Promise.all([
@@ -83,6 +99,22 @@ export default async function BookingsPage({
                     />
                   </div>
                 )}
+                {b.booking_status === "completed" &&
+                  b.id &&
+                  (() => {
+                    const d = b.detail?.[0];
+                    const serviceId = d?.service_id ?? d?.service?.id;
+                    return serviceId ? (
+                      <div className="mt-1 flex justify-end">
+                        <ReviewForm
+                          bookingId={b.id!}
+                          serviceId={serviceId}
+                          locale={locale}
+                          dict={reviewDict}
+                        />
+                      </div>
+                    ) : null;
+                  })()}
               </li>
             );
           })}

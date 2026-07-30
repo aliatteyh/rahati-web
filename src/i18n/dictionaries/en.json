@@ -143,7 +143,15 @@
     "transferToWallet": "Transfer to wallet",
     "confirmTransfer": "Confirm transfer",
     "transferError": "Transfer failed. Try again.",
-    "cancelSubscription": "Cancel subscription"
+    "cancelSubscription": "Cancel subscription",
+    "confirmDelete": "Yes, delete",
+    "deleteError": "Couldn't delete. Try again.",
+    "addressAddHint": "Add new addresses at checkout when booking a service.",
+    "rate": "Rate service",
+    "submitReview": "Submit review",
+    "reviewPlaceholder": "Share your experience (optional)",
+    "reviewThanks": "Thanks for your review!",
+    "reviewError": "Couldn't submit. Try again."
   },
   "hero": {
     "badge": "Trusted home services",

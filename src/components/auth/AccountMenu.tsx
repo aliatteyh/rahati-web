@@ -54,6 +54,7 @@ export function AccountMenu({
     { href: `${base}/wallet`, label: dict.wallet },
     { href: `${base}/notifications`, label: dict.notifications },
     { href: `${base}/favourites`, label: dict.favourites },
+    { href: `${base}/addresses`, label: dict.addresses },
     { href: `${base}/service-area`, label: dict.serviceArea },
   ];
   const pages: { href: string; label: string }[] = [
