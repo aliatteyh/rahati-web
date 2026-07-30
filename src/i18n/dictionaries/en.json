@@ -151,7 +151,15 @@
     "submitReview": "Submit review",
     "reviewPlaceholder": "Share your experience (optional)",
     "reviewThanks": "Thanks for your review!",
-    "reviewError": "Couldn't submit. Try again."
+    "reviewError": "Couldn't submit. Try again.",
+    "schedule": "Schedule",
+    "bookedOn": "Booked on",
+    "services": "Services",
+    "paymentSummary": "Payment summary",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "VAT / Tax",
+    "address": "Address"
   },
   "hero": {
     "badge": "Trusted home services",

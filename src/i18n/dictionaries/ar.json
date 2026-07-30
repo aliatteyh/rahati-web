@@ -151,7 +151,15 @@
     "submitReview": "إرسال التقييم",
     "reviewPlaceholder": "شاركنا تجربتك (اختياري)",
     "reviewThanks": "شكراً لتقييمك!",
-    "reviewError": "تعذّر الإرسال. حاول مرة أخرى."
+    "reviewError": "تعذّر الإرسال. حاول مرة أخرى.",
+    "schedule": "الموعد",
+    "bookedOn": "تاريخ الحجز",
+    "services": "الخدمات",
+    "paymentSummary": "ملخّص الدفع",
+    "subtotal": "المجموع الفرعي",
+    "discount": "الخصم",
+    "tax": "الضريبة",
+    "address": "العنوان"
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
