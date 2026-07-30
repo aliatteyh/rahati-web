@@ -85,6 +85,8 @@ export interface ServiceReview {
     last_name?: string;
     image_full_path?: string | null;
   } | null;
+  review_reply?: { reply?: string; reply_by_name?: string } | null;
+  reviewReply?: { reply?: string; reply_by_name?: string } | null;
 }
 
 /** A subcategory paired with the services it contains (for the category page). */
