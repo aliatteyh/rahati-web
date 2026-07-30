@@ -10,6 +10,7 @@ export interface ExistingReview {
   rating: number;
   comment: string;
   reply: string;
+  replyBy: string;
 }
 
 function Stars({ value, onPick, hover, onHover }: {
@@ -113,7 +114,9 @@ export function ServiceReview({
         {existing.comment && <p className="mt-1 text-sm text-ink">{existing.comment}</p>}
         {existing.reply && (
           <div className="mt-2 rounded-lg border-s-2 border-primary bg-surface p-2">
-            <p className="text-xs font-semibold text-primary-dark">{dict.providerReply}</p>
+            <p className="text-xs font-semibold text-primary-dark">
+              {existing.replyBy || dict.providerReply}
+            </p>
             <p className="text-sm text-muted">{existing.reply}</p>
           </div>
         )}

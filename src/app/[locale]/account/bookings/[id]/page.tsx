@@ -12,8 +12,8 @@ interface ReviewRow {
   review_rating?: number;
   review_comment?: string;
   created_at?: string;
-  review_reply?: { reply?: string } | null;
-  reviewReply?: { reply?: string } | null;
+  review_reply?: { reply?: string; reply_by_name?: string } | null;
+  reviewReply?: { reply?: string; reply_by_name?: string } | null;
 }
 interface ReviewServiceRow {
   id?: string;
@@ -114,11 +114,13 @@ export default async function BookingDetailPage({
   for (const s of Array.isArray(reviewServices) ? reviewServices : []) {
     const r = s.reviews?.[0];
     if (s.id && r && r.review_rating) {
+      const rr = r.review_reply ?? r.reviewReply;
       reviewMap.set(String(s.id), {
         review: {
           rating: Number(r.review_rating),
           comment: r.review_comment ?? "",
-          reply: (r.review_reply ?? r.reviewReply)?.reply ?? "",
+          reply: rr?.reply ?? "",
+          replyBy: rr?.reply_by_name ?? "",
         },
         createdAt: r.created_at,
       });
