@@ -368,7 +368,9 @@ export function BookingWizard({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* ---- Left: step content ---- */}
-        <div className="rounded-2xl border border-border bg-surface p-6">
+        {/* min-w-0 lets the grid track shrink so the horizontal day scroller
+            scrolls internally instead of forcing the whole page wide. */}
+        <div className="min-w-0 rounded-2xl border border-border bg-surface p-6">
           {step === 1 && (
             <div className="space-y-8">
               {/* Coupon */}
