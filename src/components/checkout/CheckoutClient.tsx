@@ -52,6 +52,8 @@ export function CheckoutClient({
   serverTotal,
   zoneId,
   schedule,
+  serviceType = "regular",
+  dates = "",
 }: {
   locale: Locale;
   dict: Dict;
@@ -67,7 +69,19 @@ export function CheckoutClient({
   zoneId: string;
   schedule: string;
   instructions: string;
+  serviceType?: "regular" | "repeat";
+  dates?: string;
 }) {
+  const isRepeat = serviceType === "repeat";
+  const repeatDates: string[] = (() => {
+    if (!isRepeat || !dates) return [];
+    try {
+      const parsed = JSON.parse(dates) as { date?: string }[];
+      return parsed.map((d) => d.date ?? "").filter(Boolean);
+    } catch {
+      return [];
+    }
+  })();
   const money = (n: number) => `${currency} ${n.toLocaleString(locale === "ar" ? "ar" : "en")}`;
 
   const [addressList, setAddressList] = useState(addresses);
@@ -157,6 +171,7 @@ export function CheckoutClient({
           service_schedule: when ? when.replace("T", " ") + ":00" : schedule,
           payment_method: method,
           zone_id: zoneId,
+          ...(isRepeat ? { service_type: "repeat", dates } : {}),
         }),
       });
       const data = await res.json();
@@ -282,12 +297,31 @@ export function CheckoutClient({
         {/* Schedule */}
         <section>
           <h2 className="mb-3 text-lg font-semibold text-ink">{dict.schedule}</h2>
-          <input
-            type="datetime-local"
-            value={when}
-            onChange={(e) => setWhen(e.target.value)}
-            className="rounded-xl border border-border bg-surface px-4 py-2.5 outline-none focus:border-primary"
-          />
+          {isRepeat ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted">
+                {dict.repeatVisits?.replace("{n}", String(repeatDates.length)) ??
+                  `${repeatDates.length} visits`}
+              </p>
+              <ul className="flex flex-wrap gap-2">
+                {repeatDates.map((d, i) => (
+                  <li
+                    key={i}
+                    className="rounded-lg border border-border bg-surface-soft px-3 py-1.5 text-sm text-ink"
+                  >
+                    {d.slice(0, 16)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <input
+              type="datetime-local"
+              value={when}
+              onChange={(e) => setWhen(e.target.value)}
+              className="rounded-xl border border-border bg-surface px-4 py-2.5 outline-none focus:border-primary"
+            />
+          )}
         </section>
 
         {/* Payment */}

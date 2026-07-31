@@ -105,6 +105,10 @@ export function BookingWizard({
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [dateIndex, setDateIndex] = useState(0);
   const [timeSlot, setTimeSlot] = useState<string | null>(null);
+  const [bookingMode, setBookingMode] = useState<"once" | "multiple">("once");
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "custom">("daily");
+  const [occurrences, setOccurrences] = useState(2);
+  const [customDays, setCustomDays] = useState<Set<number>>(new Set());
 
   const variant = safeVariants[variantIndex];
 
@@ -151,12 +155,32 @@ export function BookingWizard({
     [addOns, selectedAddOns]
   );
 
-  // Build a "YYYY-MM-DD HH:mm:00" schedule from the chosen day + time slot start.
-  function buildSchedule(): string {
-    const d = days[dateIndex].date;
+  // Build a "YYYY-MM-DD HH:mm:00" schedule string for a given date + time slot.
+  function scheduleFor(d: Date): string {
     const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const start = (timeSlot ?? "09:00").split("-")[0];
     return `${ymd} ${start}:00`;
+  }
+
+  function buildSchedule(): string {
+    return scheduleFor(days[dateIndex].date);
+  }
+
+  // Build the array of occurrences for a "multiple times" booking.
+  function buildDates(): { date: string }[] {
+    if (frequency === "custom") {
+      const idxs = customDays.size > 0 ? [...customDays].sort((a, b) => a - b) : [dateIndex];
+      return idxs.map((i) => ({ date: scheduleFor(days[i].date) }));
+    }
+    const step = frequency === "weekly" ? 7 : 1;
+    const base = days[dateIndex].date;
+    const out: { date: string }[] = [];
+    for (let i = 0; i < occurrences; i++) {
+      const d = new Date(base);
+      d.setDate(d.getDate() + i * step);
+      out.push({ date: scheduleFor(d) });
+    }
+    return out;
   }
 
   async function proceedToCheckout() {
@@ -184,9 +208,16 @@ export function BookingWizard({
         return;
       }
       if (data.ok) {
-        const schedule = encodeURIComponent(buildSchedule());
         const instr = encodeURIComponent(instructions);
-        router.push(`/${locale}/checkout?schedule=${schedule}&instructions=${instr}`);
+        if (bookingMode === "multiple") {
+          const dates = encodeURIComponent(JSON.stringify(buildDates()));
+          router.push(
+            `/${locale}/checkout?service_type=repeat&dates=${dates}&instructions=${instr}`
+          );
+        } else {
+          const schedule = encodeURIComponent(buildSchedule());
+          router.push(`/${locale}/checkout?schedule=${schedule}&instructions=${instr}`);
+        }
       } else {
         setSubmitError(data.message || dict.cartFailed);
       }
@@ -469,38 +500,114 @@ export function BookingWizard({
 
           {step === 3 && (
             <div className="space-y-8">
-              {/* Frequency */}
-              <div className="rounded-xl border border-primary bg-primary-light px-4 py-3">
-                <p className="text-sm text-muted">{dict.frequency}</p>
-                <p className="mt-1 inline-flex items-center gap-2 font-semibold text-primary-dark">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {dict.oneTime}
-                </p>
-              </div>
-
-              {/* Date */}
+              {/* Take the service: once / multiple times */}
               <div>
-                <p className="mb-3 font-semibold text-ink">{dict.whenQuestion}</p>
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {days.map((d, i) => (
+                <p className="mb-3 font-semibold text-ink">{dict.takeService}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["once", "multiple"] as const).map((m) => (
                     <button
-                      key={i}
+                      key={m}
                       type="button"
-                      onClick={() => setDateIndex(i)}
-                      className={`flex shrink-0 flex-col items-center rounded-2xl border px-3 py-2 transition ${
-                        i === dateIndex
-                          ? "border-primary bg-primary text-white"
+                      onClick={() => setBookingMode(m)}
+                      className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                        bookingMode === m
+                          ? "border-primary bg-primary-light text-primary-dark"
                           : "border-border text-muted hover:border-primary"
                       }`}
                     >
-                      <span className="text-xs">{d.weekday}</span>
-                      <span className="text-lg font-bold">{d.day}</span>
+                      {m === "once" ? dict.onlyOnce : dict.multipleTimes}
                     </button>
                   ))}
                 </div>
+
+                {bookingMode === "multiple" && (
+                  <div className="mt-4 space-y-3 rounded-xl border border-border bg-surface-soft p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {(["daily", "weekly", "custom"] as const).map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setFrequency(f)}
+                          className={`rounded-full border px-4 py-1.5 text-sm transition ${
+                            frequency === f
+                              ? "border-primary bg-primary text-white"
+                              : "border-border text-muted hover:border-primary"
+                          }`}
+                        >
+                          {dict[f]}
+                        </button>
+                      ))}
+                    </div>
+                    {frequency === "custom" ? (
+                      <p className="text-xs text-muted">{dict.customHint}</p>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-muted">{dict.times}</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setOccurrences((n) => Math.max(2, n - 1))}
+                            className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
+                          >
+                            −
+                          </button>
+                          <span className="w-6 text-center font-semibold text-ink">{occurrences}</span>
+                          <button
+                            type="button"
+                            onClick={() => setOccurrences((n) => Math.min(12, n + 1))}
+                            className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Date */}
+              {(() => {
+                const isCustom = bookingMode === "multiple" && frequency === "custom";
+                return (
+                  <div>
+                    <p className="mb-3 font-semibold text-ink">
+                      {isCustom ? dict.selectDates : dict.whenQuestion}
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {days.map((d, i) => {
+                        const active = isCustom ? customDays.has(i) : i === dateIndex;
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              if (isCustom) {
+                                setCustomDays((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(i)) next.delete(i);
+                                  else next.add(i);
+                                  return next;
+                                });
+                              } else {
+                                setDateIndex(i);
+                              }
+                            }}
+                            className={`flex shrink-0 flex-col items-center rounded-2xl border px-3 py-2 transition ${
+                              active
+                                ? "border-primary bg-primary text-white"
+                                : "border-border text-muted hover:border-primary"
+                            }`}
+                          >
+                            <span className="text-xs">{d.weekday}</span>
+                            <span className="text-lg font-bold">{d.day}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Time */}
               <div>
@@ -567,7 +674,16 @@ export function BookingWizard({
             <h2 className="mb-4 text-lg font-bold text-ink">{dict.bookingDetails}</h2>
             <dl className="space-y-3 text-sm">
               <Row label={dict.service} value={serviceName} />
-              <Row label={dict.frequency} value={dict.oneTime} />
+              <Row
+                label={dict.frequency}
+                value={
+                  bookingMode === "once"
+                    ? dict.onlyOnce
+                    : frequency === "custom"
+                      ? `${dict.custom} (${customDays.size || 1})`
+                      : `${dict[frequency]} × ${occurrences}`
+                }
+              />
               <Row label={dict.duration} value={fmtDuration(variant.durationMinutes)} />
               <Row label={dict.professionals} value={String(professionals)} />
               <Row label={dict.material} value={materials ? dict.yes : dict.no} />

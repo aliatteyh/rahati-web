@@ -25,10 +25,15 @@ export default async function CheckoutPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ schedule?: string; instructions?: string }>;
+  searchParams: Promise<{
+    schedule?: string;
+    instructions?: string;
+    service_type?: string;
+    dates?: string;
+  }>;
 }) {
   const { locale: raw } = await params;
-  const { schedule, instructions } = await searchParams;
+  const { schedule, instructions, service_type, dates } = await searchParams;
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
 
@@ -63,6 +68,8 @@ export default async function CheckoutPage({
         zoneId={zoneId}
         schedule={schedule ?? ""}
         instructions={instructions ?? ""}
+        serviceType={service_type === "repeat" ? "repeat" : "regular"}
+        dates={dates ?? ""}
       />
     </div>
   );

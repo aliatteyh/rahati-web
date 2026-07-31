@@ -16,6 +16,8 @@ export async function POST(request: Request) {
   const zoneId = String(body.zone_id ?? "");
   const schedule = String(body.service_schedule ?? "");
   const addressId = body.service_address_id;
+  const isRepeat = String(body.service_type ?? "") === "repeat";
+  const dates = String(body.dates ?? "");
 
   if (!addressId) {
     return NextResponse.json({ ok: false, message: "Address required" }, { status: 400 });
@@ -34,7 +36,9 @@ export async function POST(request: Request) {
       `&access_token=${encodeURIComponent(accessToken)}` +
       `&zone_id=${encodeURIComponent(zoneId)}` +
       `&service_address_id=${encodeURIComponent(String(addressId))}` +
-      `&service_schedule=${encodeURIComponent(schedule)}` +
+      (isRepeat
+        ? `&service_type=repeat&dates=${encodeURIComponent(dates)}`
+        : `&service_schedule=${encodeURIComponent(schedule)}`) +
       `&callback=${encodeURIComponent(callback)}`;
     return NextResponse.json({ ok: true, redirect }, { status: 200 });
   }
@@ -46,10 +50,12 @@ export async function POST(request: Request) {
     {
       payment_method: method,
       zone_id: zoneId,
-      service_schedule: schedule,
       service_address_id: addressId,
       service_location: "customer",
       is_partial: 0,
+      ...(isRepeat
+        ? { service_type: "repeat", dates }
+        : { service_type: "regular", service_schedule: schedule }),
     },
     locale
   );
