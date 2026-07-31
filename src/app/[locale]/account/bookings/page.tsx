@@ -13,7 +13,16 @@ interface Booking {
   total_booking_amount?: number | string;
   total_amount?: number | string;
   created_at?: string;
-  service_name?: string;
+  detail?: { service?: { name?: string } }[] | null;
+  serviceman?: {
+    user?: { first_name?: string; last_name?: string; phone?: string } | null;
+  } | null;
+  provider?: { phone?: string; company_name?: string } | null;
+}
+
+function fullName(p?: { first_name?: string; last_name?: string } | null): string {
+  if (!p) return "";
+  return [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
 }
 
 export default async function BookingsPage({
@@ -52,14 +61,34 @@ export default async function BookingsPage({
         <ul className="space-y-3">
           {bookings.map((b, i) => {
             const total = b.grand_total ?? b.total_booking_amount ?? b.total_amount;
+            const services = (b.detail ?? [])
+              .map((d) => d.service?.name)
+              .filter(Boolean) as string[];
+            const serviceLabel =
+              services.length > 1 ? `${services[0]} +${services.length - 1}` : services[0];
+            const servicemanName = fullName(b.serviceman?.user);
+            const callPhone = b.serviceman?.user?.phone || b.provider?.phone;
+            const canContact = ["accepted", "ongoing", "completed"].includes(
+              b.booking_status ?? ""
+            );
             const summary = (
               <>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-ink">
-                    #{b.readable_id ?? "—"}
-                  </span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="font-semibold text-ink">
+                      #{b.readable_id ?? "—"}
+                    </span>
+                    {serviceLabel && (
+                      <p className="mt-0.5 truncate text-sm text-ink">{serviceLabel}</p>
+                    )}
+                    {servicemanName && (
+                      <p className="mt-0.5 truncate text-xs text-muted">
+                        👤 {servicemanName}
+                      </p>
+                    )}
+                  </div>
                   {b.booking_status && (
-                    <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-medium text-primary-dark">
+                    <span className="shrink-0 rounded-full bg-primary-light px-3 py-1 text-xs font-medium text-primary-dark">
                       {b.booking_status}
                     </span>
                   )}
@@ -89,13 +118,31 @@ export default async function BookingsPage({
                 ) : (
                   summary
                 )}
-                {b.booking_status === "pending" && b.id && (
-                  <div className="mt-3 flex justify-end">
-                    <CancelBookingButton
-                      bookingId={b.id}
-                      locale={locale}
-                      dict={cancelDict}
-                    />
+                {(canContact || b.booking_status === "pending") && b.id && (
+                  <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                    {canContact && (
+                      <Link
+                        href={`/${locale}/account/bookings/${b.id}/chat`}
+                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-dark"
+                      >
+                        {a.message}
+                      </Link>
+                    )}
+                    {canContact && callPhone && (
+                      <a
+                        href={`tel:${callPhone}`}
+                        className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-light"
+                      >
+                        {a.call}
+                      </a>
+                    )}
+                    {b.booking_status === "pending" && (
+                      <CancelBookingButton
+                        bookingId={b.id}
+                        locale={locale}
+                        dict={cancelDict}
+                      />
+                    )}
                   </div>
                 )}
               </li>

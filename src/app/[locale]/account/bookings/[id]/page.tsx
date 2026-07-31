@@ -389,6 +389,15 @@ export default async function BookingDetailPage({
             {a.message}
           </Link>
         )}
+        {["accepted", "ongoing", "completed"].includes(b.booking_status ?? "") &&
+          (serviceman?.phone || b.provider?.phone) && (
+            <a
+              href={`tel:${serviceman?.phone || b.provider?.phone}`}
+              className="rounded-xl border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary-light"
+            >
+              {a.call}
+            </a>
+          )}
         <Link
           href={`/${locale}/account/bookings/${b.id}/invoice`}
           className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-ink transition hover:border-primary"
