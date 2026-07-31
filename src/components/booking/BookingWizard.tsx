@@ -256,6 +256,11 @@ export function BookingWizard({
     const t = professionalTiers.find((x) => Number(x.professionals) === professionals);
     return t ? Number(t.discount_percent) || 0 : 0;
   })();
+  // For a recurring booking every selected date repeats the per-occurrence
+  // charges; a single (or empty) selection counts as one.
+  const occurrenceCount =
+    bookingMode === "multiple" ? Math.max(1, buildDates().length) : 1;
+
   // Service amount includes professionals: base price × count, with the tier discount applied
   const serviceAmount = variant.price * professionals * (1 - tierPercent / 100);
   const materialsFee = materials ? materialCharge : 0;
@@ -274,7 +279,9 @@ export function BookingWizard({
 
   const taxableBase = Math.max(0, itemsSubtotal - totalDiscounts);
   const vat = (taxableBase * serviceTax) / 100;
-  const grandTotal = Math.max(0, taxableBase + vat + serviceFee);
+  // Per-occurrence charges repeat for every date; the service fee is charged
+  // once. Mirrors the backend repeat total in placeRepeatBookingRequest.
+  const grandTotal = Math.max(0, (taxableBase + vat) * occurrenceCount + serviceFee);
 
   async function applyCoupon() {
     const code = coupon.trim();
@@ -786,27 +793,30 @@ export function BookingWizard({
           <div className="rounded-2xl border border-border bg-surface p-5">
             <h2 className="mb-4 text-lg font-bold text-ink">{dict.paymentSummary}</h2>
             <div className="space-y-2 text-sm">
-              <Line label={dict.serviceAmount} value={money(serviceAmount)} />
+              <Line label={dict.serviceAmount} value={money(serviceAmount * occurrenceCount)} />
+              {occurrenceCount > 1 && (
+                <Line label={dict.times} value={`× ${occurrenceCount}`} muted />
+              )}
               {materialsFee > 0 && (
-                <Line label={dict.material} value={`+ ${money(materialsFee)}`} />
+                <Line label={dict.material} value={`+ ${money(materialsFee * occurrenceCount)}`} />
               )}
               {addOns
                 .filter((a) => selectedAddOns.has(a.id))
                 .map((a) => (
-                  <Line key={a.id} label={a.name} value={`+ ${money(a.price)}`} muted />
+                  <Line key={a.id} label={a.name} value={`+ ${money(a.price * occurrenceCount)}`} muted />
                 ))}
               {applicableDiscount > 0 && (
                 <Line
                   label={campApplicable ? dict.campaignDiscount : dict.serviceDiscount}
-                  value={`- ${money(applicableDiscount)}`}
+                  value={`- ${money(applicableDiscount * occurrenceCount)}`}
                   accent
                 />
               )}
               {couponDiscount > 0 && (
-                <Line label={dict.couponDiscount} value={`- ${money(couponDiscount)}`} accent />
+                <Line label={dict.couponDiscount} value={`- ${money(couponDiscount * occurrenceCount)}`} accent />
               )}
               {serviceTax > 0 && (
-                <Line label={`${dict.vat} (${serviceTax}%)`} value={`+ ${money(vat)}`} />
+                <Line label={`${dict.vat} (${serviceTax}%)`} value={`+ ${money(vat * occurrenceCount)}`} />
               )}
               {serviceFee > 0 && (
                 <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />
