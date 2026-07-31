@@ -300,6 +300,7 @@
     "startDay": "يوم البداية",
     "weeks": "عدد الأسابيع",
     "offDaysNote": "سيتم تخطّي أيام عطلة المزوّد تلقائياً.",
+    "commitmentDiscount": "خصم الالتزام",
     "selectWeekdaysPrompt": "اختر يوماً واحداً على الأقل من أيام الأسبوع.",
     "whenQuestion": "متى تريد الخدمة؟",
     "timeQuestion": "في أي وقت تريد أن نبدأ؟",

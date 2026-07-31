@@ -300,6 +300,7 @@
     "startDay": "Start day",
     "weeks": "Weeks",
     "offDaysNote": "The provider's off days will be skipped automatically.",
+    "commitmentDiscount": "Commitment discount",
     "selectWeekdaysPrompt": "Select at least one weekday.",
     "whenQuestion": "When would you like your service?",
     "timeQuestion": "What time would you like us to start?",

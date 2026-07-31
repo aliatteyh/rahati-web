@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
-import type { DiscountLike, ProfessionalTier } from "@/lib/types";
+import type { DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
 
 type Dict = Record<string, string>;
 
@@ -41,6 +41,8 @@ export interface BookingWizardProps {
   /** Serving provider's working hours "HH:mm"; slots are limited to this window. */
   workStart?: string | null;
   workEnd?: string | null;
+  /** Commitment discount tiers: more recurring services → higher discount. */
+  repeatDiscountTiers?: RepeatTier[];
 }
 
 /** Mirrors the backend booking_discount_calculator() (Promotion.php). */
@@ -89,6 +91,7 @@ export function BookingWizard({
   addOns,
   workStart,
   workEnd,
+  repeatDiscountTiers = [],
 }: BookingWizardProps) {
   const safeVariants: WizardVariant[] =
     variants.length > 0 ? variants : [{ key: "default", price: 0, durationMinutes: 60 }];
@@ -291,9 +294,25 @@ export function BookingWizard({
 
   const taxableBase = Math.max(0, itemsSubtotal - totalDiscounts);
   const vat = (taxableBase * serviceTax) / 100;
+  // Commitment discount: the more recurring services, the higher the admin-set
+  // tier percent, applied to the (pre-tax) recurring base. Mirrors the backend.
+  const commitmentPercent =
+    bookingMode === "multiple"
+      ? repeatDiscountTiers.reduce(
+          (acc, t) =>
+            occurrenceCount >= Number(t.min_services)
+              ? Math.max(acc, Number(t.discount_percent) || 0)
+              : acc,
+          0
+        )
+      : 0;
+  const commitmentDiscount = (taxableBase * occurrenceCount * commitmentPercent) / 100;
   // Per-occurrence charges repeat for every date; the service fee is charged
   // once. Mirrors the backend repeat total in placeRepeatBookingRequest.
-  const grandTotal = Math.max(0, (taxableBase + vat) * occurrenceCount + serviceFee);
+  const grandTotal = Math.max(
+    0,
+    (taxableBase + vat) * occurrenceCount + serviceFee - commitmentDiscount
+  );
 
   async function applyCoupon() {
     const code = coupon.trim();
@@ -826,6 +845,13 @@ export function BookingWizard({
               )}
               {couponDiscount > 0 && (
                 <Line label={dict.couponDiscount} value={`- ${money(couponDiscount * occurrenceCount)}`} accent />
+              )}
+              {commitmentDiscount > 0 && (
+                <Line
+                  label={`${dict.commitmentDiscount} (${commitmentPercent}%)`}
+                  value={`- ${money(commitmentDiscount)}`}
+                  accent
+                />
               )}
               {serviceTax > 0 && (
                 <Line label={`${dict.vat} (${serviceTax}%)`} value={`+ ${money(vat * occurrenceCount)}`} />

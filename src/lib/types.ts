@@ -59,6 +59,12 @@ export interface ProfessionalTier {
   discount_percent: number;
 }
 
+/** Commitment (recurring) discount tier: reached at `min_services` occurrences. */
+export interface RepeatTier {
+  min_services: number;
+  discount_percent: number;
+}
+
 export interface ServiceVariation {
   variant?: string;
   variant_key?: string;

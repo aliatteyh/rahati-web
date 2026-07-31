@@ -87,6 +87,10 @@ export default async function BookPage({ params }: { params: Params }) {
       addOns={addOns}
       workStart={service.service_availability?.time_schedule?.start_time ?? null}
       workEnd={service.service_availability?.time_schedule?.end_time ?? null}
+      repeatDiscountTiers={
+        (config as unknown as { repeat_discount_tiers?: { min_services: number; discount_percent: number }[] })
+          .repeat_discount_tiers ?? []
+      }
     />
   );
 }
