@@ -107,7 +107,12 @@ export function BookingWizard({
   const [timeSlot, setTimeSlot] = useState<string | null>(null);
   const [bookingMode, setBookingMode] = useState<"once" | "multiple">("once");
   const [frequency, setFrequency] = useState<"daily" | "weekly" | "custom">("daily");
-  const [occurrences, setOccurrences] = useState(2);
+  // Daily = a date range [dateIndex .. rangeEndIndex] into `days`.
+  const [rangeEndIndex, setRangeEndIndex] = useState(1);
+  // Weekly = a set of weekdays (0=Sun..6=Sat) repeated over `weeks` weeks from dateIndex.
+  const [weekdays, setWeekdays] = useState<Set<number>>(new Set());
+  const [weeks, setWeeks] = useState(2);
+  // Custom = specific days picked from `days`.
   const [customDays, setCustomDays] = useState<Set<number>>(new Set());
 
   const variant = safeVariants[variantIndex];
@@ -125,12 +130,21 @@ export function BookingWizard({
     const list: { date: Date; weekday: string; day: string }[] = [];
     const wd = new Intl.DateTimeFormat(locale, { weekday: "short" });
     const dn = new Intl.DateTimeFormat(locale, { day: "numeric" });
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 30; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
       list.push({ date: d, weekday: wd.format(d), day: dn.format(d) });
     }
     return list;
+  }, [locale]);
+
+  // Localized short weekday names indexed 0=Sun..6=Sat, for the Weekly picker.
+  const weekdayNames = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
+    // 2024-06-02 is a Sunday; add 0..6 to walk Sun..Sat.
+    return Array.from({ length: 7 }, (_, i) =>
+      fmt.format(new Date(2024, 5, 2 + i))
+    );
   }, [locale]);
 
   const timeSlots = useMemo(() => {
@@ -166,20 +180,29 @@ export function BookingWizard({
     return scheduleFor(days[dateIndex].date);
   }
 
-  // Build the array of occurrences for a "multiple times" booking.
+  // Build the array of dates for a "multiple times" booking. The backend drops
+  // any date that falls on the provider's off day, so we send the full request.
   function buildDates(): { date: string }[] {
     if (frequency === "custom") {
       const idxs = customDays.size > 0 ? [...customDays].sort((a, b) => a - b) : [dateIndex];
       return idxs.map((i) => ({ date: scheduleFor(days[i].date) }));
     }
-    const step = frequency === "weekly" ? 7 : 1;
-    const base = days[dateIndex].date;
-    const out: { date: string }[] = [];
-    for (let i = 0; i < occurrences; i++) {
-      const d = new Date(base);
-      d.setDate(d.getDate() + i * step);
-      out.push({ date: scheduleFor(d) });
+    if (frequency === "weekly") {
+      // Selected weekdays repeated across `weeks` weeks, starting from dateIndex.
+      const start = days[dateIndex].date;
+      const out: { date: string }[] = [];
+      for (let offset = 0; offset < weeks * 7; offset++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + offset);
+        if (weekdays.has(d.getDay())) out.push({ date: scheduleFor(d) });
+      }
+      return out;
     }
+    // Daily = every day in the inclusive range [start, end].
+    const a = Math.min(dateIndex, rangeEndIndex);
+    const b = Math.max(dateIndex, rangeEndIndex);
+    const out: { date: string }[] = [];
+    for (let i = a; i <= b; i++) out.push({ date: scheduleFor(days[i].date) });
     return out;
   }
 
@@ -304,7 +327,16 @@ export function BookingWizard({
       }).format(selectedDate)
     : "";
 
-  const canProceed = step < 3 || timeSlot !== null;
+  // A recurring selection must actually resolve to at least one date.
+  const recurringValid =
+    bookingMode === "once"
+      ? true
+      : frequency === "weekly"
+        ? weekdays.size > 0
+        : frequency === "custom"
+          ? customDays.size > 0
+          : true; // daily is always a valid range
+  const canProceed = step < 3 || (timeSlot !== null && recurringValid);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -538,45 +570,94 @@ export function BookingWizard({
                         </button>
                       ))}
                     </div>
-                    {frequency === "custom" ? (
+                    {frequency === "custom" && (
                       <p className="text-xs text-muted">{dict.customHint}</p>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-muted">{dict.times}</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setOccurrences((n) => Math.max(2, n - 1))}
-                            className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
-                          >
-                            −
-                          </button>
-                          <span className="w-6 text-center font-semibold text-ink">{occurrences}</span>
-                          <button
-                            type="button"
-                            onClick={() => setOccurrences((n) => Math.min(12, n + 1))}
-                            className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
-                          >
-                            +
-                          </button>
+                    )}
+                    {frequency === "daily" && (
+                      <p className="text-xs text-muted">{dict.dailyHint}</p>
+                    )}
+                    {frequency === "weekly" && (
+                      <div className="space-y-3">
+                        <div>
+                          <p className="mb-2 text-sm font-medium text-ink">{dict.selectWeekdays}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {weekdayNames.map((name, i) => {
+                              const on = weekdays.has(i);
+                              return (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() =>
+                                    setWeekdays((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(i)) next.delete(i);
+                                      else next.add(i);
+                                      return next;
+                                    })
+                                  }
+                                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                                    on
+                                      ? "border-primary bg-primary text-white"
+                                      : "border-border text-muted hover:border-primary"
+                                  }`}
+                                >
+                                  {name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-muted">{dict.weeks}</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setWeeks((n) => Math.max(1, n - 1))}
+                              className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
+                            >
+                              −
+                            </button>
+                            <span className="w-6 text-center font-semibold text-ink">{weeks}</span>
+                            <button
+                              type="button"
+                              onClick={() => setWeeks((n) => Math.min(12, n + 1))}
+                              className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
+                    <p className="text-xs text-muted">{dict.offDaysNote}</p>
                   </div>
                 )}
               </div>
 
               {/* Date */}
               {(() => {
-                const isCustom = bookingMode === "multiple" && frequency === "custom";
+                const multiple = bookingMode === "multiple";
+                const isCustom = multiple && frequency === "custom";
+                const isDaily = multiple && frequency === "daily";
+                const rangeLo = Math.min(dateIndex, rangeEndIndex);
+                const rangeHi = Math.max(dateIndex, rangeEndIndex);
+                const heading = isCustom
+                  ? dict.selectDates
+                  : isDaily
+                    ? dict.dateRange
+                    : multiple && frequency === "weekly"
+                      ? dict.startDay
+                      : dict.whenQuestion;
                 return (
                   <div>
-                    <p className="mb-3 font-semibold text-ink">
-                      {isCustom ? dict.selectDates : dict.whenQuestion}
-                    </p>
+                    <p className="mb-3 font-semibold text-ink">{heading}</p>
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       {days.map((d, i) => {
-                        const active = isCustom ? customDays.has(i) : i === dateIndex;
+                        const active = isCustom
+                          ? customDays.has(i)
+                          : isDaily
+                            ? i >= rangeLo && i <= rangeHi
+                            : i === dateIndex;
                         return (
                           <button
                             key={i}
@@ -589,6 +670,15 @@ export function BookingWizard({
                                   else next.add(i);
                                   return next;
                                 });
+                              } else if (isDaily) {
+                                // First tap sets the start (and collapses the range);
+                                // a later tap on/after the start sets the end.
+                                if (i < dateIndex || i === rangeEndIndex) {
+                                  setDateIndex(i);
+                                  setRangeEndIndex(i);
+                                } else {
+                                  setRangeEndIndex(i);
+                                }
                               } else {
                                 setDateIndex(i);
                               }
@@ -679,9 +769,7 @@ export function BookingWizard({
                 value={
                   bookingMode === "once"
                     ? dict.onlyOnce
-                    : frequency === "custom"
-                      ? `${dict.custom} (${customDays.size || 1})`
-                      : `${dict[frequency]} × ${occurrences}`
+                    : `${dict[frequency]} (${recurringValid ? buildDates().length : 0})`
                 }
               />
               <Row label={dict.duration} value={fmtDuration(variant.durationMinutes)} />
