@@ -381,6 +381,14 @@ export default async function BookingDetailPage({
 
       {/* Actions */}
       <div className="flex flex-wrap items-center justify-end gap-2">
+        {["accepted", "ongoing", "completed"].includes(b.booking_status ?? "") && b.id && (
+          <Link
+            href={`/${locale}/account/bookings/${b.id}/chat`}
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark"
+          >
+            {a.message}
+          </Link>
+        )}
         <Link
           href={`/${locale}/account/bookings/${b.id}/invoice`}
           className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-ink transition hover:border-primary"

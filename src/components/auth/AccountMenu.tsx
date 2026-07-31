@@ -53,6 +53,7 @@ export function AccountMenu({
     { href: `${base}/coupons`, label: dict.coupons },
     { href: `${base}/wallet`, label: dict.wallet },
     { href: `${base}/notifications`, label: dict.notifications },
+    { href: `${base}/messages`, label: dict.messages },
     { href: `${base}/favourites`, label: dict.favourites },
     { href: `${base}/addresses`, label: dict.addresses },
     { href: `${base}/service-area`, label: dict.serviceArea },
