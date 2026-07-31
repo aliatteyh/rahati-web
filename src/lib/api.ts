@@ -209,3 +209,25 @@ export function formatPrice(
   const rounded = Number.isInteger(num) ? num : Math.round(num * 100) / 100;
   return `${currency} ${rounded.toLocaleString()}`;
 }
+
+/**
+ * The "from" price shown on cards/detail = the cheapest real, bookable option.
+ * Prefer the minimum variation price (what a customer can actually book) and
+ * ignore `min_bidding_price` (a bidding-system floor, not a fixed price); fall
+ * back to starting_price/price, and only then min_bidding_price as a last resort.
+ */
+export function serviceFromPrice(service: {
+  variations?: { price?: number | string | null }[];
+  starting_price?: number | string | null;
+  price?: number | string | null;
+  min_bidding_price?: number | string | null;
+}): number {
+  const variationPrices = (service.variations ?? [])
+    .map((v) => Number(v?.price))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (variationPrices.length) return Math.min(...variationPrices);
+  const fallback = Number(
+    service.starting_price ?? service.price ?? service.min_bidding_price ?? 0
+  );
+  return Number.isFinite(fallback) ? fallback : 0;
+}

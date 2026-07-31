@@ -7,6 +7,7 @@ import {
   getConfig,
   getServicesBySubcategory,
   getSubcategories,
+  serviceFromPrice,
 } from "@/lib/api";
 import type { Service } from "@/lib/types";
 import {
@@ -51,11 +52,7 @@ function toBrowseServices(services: Service[]): BrowseService[] {
         price: toNumber(v.price),
       }))
       .filter((v) => v.minutes > 0);
-    const prices = variants.map((v) => v.price).filter((p) => p > 0);
-    const minPrice =
-      prices.length > 0
-        ? Math.min(...prices)
-        : toNumber(s.min_bidding_price ?? s.starting_price ?? s.price);
+    const minPrice = serviceFromPrice(s);
     return {
       id: s.id,
       name: s.name,

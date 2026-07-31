@@ -7,6 +7,7 @@ import {
   getConfig,
   getPopularServices,
   formatPrice,
+  serviceFromPrice,
 } from "@/lib/api";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { CategoryCard } from "@/components/CategoryCard";
@@ -160,10 +161,7 @@ export default async function HomePage({
                   service={service}
                   href={service.slug ? `${base}/service/${service.slug}` : undefined}
                   fromLabel={dict.category.from}
-                  priceLabel={formatPrice(
-                    service.min_bidding_price ?? service.starting_price ?? service.price,
-                    currency
-                  )}
+                  priceLabel={formatPrice(serviceFromPrice(service), currency)}
                 />
               ))}
             </div>

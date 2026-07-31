@@ -51,7 +51,7 @@ export default async function BookPage({ params }: { params: Params }) {
   if (variants.length === 0) {
     variants.push({
       key: "default",
-      price: toNumber(service.min_bidding_price ?? service.starting_price ?? service.price),
+      price: toNumber(service.starting_price ?? service.price ?? service.min_bidding_price),
       durationMinutes: 60,
     });
   }

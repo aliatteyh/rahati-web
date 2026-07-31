@@ -10,6 +10,7 @@ import {
   getServiceDetail,
   getServiceReviews,
   formatPrice,
+  serviceFromPrice,
 } from "@/lib/api";
 import { Thumb } from "@/components/Thumb";
 import { ReviewsSection } from "@/components/service/ReviewsSection";
@@ -59,10 +60,7 @@ export default async function ServicePage({ params }: { params: Params }) {
   ]);
 
   const currency = config.currency_symbol || dict.common.currency;
-  const price = formatPrice(
-    service.min_bidding_price ?? service.starting_price ?? service.price,
-    currency
-  );
+  const price = formatPrice(serviceFromPrice(service), currency);
   const categoryName = service.category?.name;
   const coverImage = service.cover_image_full_path;
 
@@ -75,9 +73,7 @@ export default async function ServicePage({ params }: { params: Params }) {
     (service.category?.faqs?.length ? service.category.faqs : service.faqs) ?? [];
 
   const description = service.short_description || stripHtml(service.description).slice(0, 300);
-  const rawPrice = Number(
-    service.min_bidding_price ?? service.starting_price ?? service.price ?? 0
-  );
+  const rawPrice = serviceFromPrice(service);
   const serviceUrl = absoluteUrl(`/${locale}/service/${slug}`);
   const jsonLd: object[] = [
     {
