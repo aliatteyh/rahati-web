@@ -36,6 +36,12 @@ export interface Service {
   tax?: number | string;
   service_discount?: DiscountLike[];
   campaign_discount?: DiscountLike[];
+  /** Serving provider's working hours + weekly off-days (for the booking UI). */
+  service_availability?: {
+    provider_id?: string | null;
+    time_schedule?: { start_time?: string; end_time?: string } | null;
+    weekends?: string[];
+  } | null;
 }
 
 /** Loose shape of a service/campaign discount entry (for client-side preview only). */

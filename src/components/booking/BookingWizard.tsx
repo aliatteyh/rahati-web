@@ -38,6 +38,9 @@ export interface BookingWizardProps {
   serviceSlug: string;
   variants: WizardVariant[];
   addOns: WizardAddOn[];
+  /** Serving provider's working hours "HH:mm"; slots are limited to this window. */
+  workStart?: string | null;
+  workEnd?: string | null;
 }
 
 /** Mirrors the backend booking_discount_calculator() (Promotion.php). */
@@ -84,6 +87,8 @@ export function BookingWizard({
   serviceSlug,
   variants,
   addOns,
+  workStart,
+  workEnd,
 }: BookingWizardProps) {
   const safeVariants: WizardVariant[] =
     variants.length > 0 ? variants : [{ key: "default", price: 0, durationMinutes: 60 }];
@@ -147,19 +152,26 @@ export function BookingWizard({
     );
   }, [locale]);
 
+  // 30-minute slots limited to the serving provider's working hours; falls back
+  // to 08:00–20:00 when the provider hasn't set a schedule.
   const timeSlots = useMemo(() => {
+    const toMinutes = (t?: string | null): number | null => {
+      const m = /^(\d{1,2}):(\d{2})/.exec(t ?? "");
+      if (!m) return null;
+      return Number(m[1]) * 60 + Number(m[2]);
+    };
+    const startMin = toMinutes(workStart) ?? 8 * 60;
+    let endMin = toMinutes(workEnd) ?? 20 * 60;
+    if (endMin <= startMin) endMin = 20 * 60; // guard against bad data
+    const fmt = (mins: number) =>
+      `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
     const slots: string[] = [];
-    for (let h = 8; h < 20; h++) {
-      for (const m of [0, 30]) {
-        const start = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-        const endM = m + 30;
-        const endH = endM === 60 ? h + 1 : h;
-        const end = `${String(endH).padStart(2, "0")}:${String(endM % 60).padStart(2, "0")}`;
-        slots.push(`${start}-${end}`);
-      }
+    // Only whole 30-min slots that finish on/before the provider's end time.
+    for (let s = startMin; s + 30 <= endMin; s += 30) {
+      slots.push(`${fmt(s)}-${fmt(s + 30)}`);
     }
     return slots;
-  }, []);
+  }, [workStart, workEnd]);
 
   const addOnsTotal = useMemo(
     () =>
