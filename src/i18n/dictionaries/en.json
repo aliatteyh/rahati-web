@@ -336,7 +336,10 @@
     "period": "Period",
     "youSave": "You save",
     "calculating": "Calculating…",
-    "noDatesForPackage": "No visits can be scheduled on the days you picked."
+    "noDatesForPackage": "No visits can be scheduled on the days you picked.",
+    "daysPerWeek": "days/week",
+    "packageDiscount": "Package discount",
+    "pickDaysToSeePrice": "Pick your days to see the price."
   },
   "checkout": {
     "title": "Checkout",

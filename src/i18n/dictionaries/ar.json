@@ -336,7 +336,10 @@
     "period": "الفترة",
     "youSave": "توفّر",
     "calculating": "جارٍ الحساب…",
-    "noDatesForPackage": "لا يمكن جدولة أي زيارة في الأيام التي اخترتها."
+    "noDatesForPackage": "لا يمكن جدولة أي زيارة في الأيام التي اخترتها.",
+    "daysPerWeek": "أيام أسبوعياً",
+    "packageDiscount": "خصم الباقة",
+    "pickDaysToSeePrice": "اختر أيامك لعرض السعر."
   },
   "checkout": {
     "title": "الدفع",

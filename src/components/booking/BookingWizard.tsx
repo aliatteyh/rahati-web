@@ -1105,9 +1105,28 @@ export function BookingWizard({
                 value={
                   bookingMode === "once"
                     ? dict.onlyOnce
-                    : `${dict[frequency]} (${recurringValid ? buildDates().length : 0})`
+                    : bookingMode === "package"
+                      ? // Name the plan the customer chose, not the generic mode:
+                        // "3 Month Package · 6 days/week" says what was bought.
+                        selectedPackage
+                        ? `${selectedPackage.name}${
+                            packageQuote?.valid
+                              ? ` · ${packageQuote.days_per_week} ${dict.daysPerWeek}`
+                              : ""
+                          }`
+                        : dict.packages
+                      : `${dict[frequency]} (${recurringValid ? buildDates().length : 0})`
                 }
               />
+              {bookingMode === "package" && packageQuote?.valid && (
+                <>
+                  <Row label={dict.visits} value={String(packageQuote.total_visits)} />
+                  <Row
+                    label={dict.period}
+                    value={`${packageQuote.first_visit.slice(0, 10)} → ${packageQuote.last_visit.slice(0, 10)}`}
+                  />
+                </>
+              )}
               <Row label={dict.duration} value={fmtDuration(variant.durationMinutes)} />
               <Row label={dict.professionals} value={String(professionals)} />
               <Row label={dict.material} value={materials ? dict.yes : dict.no} />
@@ -1120,6 +1139,34 @@ export function BookingWizard({
           <div className="rounded-2xl border border-border bg-surface p-5">
             <h2 className="mb-4 text-lg font-bold text-ink">{dict.paymentSummary}</h2>
             <div className="space-y-2 text-sm">
+              {bookingMode === "package" ? (
+                /* A package is priced per visit by the server, so the summary
+                   has to be built from those figures. Reusing the single-booking
+                   lines here showed one visit's cost above a whole package's
+                   total — numbers that visibly refuse to add up. */
+                packageQuote?.valid ? (
+                  <>
+                    <Line
+                      label={dict.perVisit}
+                      value={money(packageQuote.undiscounted_visit_price)}
+                    />
+                    <Line label={dict.visits} value={`× ${packageQuote.total_visits}`} muted />
+                    {packageQuote.discount_percent > 0 && (
+                      <Line
+                        label={`${dict.packageDiscount} (${packageQuote.discount_percent}%)`}
+                        value={`- ${money(packageQuote.you_save)}`}
+                        accent
+                      />
+                    )}
+                    {serviceFee > 0 && (
+                      <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />
+                    )}
+                  </>
+                ) : (
+                  <p className="text-muted">{dict.pickDaysToSeePrice}</p>
+                )
+              ) : (
+                <>
               <Line label={dict.serviceAmount} value={money(serviceAmount * occurrenceCount)} />
               {occurrenceCount > 1 && (
                 <Line label={dict.times} value={`× ${occurrenceCount}`} muted />
@@ -1154,6 +1201,8 @@ export function BookingWizard({
               )}
               {serviceFee > 0 && (
                 <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />
+              )}
+                </>
               )}
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
