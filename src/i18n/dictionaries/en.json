@@ -201,7 +201,8 @@
     "status_accepted": "Booking accepted",
     "status_ongoing": "Service ongoing",
     "status_completed": "Service completed",
-    "status_canceled": "Booking canceled"
+    "status_canceled": "Booking canceled",
+    "packages": "My packages"
   },
   "hero": {
     "badge": "Trusted home services",
@@ -339,7 +340,21 @@
     "noDatesForPackage": "No visits can be scheduled on the days you picked.",
     "daysPerWeek": "days/week",
     "packageDiscount": "Package discount",
-    "pickDaysToSeePrice": "Pick your days to see the price."
+    "pickDaysToSeePrice": "Pick your days to see the price.",
+    "myPackages": "My packages",
+    "noPackagesYet": "You haven't bought a package yet.",
+    "months": "months",
+    "visitsUsed": "Visits used",
+    "visitsRemaining": "visits left",
+    "paid": "Paid",
+    "refunded": "Refunded",
+    "cancelPackage": "Cancel package",
+    "confirmCancelPackage": "Yes, cancel it",
+    "refundGoesToWallet": "Remaining visits will be cancelled and your balance added to your wallet, minus the discount on visits already taken.",
+    "noChargeAfterCancel": "Remaining visits will be cancelled. You won't be charged for them.",
+    "active": "Active",
+    "expired": "Expired",
+    "canceled": "Cancelled"
   },
   "checkout": {
     "title": "Checkout",

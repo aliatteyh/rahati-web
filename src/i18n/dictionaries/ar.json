@@ -201,7 +201,8 @@
     "status_accepted": "تم قبول الحجز",
     "status_ongoing": "الخدمة جارية",
     "status_completed": "اكتملت الخدمة",
-    "status_canceled": "أُلغي الحجز"
+    "status_canceled": "أُلغي الحجز",
+    "packages": "باقاتي"
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
@@ -339,7 +340,21 @@
     "noDatesForPackage": "لا يمكن جدولة أي زيارة في الأيام التي اخترتها.",
     "daysPerWeek": "أيام أسبوعياً",
     "packageDiscount": "خصم الباقة",
-    "pickDaysToSeePrice": "اختر أيامك لعرض السعر."
+    "pickDaysToSeePrice": "اختر أيامك لعرض السعر.",
+    "myPackages": "باقاتي",
+    "noPackagesYet": "لم تشترِ أي باقة بعد.",
+    "months": "أشهر",
+    "visitsUsed": "الزيارات المستخدمة",
+    "visitsRemaining": "زيارة متبقية",
+    "paid": "المدفوع",
+    "refunded": "المُسترد",
+    "cancelPackage": "إلغاء الباقة",
+    "confirmCancelPackage": "نعم، ألغِها",
+    "refundGoesToWallet": "ستُلغى الزيارات المتبقية ويُضاف رصيدك إلى المحفظة، بعد خصم تخفيض الزيارات التي استُخدمت.",
+    "noChargeAfterCancel": "ستُلغى الزيارات المتبقية، ولن تُحاسب عليها.",
+    "active": "نشطة",
+    "expired": "منتهية",
+    "canceled": "ملغاة"
   },
   "checkout": {
     "title": "الدفع",
