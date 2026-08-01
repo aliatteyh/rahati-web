@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { getConfig, getServiceAddOns, getServiceDetail } from "@/lib/api";
+import {
+  getConfig,
+  getPackageAvailability,
+  getServiceAddOns,
+  getServiceDetail,
+  getServicePackages,
+} from "@/lib/api";
 import {
   BookingWizard,
   type WizardAddOn,
@@ -56,6 +62,13 @@ export default async function BookPage({ params }: { params: Params }) {
     });
   }
 
+  // Subscription packages offered for this sub-category, plus the weekdays the
+  // serving provider actually works — the picker disables the rest.
+  const [servicePackages, availability] = await Promise.all([
+    getServicePackages(service.sub_category_id ?? "", locale),
+    getPackageAvailability(service.service_availability?.provider_id ?? null, locale),
+  ]);
+
   // Real, admin-managed add-ons for this service (by category or direct link)
   const rawAddOns = await getServiceAddOns(service.id, locale);
   const addOns: WizardAddOn[] = rawAddOns.map((a) => ({
@@ -91,6 +104,11 @@ export default async function BookPage({ params }: { params: Params }) {
         (config as unknown as { repeat_discount_tiers?: { min_services: number; discount_percent: number }[] })
           .repeat_discount_tiers ?? []
       }
+      servicePackages={servicePackages}
+      selectableWeekdays={availability.selectable_weekdays}
+      providerOffDays={availability.off_days_iso}
+      maxDaysPerWeek={availability.max_days_per_week}
+      providerId={service.service_availability?.provider_id ?? null}
     />
   );
 }

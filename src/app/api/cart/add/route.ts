@@ -21,6 +21,15 @@ export async function POST(request: Request) {
     professional_count: Number(body.professional_count ?? 1),
     need_materials: Number(body.need_materials ?? 0),
     add_ons: Array.isArray(body.add_ons) ? body.add_ons : [],
+    // Only sent when the customer is buying a package; the backend treats a
+    // null package id as an ordinary line.
+    ...(body.service_package_id
+      ? {
+          service_package_id: String(body.service_package_id),
+          package_days_per_week: Number(body.package_days_per_week ?? 0),
+          package_payment_mode: String(body.package_payment_mode ?? "pay_per_visit"),
+        }
+      : {}),
   };
   if (!payload.service_id || !payload.category_id || !payload.sub_category_id || !payload.variant_key) {
     return NextResponse.json({ ok: false, message: "Missing service data" }, { status: 400 });

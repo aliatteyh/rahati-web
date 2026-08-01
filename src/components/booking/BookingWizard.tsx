@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
+import type { BookingQuote, PackageQuote, ServicePackage } from "@/lib/api";
 import type { DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
 
 type Dict = Record<string, string>;
@@ -43,7 +44,17 @@ export interface BookingWizardProps {
   workEnd?: string | null;
   /** Commitment discount tiers: more recurring services → higher discount. */
   repeatDiscountTiers?: RepeatTier[];
+  /** Subscription packages sold for this sub-category. */
+  servicePackages?: ServicePackage[];
+  /** Weekdays the provider works — the rest are disabled in the picker. */
+  selectableWeekdays?: number[];
+  providerOffDays?: number[];
+  maxDaysPerWeek?: number;
+  providerId?: string | null;
 }
+
+/** Saturday first, matching how the admin panel lists the week. */
+const WEEKDAY_ORDER = [6, 7, 1, 2, 3, 4, 5];
 
 /** Mirrors the backend booking_discount_calculator() (Promotion.php). */
 function calcDiscount(keeper: DiscountLike | undefined, base: number): number {
@@ -92,6 +103,11 @@ export function BookingWizard({
   workStart,
   workEnd,
   repeatDiscountTiers = [],
+  servicePackages = [],
+  selectableWeekdays = [1, 2, 3, 4, 5, 6, 7],
+  providerOffDays = [],
+  maxDaysPerWeek = 6,
+  providerId = null,
 }: BookingWizardProps) {
   const safeVariants: WizardVariant[] =
     variants.length > 0 ? variants : [{ key: "default", price: 0, durationMinutes: 60 }];
@@ -113,7 +129,12 @@ export function BookingWizard({
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [dateIndex, setDateIndex] = useState(0);
   const [timeSlot, setTimeSlot] = useState<string | null>(null);
-  const [bookingMode, setBookingMode] = useState<"once" | "multiple">("once");
+  const [bookingMode, setBookingMode] = useState<"once" | "multiple" | "package">("once");
+  // Package mode: which package, and which weekdays the customer commits to.
+  const [packageId, setPackageId] = useState<string | null>(null);
+  const [packageWeekdays, setPackageWeekdays] = useState<Set<number>>(new Set());
+  const [packageQuote, setPackageQuote] = useState<PackageQuote | null>(null);
+  const [packageLoading, setPackageLoading] = useState(false);
   const [frequency, setFrequency] = useState<"daily" | "weekly" | "custom">("daily");
   // Daily = a date range [dateIndex .. rangeEndIndex] into `days`.
   const [rangeEndIndex, setRangeEndIndex] = useState(1);
@@ -237,6 +258,12 @@ export function BookingWizard({
           professional_count: professionals,
           need_materials: materials ? 1 : 0,
           add_ons: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+          // Carried on the cart line so checkout creates a package purchase and
+          // applies the package discount instead of the commitment tier.
+          service_package_id: bookingMode === "package" ? packageId : null,
+          package_days_per_week:
+            bookingMode === "package" ? packageQuote?.days_per_week ?? null : null,
+          package_payment_mode: bookingMode === "package" ? "pay_per_visit" : null,
           locale,
         }),
       });
@@ -247,6 +274,17 @@ export function BookingWizard({
       }
       if (data.ok) {
         const instr = encodeURIComponent(instructions);
+        if (bookingMode === "package") {
+          // The server already generated the exact visit list; send that rather
+          // than re-deriving it, so the schedule bought is the schedule booked.
+          const dates = encodeURIComponent(
+            JSON.stringify((packageQuote?.dates ?? []).map((d) => ({ date: d })))
+          );
+          router.push(
+            `/${locale}/checkout?service_type=repeat&dates=${dates}&instructions=${instr}`
+          );
+          return;
+        }
         if (bookingMode === "multiple") {
           const dates = encodeURIComponent(JSON.stringify(buildDates()));
           router.push(
@@ -306,13 +344,149 @@ export function BookingWizard({
           0
         )
       : 0;
-  const commitmentDiscount = (taxableBase * occurrenceCount * commitmentPercent) / 100;
-  // Per-occurrence charges repeat for every date; the service fee is charged
-  // once. Mirrors the backend repeat total in placeRepeatBookingRequest.
-  const grandTotal = Math.max(
+  const localCommitmentDiscount = (taxableBase * occurrenceCount * commitmentPercent) / 100;
+  // Shown instantly while the server quote is in flight; the server's number
+  // replaces it as soon as it arrives, and is what the customer is charged.
+  const localTotal = Math.max(
     0,
-    (taxableBase + vat) * occurrenceCount + serviceFee - commitmentDiscount
+    (taxableBase + vat) * occurrenceCount + serviceFee - localCommitmentDiscount
   );
+
+  // The authoritative price comes from the backend calculator — the same one
+  // placeRepeatBookingRequest uses — so the total quoted and the total charged
+  // cannot drift apart as discount rules change.
+  const [quote, setQuote] = useState<BookingQuote | null>(null);
+  // A one-off booking is a single occurrence: quoting buildDates() here would
+  // price the whole candidate range the recurring UI keeps in state.
+  const quoteDates =
+    bookingMode === "multiple" ? buildDates().map((x) => x.date) : [buildSchedule()];
+  const quoteKey = JSON.stringify({
+    v: variant.key,
+    p: professionals,
+    m: materials,
+    a: [...selectedAddOns].sort(),
+    d: quoteDates,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    setQuote(null);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/booking/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locale,
+            serviceId,
+            variantKey: variant.key,
+            quantity: 1,
+            professionalCount: professionals,
+            needMaterials: materials,
+            addOns: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+            dates: quoteDates,
+          }),
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as BookingQuote;
+        if (!cancelled) setQuote(data);
+      } catch {
+        // Keep the local estimate on the screen rather than blanking the price.
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteKey, locale, serviceId]);
+
+  const selectedPackage = servicePackages.find((p) => p.id === packageId) ?? null;
+
+  // Headline for the tab: the best saving any package on offer can reach.
+  const bestPackageSaving = servicePackages.reduce(
+    (best, p) => Math.max(best, p.max_discount_percent ?? 0),
+    0
+  );
+
+  // ISO weekday (1=Mon..7=Sun) to a localised short name.
+  function isoWeekdayName(iso: number): string {
+    // 2026-08-03 is a Monday, so adding (iso-1) days lands on the wanted weekday.
+    const d = new Date(2026, 7, 2 + iso);
+    return new Intl.DateTimeFormat(locale, { weekday: "short" }).format(d);
+  }
+
+  // Package pricing comes from its own endpoint, which also decides how many
+  // visits the chosen weekdays actually produce once the provider's off day is
+  // removed. Never recomputed here — the visit count is what the customer pays
+  // for, and a second implementation is how the two drift apart.
+  useEffect(() => {
+    if (bookingMode !== "package" || !packageId || packageWeekdays.size === 0) {
+      setPackageQuote(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPackageLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const start = days[dateIndex]?.date ?? new Date();
+        const res = await fetch("/api/service-package/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locale,
+            packageId,
+            serviceId,
+            variantKey: variant.key,
+            providerId,
+            startDate: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`,
+            time: (timeSlot ?? "09:00").split("-")[0],
+            weekdays: [...packageWeekdays].sort((a, b) => a - b),
+            professionalCount: professionals,
+            needMaterials: materials,
+            addOns: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+          }),
+        });
+        if (!res.ok) {
+          if (!cancelled) setPackageQuote(null);
+          return;
+        }
+        const data = (await res.json()) as PackageQuote;
+        if (!cancelled) setPackageQuote(data);
+      } catch {
+        if (!cancelled) setPackageQuote(null);
+      } finally {
+        if (!cancelled) setPackageLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    bookingMode,
+    packageId,
+    [...packageWeekdays].sort().join(","),
+    dateIndex,
+    timeSlot,
+    variant.key,
+    professionals,
+    materials,
+    [...selectedAddOns].sort().join(","),
+  ]);
+
+  // The coupon is applied client-side on top, since /quote prices the cart line
+  // and the coupon is validated separately.
+  const commitmentDiscount = quote ? quote.commitment_discount : localCommitmentDiscount;
+  const grandTotal =
+    bookingMode === "package"
+      ? packageQuote?.grand_total ?? 0
+      : quote
+        ? Math.max(0, quote.grand_total - couponDiscount * occurrenceCount)
+        : localTotal;
 
   async function applyCoupon() {
     const code = coupon.trim();
@@ -575,22 +749,144 @@ export function BookingWizard({
               {/* Take the service: once / multiple times */}
               <div>
                 <p className="mb-3 font-semibold text-ink">{dict.takeService}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["once", "multiple"] as const).map((m) => (
+                {/* The package tab only appears where a package is actually sold. */}
+                <div className={`grid gap-2 ${servicePackages.length > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
+                  {(servicePackages.length > 0
+                    ? (["once", "multiple", "package"] as const)
+                    : (["once", "multiple"] as const)
+                  ).map((m) => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => setBookingMode(m)}
-                      className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      className={`relative rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                         bookingMode === m
                           ? "border-primary bg-primary-light text-primary-dark"
                           : "border-border text-muted hover:border-primary"
                       }`}
                     >
-                      {m === "once" ? dict.onlyOnce : dict.multipleTimes}
+                      {m === "once" ? dict.onlyOnce : m === "multiple" ? dict.multipleTimes : dict.packages}
+                      {m === "package" && bestPackageSaving > 0 && (
+                        <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          -{bestPackageSaving}%
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
+
+                {bookingMode === "package" && (
+                  <div className="mt-4 space-y-4 rounded-xl border border-border bg-surface-soft p-4">
+                    {/* Choose the plan */}
+                    <div className="space-y-2">
+                      {servicePackages.map((pkg) => (
+                        <button
+                          key={pkg.id}
+                          type="button"
+                          onClick={() => setPackageId(pkg.id)}
+                          className={`flex w-full items-start justify-between gap-3 rounded-xl border p-3 text-start transition ${
+                            packageId === pkg.id
+                              ? "border-primary bg-primary-light"
+                              : "border-border bg-white hover:border-primary"
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block font-semibold text-ink">{pkg.name}</span>
+                            {pkg.short_description && (
+                              <span className="block text-xs text-muted">{pkg.short_description}</span>
+                            )}
+                          </span>
+                          {pkg.max_discount_percent > 0 && (
+                            <span className="shrink-0 rounded-full bg-primary px-2 py-1 text-xs font-bold text-white">
+                              -{pkg.max_discount_percent}%
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {packageId && (
+                      <>
+                        <div>
+                          <p className="mb-2 text-sm font-semibold text-ink">{dict.chooseDays}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {WEEKDAY_ORDER.map((iso) => {
+                              const off = providerOffDays.includes(iso);
+                              const on = packageWeekdays.has(iso);
+                              return (
+                                <button
+                                  key={iso}
+                                  type="button"
+                                  disabled={off}
+                                  title={off ? dict.providerOffDay : undefined}
+                                  onClick={() => {
+                                    const next = new Set(packageWeekdays);
+                                    if (next.has(iso)) next.delete(iso);
+                                    else if (next.size < maxDaysPerWeek) next.add(iso);
+                                    setPackageWeekdays(next);
+                                  }}
+                                  className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                                    off
+                                      ? "cursor-not-allowed border-border bg-surface-soft text-muted/50 line-through"
+                                      : on
+                                        ? "border-primary bg-primary text-white"
+                                        : "border-border text-muted hover:border-primary"
+                                  }`}
+                                >
+                                  {isoWeekdayName(iso)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <p className="mt-2 text-xs text-muted">
+                            {selectableWeekdays.length < 7
+                              ? dict.offDayExcluded
+                              : dict.maxSixDays}
+                          </p>
+                        </div>
+
+                        {packageLoading && (
+                          <p className="text-sm text-muted">{dict.calculating}</p>
+                        )}
+
+                        {!packageLoading && packageQuote?.valid && (
+                          <div className="rounded-xl border border-primary/30 bg-white p-3 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted">{dict.visits}</span>
+                              <span className="font-semibold text-ink">{packageQuote.total_visits}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted">{dict.perVisit}</span>
+                              <span className="text-ink">
+                                <s className="text-muted">{money(packageQuote.undiscounted_visit_price)}</s>{" "}
+                                <span className="font-semibold">{money(packageQuote.net_visit_price)}</span>
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted">{dict.period}</span>
+                              <span className="text-ink">
+                                {packageQuote.first_visit.slice(0, 10)} → {packageQuote.last_visit.slice(0, 10)}
+                              </span>
+                            </div>
+                            {packageQuote.you_save > 0 && (
+                              <div className="mt-1 flex justify-between border-t border-border pt-1 font-semibold text-primary-dark">
+                                <span>{dict.youSave}</span>
+                                <span>{money(packageQuote.you_save)}</span>
+                              </div>
+                            )}
+                            {packageQuote.skipped_off_days > 0 && (
+                              <p className="mt-2 text-xs text-muted">{dict.offDayExcluded}</p>
+                            )}
+                          </div>
+                        )}
+
+                        {!packageLoading && packageQuote && !packageQuote.valid && (
+                          <p className="text-sm text-danger">{dict.noDatesForPackage}</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {bookingMode === "multiple" && (
                   <div className="mt-4 space-y-3 rounded-xl border border-border bg-surface-soft p-4">

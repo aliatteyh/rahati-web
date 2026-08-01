@@ -143,6 +143,206 @@ export interface CouponResult {
   message?: string;
 }
 
+export interface ServicePackageTier {
+  days_per_week: number;
+  discount_percent: number;
+  price_override: number | null;
+}
+
+export interface ServicePackage {
+  id: string;
+  name: string;
+  badge_text: string | null;
+  short_description: string | null;
+  validity_months: number;
+  min_days_per_week: number;
+  max_days_per_week: number;
+  max_discount_percent: number;
+  allow_prepaid: number;
+  allow_pay_per_visit: number;
+  tiers: ServicePackageTier[];
+}
+
+/** Packages a customer can buy for this sub-category, in their zone. */
+export async function getServicePackages(
+  subCategoryId: string,
+  locale: Locale
+): Promise<ServicePackage[]> {
+  try {
+    const zoneId = await getZoneId();
+    const res = await fetch(
+      `${API_BASE}/api/v1/customer/service-package?sub_category_id=${encodeURIComponent(subCategoryId)}`,
+      {
+        headers: { Accept: "application/json", "X-localization": locale, zoneId },
+        cache: "no-store",
+      }
+    );
+    const json = await res.json();
+    return Array.isArray(json?.content) ? (json.content as ServicePackage[]) : [];
+  } catch {
+    // A missing catalogue must not take the booking page down with it.
+    return [];
+  }
+}
+
+export interface PackageQuote {
+  valid: boolean;
+  reason?: string;
+  package_name: string;
+  validity_months: number;
+  days_per_week: number;
+  weekdays: number[];
+  skipped_off_days: number;
+  total_visits: number;
+  discount_percent: number;
+  undiscounted_visit_price: number;
+  net_visit_price: number;
+  you_save: number;
+  dates: string[];
+  first_visit: string;
+  last_visit: string;
+  grand_total: number;
+}
+
+/** The weekdays still bookable once the provider's off day is removed. */
+export async function getPackageAvailability(
+  providerId: string | null,
+  locale: Locale
+): Promise<{ selectable_weekdays: number[]; off_days_iso: number[]; max_days_per_week: number }> {
+  const fallback = { selectable_weekdays: [1, 2, 3, 4, 5, 6, 7], off_days_iso: [], max_days_per_week: 6 };
+  try {
+    const zoneId = await getZoneId();
+    const query = providerId ? `?provider_id=${encodeURIComponent(providerId)}` : "";
+    const res = await fetch(`${API_BASE}/api/v1/customer/service-package/availability${query}`, {
+      headers: { Accept: "application/json", "X-localization": locale, zoneId },
+      cache: "no-store",
+    });
+    const json = await res.json();
+    return json?.content ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Price a package for a concrete schedule.
+ *
+ * Returns the actual visit dates as well as the money — the customer is buying
+ * "Mon/Wed for a month, 10 visits, these dates", not an abstract count, and the
+ * count is what they are charged for.
+ */
+export async function fetchPackageQuote(
+  packageId: string,
+  input: {
+    startDate: string;
+    time: string;
+    weekdays: number[];
+    serviceId: string;
+    variantKey: string;
+    providerId?: string | null;
+    professionalCount?: number;
+    needMaterials?: boolean;
+    addOns?: { id: string; quantity: number }[];
+  },
+  locale: Locale
+): Promise<PackageQuote | null> {
+  try {
+    const zoneId = await getZoneId();
+    const res = await fetch(`${API_BASE}/api/v1/customer/service-package/${packageId}/quote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-localization": locale,
+        zoneId,
+      },
+      body: JSON.stringify({
+        start_date: input.startDate,
+        time: input.time,
+        weekdays: input.weekdays,
+        service_id: input.serviceId,
+        variant_key: input.variantKey,
+        provider_id: input.providerId ?? null,
+        zone_id: zoneId,
+        quantity: 1,
+        professional_count: input.professionalCount ?? 1,
+        need_materials: input.needMaterials ? 1 : 0,
+        add_ons: input.addOns ?? [],
+      }),
+      cache: "no-store",
+    });
+    const json = await res.json();
+    if (json?.response_code !== "default_200" || !json?.content) return null;
+    return json.content as PackageQuote;
+  } catch {
+    return null;
+  }
+}
+
+export interface BookingQuote {
+  occurrences: number;
+  per_occurrence: number;
+  extra_fee: number;
+  referral_discount: number;
+  pro_discount: number;
+  commitment_percent: number;
+  commitment_discount: number;
+  total_discount_amount: number;
+  total_tax_amount: number;
+  grand_total: number;
+}
+
+export interface QuoteInput {
+  dates: string[];
+  serviceId: string;
+  variantKey: string;
+  quantity: number;
+  professionalCount: number;
+  needMaterials: boolean;
+  addOns: { id: string; quantity: number }[];
+}
+
+/**
+ * Price a recurring booking on the server.
+ *
+ * The wizard used to reproduce the backend's discount and tax rules in
+ * TypeScript, so a rule change in one place silently disagreed with the other.
+ * The total shown now comes from the same calculator that charges the customer.
+ */
+export async function fetchBookingQuote(
+  input: QuoteInput,
+  locale: Locale
+): Promise<BookingQuote | null> {
+  try {
+    const zoneId = await getZoneId();
+    const res = await fetch(`${API_BASE}/api/v1/customer/booking/quote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-localization": locale,
+        zoneId,
+      },
+      body: JSON.stringify({
+        dates: JSON.stringify(input.dates),
+        zone_id: zoneId,
+        service_id: input.serviceId,
+        variant_key: input.variantKey,
+        quantity: input.quantity,
+        professional_count: input.professionalCount,
+        need_materials: input.needMaterials ? 1 : 0,
+        add_ons: input.addOns,
+      }),
+      cache: "no-store",
+    });
+    const json = await res.json();
+    if (json?.response_code !== "default_200" || !json?.content) return null;
+    return json.content as BookingQuote;
+  } catch {
+    return null;
+  }
+}
+
 /** Validate a coupon against a service (server-side; called from the /api/coupon route). */
 export async function validateCoupon(
   couponCode: string,
