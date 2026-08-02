@@ -2,6 +2,7 @@ import Link from "next/link";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import { authGetList } from "@/lib/account";
 import { CancelPackageButton } from "@/components/account/CancelPackageButton";
 
@@ -44,7 +45,7 @@ export default async function MyPackagesPage({
     getConfig(locale),
   ]);
 
-  const currency = config.currency_symbol || dict.common.currency;
+  const currency = currencyLabel(config, locale);
   const money = (n: number) => formatPrice(n, currency) ?? `${currency} 0`;
 
   return (

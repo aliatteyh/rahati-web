@@ -24,8 +24,11 @@ export interface BookingWizardProps {
   locale: Locale;
   dict: Dict;
   currency: string;
-  serviceTax: number;
+  /** Global VAT rate. It applies to the service fee only — service prices are
+   *  quoted to the customer inclusive of tax. */
+  vatPercent: number;
   serviceFee: number;
+  /** Materials rate per hour — a 2-hour variant is charged twice this. */
   materialCharge: number;
   professionalTiers: ProfessionalTier[];
   serviceDiscount: DiscountLike[];
@@ -56,6 +59,33 @@ export interface BookingWizardProps {
 /** Saturday first, matching how the admin panel lists the week. */
 const WEEKDAY_ORDER = [6, 7, 1, 2, 3, 4, 5];
 
+/**
+ * What the customer is buying, in the order they'd consider it.
+ *
+ * Replaces the old "once / multiple" plus a separate daily-weekly-custom
+ * control: two overlapping questions asking the same thing. These name the
+ * commitment instead of the mechanism that generates the dates.
+ */
+const MODES = ["single", "weekly", "biweekly", "multi", "package"] as const;
+type BookingMode = (typeof MODES)[number];
+
+const MODE_LABEL: Record<BookingMode, string> = {
+  single: "singleVisit",
+  weekly: "onceAWeek",
+  biweekly: "everyTwoWeeks",
+  multi: "multipleTimesAWeek",
+  package: "weeklyMonthlyCleaning",
+};
+
+/** Weeks between visits. Only the fortnightly option skips a week. */
+const MODE_INTERVAL: Record<BookingMode, number> = {
+  single: 1,
+  weekly: 1,
+  biweekly: 2,
+  multi: 1,
+  package: 1,
+};
+
 /** Mirrors the backend booking_discount_calculator() (Promotion.php). */
 function calcDiscount(keeper: DiscountLike | undefined, base: number): number {
   if (!keeper) return 0;
@@ -85,7 +115,7 @@ export function BookingWizard({
   locale,
   dict,
   currency,
-  serviceTax,
+  vatPercent,
   serviceFee,
   materialCharge,
   professionalTiers,
@@ -129,22 +159,21 @@ export function BookingWizard({
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [dateIndex, setDateIndex] = useState(0);
   const [timeSlot, setTimeSlot] = useState<string | null>(null);
-  const [bookingMode, setBookingMode] = useState<"once" | "multiple" | "package">("once");
+  const [bookingMode, setBookingMode] = useState<BookingMode>("single");
   // Package mode: which package, and which weekdays the customer commits to.
   const [packageId, setPackageId] = useState<string | null>(null);
   const [packageWeekdays, setPackageWeekdays] = useState<Set<number>>(new Set());
   const [packageQuote, setPackageQuote] = useState<PackageQuote | null>(null);
   const [packageLoading, setPackageLoading] = useState(false);
-  const [frequency, setFrequency] = useState<"daily" | "weekly" | "custom">("daily");
-  // Daily = a date range [dateIndex .. rangeEndIndex] into `days`.
-  const [rangeEndIndex, setRangeEndIndex] = useState(1);
-  // Weekly = a set of weekdays (0=Sun..6=Sat) repeated over `weeks` weeks from dateIndex.
+  // The weekdays (0=Sun..6=Sat) a "multiple times a week" booking runs on,
+  // repeated over `weeks` weeks from the chosen start date.
   const [weekdays, setWeekdays] = useState<Set<number>>(new Set());
   const [weeks, setWeeks] = useState(2);
-  // Custom = specific days picked from `days`.
-  const [customDays, setCustomDays] = useState<Set<number>>(new Set());
 
   const variant = safeVariants[variantIndex];
+
+  /** Every mode except a single visit and a package produces its own date list. */
+  const isRecurring = bookingMode === "weekly" || bookingMode === "biweekly" || bookingMode === "multi";
 
   const money = (n: number) =>
     `${currency} ${n.toLocaleString(locale === "ar" ? "ar" : "en")}`;
@@ -219,12 +248,23 @@ export function BookingWizard({
   // Build the array of dates for a "multiple times" booking. The backend drops
   // any date that falls on the provider's off day, so we send the full request.
   function buildDates(): { date: string }[] {
-    if (frequency === "custom") {
-      const idxs = customDays.size > 0 ? [...customDays].sort((a, b) => a - b) : [dateIndex];
-      return idxs.map((i) => ({ date: scheduleFor(days[i].date) }));
+    // Weekly and fortnightly take their weekday from the date the customer
+    // picked — they are not asked the same thing twice — and repeat it for the
+    // chosen number of weeks, skipping alternate weeks when fortnightly.
+    if (bookingMode === "weekly" || bookingMode === "biweekly") {
+      const start = days[dateIndex].date;
+      const step = MODE_INTERVAL[bookingMode] * 7;
+      const out: { date: string }[] = [];
+      for (let offset = 0; offset < weeks * 7; offset += step) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + offset);
+        out.push({ date: scheduleFor(d) });
+      }
+      return out;
     }
-    if (frequency === "weekly") {
-      // Selected weekdays repeated across `weeks` weeks, starting from dateIndex.
+
+    // Multiple times a week: the chosen weekdays, every week.
+    if (bookingMode === "multi") {
       const start = days[dateIndex].date;
       const out: { date: string }[] = [];
       for (let offset = 0; offset < weeks * 7; offset++) {
@@ -234,12 +274,9 @@ export function BookingWizard({
       }
       return out;
     }
-    // Daily = every day in the inclusive range [start, end].
-    const a = Math.min(dateIndex, rangeEndIndex);
-    const b = Math.max(dateIndex, rangeEndIndex);
-    const out: { date: string }[] = [];
-    for (let i = a; i <= b; i++) out.push({ date: scheduleFor(days[i].date) });
-    return out;
+
+    // Single visit and package modes do not generate a list here.
+    return [{ date: buildSchedule() }];
   }
 
   async function proceedToCheckout() {
@@ -285,7 +322,7 @@ export function BookingWizard({
           );
           return;
         }
-        if (bookingMode === "multiple") {
+        if (isRecurring) {
           const dates = encodeURIComponent(JSON.stringify(buildDates()));
           router.push(
             `/${locale}/checkout?service_type=repeat&dates=${dates}&instructions=${instr}`
@@ -312,11 +349,20 @@ export function BookingWizard({
   // For a recurring booking every selected date repeats the per-occurrence
   // charges; a single (or empty) selection counts as one.
   const occurrenceCount =
-    bookingMode === "multiple" ? Math.max(1, buildDates().length) : 1;
+    isRecurring ? Math.max(1, buildDates().length) : 1;
 
-  // Service amount includes professionals: base price × count, with the tier discount applied
-  const serviceAmount = variant.price * professionals * (1 - tierPercent / 100);
-  const materialsFee = materials ? materialCharge : 0;
+  // Service amount includes professionals: base price × count, with the tier
+  // discount applied. Both halves are kept so the summary can show the saving
+  // rather than only its result — a total that quietly shrinks reads as a bug.
+  const serviceGross = variant.price * professionals;
+  const localProfessionalDiscount = Math.round(serviceGross * (tierPercent / 100) * 100) / 100;
+  const serviceAmount = serviceGross - localProfessionalDiscount;
+  // Materials are charged per hour of booked time, mirroring MaterialCharge.php.
+  // Professionals deliberately do not multiply it: one set of materials serves
+  // the visit however many people arrive.
+  const materialsFee = materials
+    ? Math.round(materialCharge * (variant.durationMinutes / 60) * 100) / 100
+    : 0;
   const itemsSubtotal = serviceAmount + materialsFee + addOnsTotal;
 
   // Service / campaign discount on the service amount; backend applies the GREATER of the two
@@ -331,11 +377,12 @@ export function BookingWizard({
   const totalDiscounts = applicableDiscount + couponDiscount;
 
   const taxableBase = Math.max(0, itemsSubtotal - totalDiscounts);
-  const vat = (taxableBase * serviceTax) / 100;
+  // VAT is charged on the service fee only, once per booking — never per visit.
+  const vat = (serviceFee * vatPercent) / 100;
   // Commitment discount: the more recurring services, the higher the admin-set
   // tier percent, applied to the (pre-tax) recurring base. Mirrors the backend.
   const commitmentPercent =
-    bookingMode === "multiple"
+    isRecurring
       ? repeatDiscountTiers.reduce(
           (acc, t) =>
             occurrenceCount >= Number(t.min_services)
@@ -349,7 +396,7 @@ export function BookingWizard({
   // replaces it as soon as it arrives, and is what the customer is charged.
   const localTotal = Math.max(
     0,
-    (taxableBase + vat) * occurrenceCount + serviceFee - localCommitmentDiscount
+    taxableBase * occurrenceCount + serviceFee + vat - localCommitmentDiscount
   );
 
   // The authoritative price comes from the backend calculator — the same one
@@ -359,7 +406,7 @@ export function BookingWizard({
   // A one-off booking is a single occurrence: quoting buildDates() here would
   // price the whole candidate range the recurring UI keeps in state.
   const quoteDates =
-    bookingMode === "multiple" ? buildDates().map((x) => x.date) : [buildSchedule()];
+    isRecurring ? buildDates().map((x) => x.date) : [buildSchedule()];
   const quoteKey = JSON.stringify({
     v: variant.key,
     p: professionals,
@@ -481,6 +528,15 @@ export function BookingWizard({
   // The coupon is applied client-side on top, since /quote prices the cart line
   // and the coupon is validated separately.
   const commitmentDiscount = quote ? quote.commitment_discount : localCommitmentDiscount;
+  // Shown, not calculated: the server already priced this line, and preferring
+  // its figure means a stale config can never make the lines contradict the
+  // total printed beneath them.
+  // Per occurrence on both sides: the server sums the cart lines of one visit,
+  // and the summary multiplies by the visit count itself just below.
+  const professionalDiscount = quote ? quote.professional_discount : localProfessionalDiscount;
+  const professionalPercent = serviceGross > 0
+    ? Math.round((professionalDiscount / serviceGross) * 100)
+    : 0;
   const grandTotal =
     bookingMode === "package"
       ? packageQuote?.grand_total ?? 0
@@ -540,14 +596,9 @@ export function BookingWizard({
     : "";
 
   // A recurring selection must actually resolve to at least one date.
-  const recurringValid =
-    bookingMode === "once"
-      ? true
-      : frequency === "weekly"
-        ? weekdays.size > 0
-        : frequency === "custom"
-          ? customDays.size > 0
-          : true; // daily is always a valid range
+  // "Multiple times a week" is the one mode that needs a further answer before
+  // it resolves to any dates at all.
+  const recurringValid = bookingMode !== "multi" || weekdays.size > 0;
   const canProceed = step < 3 || (timeSlot !== null && recurringValid);
 
   return (
@@ -685,6 +736,17 @@ export function BookingWizard({
                     {dict.materialsYes}
                   </button>
                 </div>
+
+                {/* Say the rate out loud: a per-hour charge is a surprise on the
+                    invoice unless the customer sees how it was reached. */}
+                {materials && materialsFee > 0 && (
+                  <p className="mt-2 text-xs text-muted">
+                    {dict.materialsRateNote
+                      .replace("{rate}", money(materialCharge))
+                      .replace("{hours}", String(variant.durationMinutes / 60))
+                      .replace("{total}", money(materialsFee))}
+                  </p>
+                )}
               </div>
 
               {/* Instructions */}
@@ -749,30 +811,46 @@ export function BookingWizard({
               {/* Take the service: once / multiple times */}
               <div>
                 <p className="mb-3 font-semibold text-ink">{dict.takeService}</p>
-                {/* The package tab only appears where a package is actually sold. */}
-                <div className={`grid gap-2 ${servicePackages.length > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
-                  {(servicePackages.length > 0
-                    ? (["once", "multiple", "package"] as const)
-                    : (["once", "multiple"] as const)
-                  ).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setBookingMode(m)}
-                      className={`relative rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                        bookingMode === m
-                          ? "border-primary bg-primary-light text-primary-dark"
-                          : "border-border text-muted hover:border-primary"
-                      }`}
-                    >
-                      {m === "once" ? dict.onlyOnce : m === "multiple" ? dict.multipleTimes : dict.packages}
-                      {m === "package" && bestPackageSaving > 0 && (
-                        <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
-                          -{bestPackageSaving}%
+                {/* Named for what the customer is buying, not for the mechanism
+                    that produces the dates. The package option only appears where
+                    a package is actually sold. */}
+                <div className="space-y-2">
+                  {MODES.filter((m) => m !== "package" || servicePackages.length > 0).map((m) => {
+                    const selected = bookingMode === m;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setBookingMode(m)}
+                        className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-start transition ${
+                          selected
+                            ? "border-primary bg-primary-light"
+                            : "border-border bg-surface hover:border-primary"
+                        }`}
+                      >
+                        <span className="min-w-0">
+                          <span className={`block text-sm font-semibold ${selected ? "text-primary-dark" : "text-ink"}`}>
+                            {dict[MODE_LABEL[m]]}
+                          </span>
+                          {m === "single" && (
+                            <span className="block text-xs text-muted">{dict.singleVisitHint}</span>
+                          )}
+                          {/* Steering, not restricting: the middle option is the one
+                              most customers want, and saying so saves them deciding. */}
+                          {m === "weekly" && (
+                            <span className="mt-1 inline-block rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent-dark">
+                              {dict.mostPopular}
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </button>
-                  ))}
+                        {m === "package" && bestPackageSaving > 0 && (
+                          <span className="shrink-0 rounded-full bg-primary px-2 py-1 text-xs font-bold text-white">
+                            {dict.saveUpTo} {bestPackageSaving}%
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {bookingMode === "package" && (
@@ -797,8 +875,11 @@ export function BookingWizard({
                             )}
                           </span>
                           {pkg.max_discount_percent > 0 && (
+                            /* "Up to", because the headline rate is only reached at
+                               the top of the ladder — a flat "-25%" is a promise the
+                               two-day option breaks, and the customer notices. */
                             <span className="shrink-0 rounded-full bg-primary px-2 py-1 text-xs font-bold text-white">
-                              -{pkg.max_discount_percent}%
+                              {dict.saveUpTo} {pkg.max_discount_percent}%
                             </span>
                           )}
                         </button>
@@ -843,6 +924,17 @@ export function BookingWizard({
                               ? dict.offDayExcluded
                               : dict.maxSixDays}
                           </p>
+
+                          {/* Names the saving and the reason that earned it, so a
+                              moving total reads as a reward rather than a number
+                              changing on its own. */}
+                          {packageQuote?.valid && packageQuote.discount_percent > 0 && (
+                            <p className="mt-2 rounded-lg bg-primary-light/60 px-3 py-2 text-sm font-medium text-primary-dark">
+                              🏷️ {dict.youSavedByChoosing
+                                .replace("{percent}", String(packageQuote.discount_percent))
+                                .replace("{days}", String(packageQuote.days_per_week))}
+                            </p>
+                          )}
                         </div>
 
                         {packageLoading && (
@@ -888,83 +980,87 @@ export function BookingWizard({
                   </div>
                 )}
 
-                {bookingMode === "multiple" && (
+                {isRecurring && (
                   <div className="mt-4 space-y-3 rounded-xl border border-border bg-surface-soft p-4">
-                    <div className="flex flex-wrap gap-2">
-                      {(["daily", "weekly", "custom"] as const).map((f) => (
-                        <button
-                          key={f}
-                          type="button"
-                          onClick={() => setFrequency(f)}
-                          className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                            frequency === f
-                              ? "border-primary bg-primary text-white"
-                              : "border-border text-muted hover:border-primary"
-                          }`}
-                        >
-                          {dict[f]}
-                        </button>
-                      ))}
-                    </div>
-                    {frequency === "custom" && (
-                      <p className="text-xs text-muted">{dict.customHint}</p>
+                    {/* Weekly and fortnightly take their day from the date picked
+                        below, so there is nothing further to ask here. */}
+                    {bookingMode !== "multi" && (
+                      <p className="text-sm text-muted">
+                        {bookingMode === "biweekly" ? dict.everyTwoWeeksHint : dict.onceAWeekHint}
+                      </p>
                     )}
-                    {frequency === "daily" && (
-                      <p className="text-xs text-muted">{dict.dailyHint}</p>
-                    )}
-                    {frequency === "weekly" && (
-                      <div className="space-y-3">
-                        <div>
-                          <p className="mb-2 text-sm font-medium text-ink">{dict.selectWeekdays}</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {weekdayNames.map((name, i) => {
-                              const on = weekdays.has(i);
-                              return (
-                                <button
-                                  key={i}
-                                  type="button"
-                                  onClick={() =>
-                                    setWeekdays((prev) => {
-                                      const next = new Set(prev);
-                                      if (next.has(i)) next.delete(i);
-                                      else next.add(i);
-                                      return next;
-                                    })
-                                  }
-                                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                                    on
+
+                    {bookingMode === "multi" && (
+                      <div>
+                        <p className="mb-2 text-sm font-medium text-ink">{dict.chooseDays}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {WEEKDAY_ORDER.map((iso) => {
+                            // Sunday is 0 in JS, 7 in ISO — the picker stores JS days.
+                            const jsDay = iso === 7 ? 0 : iso;
+                            const off = providerOffDays.includes(iso);
+                            const on = weekdays.has(jsDay);
+                            return (
+                              <button
+                                key={iso}
+                                type="button"
+                                disabled={off}
+                                title={off ? dict.providerOffDay : undefined}
+                                onClick={() =>
+                                  setWeekdays((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(jsDay)) next.delete(jsDay);
+                                    else if (next.size < maxDaysPerWeek) next.add(jsDay);
+                                    return next;
+                                  })
+                                }
+                                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                                  off
+                                    ? "cursor-not-allowed border-border bg-surface-soft text-muted/50 line-through"
+                                    : on
                                       ? "border-primary bg-primary text-white"
                                       : "border-border text-muted hover:border-primary"
-                                  }`}
-                                >
-                                  {name}
-                                </button>
-                              );
-                            })}
-                          </div>
+                                }`}
+                              >
+                                {isoWeekdayName(iso)}
+                              </button>
+                            );
+                          })}
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-muted">{dict.weeks}</span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setWeeks((n) => Math.max(1, n - 1))}
-                              className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
-                            >
-                              −
-                            </button>
-                            <span className="w-6 text-center font-semibold text-ink">{weeks}</span>
-                            <button
-                              type="button"
-                              onClick={() => setWeeks((n) => Math.min(12, n + 1))}
-                              className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
+
+                        {/* Names the saving and what earned it, so a moving total
+                            reads as a reward rather than a number changing on
+                            its own. */}
+                        {weekdays.size > 0 && commitmentPercent > 0 && (
+                          <p className="mt-2 text-xs font-semibold text-primary-dark">
+                            {dict.youSavedByChoosing
+                              .replace("{percent}", String(Math.round(commitmentPercent)))
+                              .replace("{days}", String(weekdays.size))}
+                          </p>
+                        )}
                       </div>
                     )}
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-muted">{dict.weeks}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setWeeks((n) => Math.max(1, n - 1))}
+                          className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
+                        >
+                          −
+                        </button>
+                        <span className="w-6 text-center font-semibold text-ink">{weeks}</span>
+                        <button
+                          type="button"
+                          onClick={() => setWeeks((n) => Math.min(12, n + 1))}
+                          className="grid h-8 w-8 place-items-center rounded-full border border-border text-lg text-ink"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
                     <p className="text-xs text-muted">{dict.offDaysNote}</p>
                   </div>
                 )}
@@ -972,57 +1068,32 @@ export function BookingWizard({
 
               {/* Date */}
               {(() => {
-                const multiple = bookingMode === "multiple";
-                const isCustom = multiple && frequency === "custom";
-                const isDaily = multiple && frequency === "daily";
-                const rangeLo = Math.min(dateIndex, rangeEndIndex);
-                const rangeHi = Math.max(dateIndex, rangeEndIndex);
-                const heading = isCustom
-                  ? dict.selectDates
-                  : isDaily
-                    ? dict.dateRange
-                    : multiple && frequency === "weekly"
-                      ? dict.startDay
-                      : dict.whenQuestion;
+                // Every mode now asks for exactly one date. For the recurring
+                // ones it is the first visit, and its weekday becomes the
+                // recurring day — so the customer is never asked twice.
+                const heading = isRecurring ? dict.startDay : dict.whenQuestion;
                 return (
                   <div>
                     <p className="mb-3 font-semibold text-ink">{heading}</p>
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       {days.map((d, i) => {
-                        const active = isCustom
-                          ? customDays.has(i)
-                          : isDaily
-                            ? i >= rangeLo && i <= rangeHi
-                            : i === dateIndex;
+                        // A start date on the provider's off day would produce a
+                        // schedule whose every visit is skipped server-side.
+                        const iso = d.date.getDay() === 0 ? 7 : d.date.getDay();
+                        const off = isRecurring && providerOffDays.includes(iso);
                         return (
                           <button
                             key={i}
                             type="button"
-                            onClick={() => {
-                              if (isCustom) {
-                                setCustomDays((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(i)) next.delete(i);
-                                  else next.add(i);
-                                  return next;
-                                });
-                              } else if (isDaily) {
-                                // First tap sets the start (and collapses the range);
-                                // a later tap on/after the start sets the end.
-                                if (i < dateIndex || i === rangeEndIndex) {
-                                  setDateIndex(i);
-                                  setRangeEndIndex(i);
-                                } else {
-                                  setRangeEndIndex(i);
-                                }
-                              } else {
-                                setDateIndex(i);
-                              }
-                            }}
+                            disabled={off}
+                            title={off ? dict.providerOffDay : undefined}
+                            onClick={() => setDateIndex(i)}
                             className={`flex shrink-0 flex-col items-center rounded-2xl border px-3 py-2 transition ${
-                              active
-                                ? "border-primary bg-primary text-white"
-                                : "border-border text-muted hover:border-primary"
+                              off
+                                ? "cursor-not-allowed border-border text-muted/40 line-through"
+                                : i === dateIndex
+                                  ? "border-primary bg-primary text-white"
+                                  : "border-border text-muted hover:border-primary"
                             }`}
                           >
                             <span className="text-xs">{d.weekday}</span>
@@ -1103,8 +1174,8 @@ export function BookingWizard({
               <Row
                 label={dict.frequency}
                 value={
-                  bookingMode === "once"
-                    ? dict.onlyOnce
+                  bookingMode === "single"
+                    ? dict.singleVisit
                     : bookingMode === "package"
                       ? // Name the plan the customer chose, not the generic mode:
                         // "3 Month Package · 6 days/week" says what was bought.
@@ -1115,7 +1186,7 @@ export function BookingWizard({
                               : ""
                           }`
                         : dict.packages
-                      : `${dict[frequency]} (${recurringValid ? buildDates().length : 0})`
+                      : `${dict[MODE_LABEL[bookingMode]]} (${recurringValid ? buildDates().length : 0})`
                 }
               />
               {bookingMode === "package" && packageQuote?.valid && (
@@ -1167,7 +1238,17 @@ export function BookingWizard({
                 )
               ) : (
                 <>
-              <Line label={dict.serviceAmount} value={money(serviceAmount * occurrenceCount)} />
+              <Line
+                label={dict.serviceAmount}
+                value={money((professionalDiscount > 0 ? serviceGross : serviceAmount) * occurrenceCount)}
+              />
+              {professionalDiscount > 0 && (
+                <Line
+                  label={`${dict.professionalDiscount} (${professionalPercent}%)`}
+                  value={`- ${money(professionalDiscount * occurrenceCount)}`}
+                  accent
+                />
+              )}
               {occurrenceCount > 1 && (
                 <Line label={dict.times} value={`× ${occurrenceCount}`} muted />
               )}
@@ -1196,11 +1277,11 @@ export function BookingWizard({
                   accent
                 />
               )}
-              {serviceTax > 0 && (
-                <Line label={`${dict.vat} (${serviceTax}%)`} value={`+ ${money(vat * occurrenceCount)}`} />
-              )}
               {serviceFee > 0 && (
                 <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />
+              )}
+              {vat > 0 && (
+                <Line label={`${dict.vat} (${vatPercent}%)`} value={`+ ${money(vat)}`} />
               )}
                 </>
               )}

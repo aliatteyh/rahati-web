@@ -49,6 +49,7 @@ export function CheckoutClient({
   addresses,
   gateways,
   serviceFee,
+  vatPercent,
   serverTotal,
   zoneId,
   schedule,
@@ -65,6 +66,8 @@ export function CheckoutClient({
   addresses: Address[];
   gateways: Gateway[];
   serviceFee: number;
+  /** Global VAT rate; charged on the service fee only. */
+  vatPercent: number;
   serverTotal: number;
   zoneId: string;
   schedule: string;
@@ -110,14 +113,17 @@ export function CheckoutClient({
       addon += num(c.add_on_total);
       discount += num(c.discount_amount) + num(c.campaign_discount);
       coupon += num(c.coupon_discount);
-      vat += num(c.tax_amount);
+      vat += num(c.tax_amount);  // zero now — VAT moved to the fee
       items += num(c.total_cost);
     }
+    // VAT is charged on the service fee only, once per booking.
+    vat += (num(serviceFee) * num(vatPercent)) / 100;
+
     return {
       serviceAmount, profDiscount, material, addon, discount, coupon, vat,
-      grand: serverTotal > 0 ? serverTotal : items + num(serviceFee),
+      grand: serverTotal > 0 ? serverTotal : items + num(serviceFee) + vat,
     };
-  }, [cart, serviceFee, serverTotal]);
+  }, [cart, serviceFee, vatPercent, serverTotal]);
 
   async function saveAddress() {
     if (!newLoc) return;
@@ -352,8 +358,8 @@ export function CheckoutClient({
           {totals.addon > 0 && <Line label={dict.addons} value={`+ ${money(totals.addon)}`} />}
           {totals.discount > 0 && <Line label={dict.discount} value={`- ${money(totals.discount)}`} />}
           {totals.coupon > 0 && <Line label={dict.coupon} value={`- ${money(totals.coupon)}`} />}
-          {totals.vat > 0 && <Line label={dict.vat} value={`+ ${money(totals.vat)}`} />}
           {serviceFee > 0 && <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />}
+          {totals.vat > 0 && <Line label={dict.vat} value={`+ ${money(totals.vat)}`} />}
           <div className="border-t border-border pt-3">
             <div className="flex items-center justify-between text-base font-bold text-ink">
               <span>{dict.total}</span>

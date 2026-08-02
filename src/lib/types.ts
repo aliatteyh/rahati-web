@@ -27,7 +27,6 @@ export interface Service {
   category?: {
     name?: string;
     slug?: string;
-    faqs?: ServiceFaq[];
     category_discount?: DiscountLike[];
     campaign_discount?: DiscountLike[];
   } | null;
@@ -39,8 +38,12 @@ export interface Service {
   /** Serving provider's working hours + weekly off-days (for the booking UI). */
   service_availability?: {
     provider_id?: string | null;
+    /** How many providers serve this sub-category in the customer's zone. */
+    provider_count?: number;
     time_schedule?: { start_time?: string; end_time?: string } | null;
+    /** Weekdays closed to *every* provider — the only ones the picker disables. */
     weekends?: string[];
+    max_days_per_week?: number;
   } | null;
 }
 
@@ -126,6 +129,8 @@ export interface BusinessConfig {
   professional_discount_tiers?: ProfessionalTier[];
   material_charge?: number | string;
   additional_charge_fee_amount?: number | string;
+  /** Global VAT rate; charged on the service fee only. */
+  vat_percentage?: number | string;
   wallet_status?: number | string;
   loyalty_point_status?: number | string;
   review_edit_time_status?: number | string;

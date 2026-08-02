@@ -2,6 +2,7 @@ import Link from "next/link";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import { authGet } from "@/lib/account";
 import { InvoicePrintButton } from "@/components/account/InvoicePrintButton";
 
@@ -51,7 +52,7 @@ export default async function InvoicePage({
     authGet<Booking>(`/api/v1/customer/booking/${encodeURIComponent(id)}`, locale, {}),
     getConfig(locale),
   ]);
-  const currency = config.currency_symbol || config.currency_code || "";
+  const currency = currencyLabel(config, locale);
 
   if (!b || !b.id) {
     return (

@@ -15,6 +15,7 @@ import { ServiceCard } from "@/components/ServiceCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { absoluteUrl } from "@/lib/seo";
+import { currencyLabel } from "@/lib/currency";
 
 export default async function HomePage({
   params,
@@ -32,7 +33,7 @@ export default async function HomePage({
     getConfig(locale),
     getBanners(locale),
   ]);
-  const currency = config.currency_symbol || dict.common.currency;
+  const currency = currencyLabel(config, locale);
 
   const steps = [
     { title: dict.steps.s1Title, text: dict.steps.s1Text },

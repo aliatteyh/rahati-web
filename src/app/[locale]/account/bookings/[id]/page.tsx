@@ -2,6 +2,7 @@ import Link from "next/link";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import { authGet } from "@/lib/account";
 import { Thumb } from "@/components/Thumb";
 import { CancelBookingButton } from "@/components/account/CancelBookingButton";
@@ -108,7 +109,7 @@ export default async function BookingDetailPage({
       []
     ),
   ]);
-  const currency = config.currency_symbol || config.currency_code || "";
+  const currency = currencyLabel(config, locale);
 
   // Map serviceId -> the customer's existing review (rating, comment, reply, when).
   const reviewMap = new Map<string, { review: ExistingReview; createdAt?: string }>();

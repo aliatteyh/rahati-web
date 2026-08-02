@@ -12,6 +12,7 @@ import {
   formatPrice,
   serviceFromPrice,
 } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import { Thumb } from "@/components/Thumb";
 import { ReviewsSection } from "@/components/service/ReviewsSection";
 
@@ -59,7 +60,7 @@ export default async function ServicePage({ params }: { params: Params }) {
     getServiceReviews(service.id, locale),
   ]);
 
-  const currency = config.currency_symbol || dict.common.currency;
+  const currency = currencyLabel(config, locale);
   const price = formatPrice(serviceFromPrice(service), currency);
   const categoryName = service.category?.name;
   const coverImage = service.cover_image_full_path;
@@ -69,8 +70,10 @@ export default async function ServicePage({ params }: { params: Params }) {
     reviewData.rating.review_count ?? reviewData.rating.rating_count ?? 0;
 
   // Category-level FAQs take priority; fall back to any service-level FAQs
-  const faqs =
-    (service.category?.faqs?.length ? service.category.faqs : service.faqs) ?? [];
+  // Questions belong to the service: that is the level at which the answers
+  // actually differ. Category FAQs are gone — they used to hide these entirely
+  // whenever a category had even one question of its own.
+  const faqs = service.faqs ?? [];
 
   const description = service.short_description || stripHtml(service.description).slice(0, 300);
   const rawPrice = serviceFromPrice(service);

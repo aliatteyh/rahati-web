@@ -1,6 +1,7 @@
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import { authGetList } from "@/lib/account";
 
 interface Coupon {
@@ -33,7 +34,7 @@ export default async function CouponsPage({
     authGetList<Coupon>("/api/v1/customer/coupon?limit=100&offset=1", locale),
     getConfig(locale),
   ]);
-  const currency = config.currency_symbol || config.currency_code || "";
+  const currency = currencyLabel(config, locale);
 
   return (
     <div className="space-y-6">

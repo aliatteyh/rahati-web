@@ -9,6 +9,7 @@ import {
   getSubcategories,
   serviceFromPrice,
 } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import type { Service } from "@/lib/types";
 import {
   SubcategoryBrowser,
@@ -92,7 +93,7 @@ export default async function SubcategoryPage({ params }: { params: Params }) {
     getServicesBySubcategory(slug, locale),
     getConfig(locale),
   ]);
-  const currency = config.currency_symbol || dict.common.currency;
+  const currency = currencyLabel(config, locale);
   const name = await resolveName(slug, services, locale);
   const parent = services[0]?.category;
 

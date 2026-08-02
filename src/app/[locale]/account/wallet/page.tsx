@@ -1,6 +1,7 @@
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import { authGet } from "@/lib/account";
 import { ConfirmActionButton } from "@/components/account/ConfirmActionButton";
 
@@ -96,7 +97,7 @@ export default async function WalletPage({
   const a = dict.account as unknown as Record<string, string>;
 
   const config = await getConfig(locale);
-  const currency = config.currency_symbol || config.currency_code || "";
+  const currency = currencyLabel(config, locale);
   const walletOn = Number(config.wallet_status) === 1;
   const loyaltyOn = Number(config.loyalty_point_status) === 1;
 

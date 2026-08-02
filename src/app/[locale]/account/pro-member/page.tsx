@@ -1,6 +1,7 @@
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import { authGet } from "@/lib/account";
 import { SubscribeButton } from "@/components/subscription/SubscribeButton";
 import { ConfirmActionButton } from "@/components/account/ConfirmActionButton";
@@ -58,7 +59,7 @@ export default async function ProMemberPage({
     getConfig(locale),
     authGet<Terms>("/api/v1/customer/subscription/terms-and-conditions", locale, {}),
   ]);
-  const currency = config.currency_symbol || config.currency_code || "";
+  const currency = currencyLabel(config, locale);
   const plans = (details.plans ?? []).filter((p) => p.is_active !== 0);
   const b = details.benefits ?? {};
   const faqs = details.faqs ?? [];

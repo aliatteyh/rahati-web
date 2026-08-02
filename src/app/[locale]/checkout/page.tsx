@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 
 // Transactional page — not indexable.
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -59,11 +60,12 @@ export default async function CheckoutPage({
         locationDict={dict.location as unknown as Record<string, string>}
         authDict={dict.auth as unknown as Record<string, string>}
         addressDict={dict.auth as unknown as Record<string, string>}
-        currency={config.currency_symbol || config.currency_code || ""}
+        currency={currencyLabel(config, locale)}
         cart={cart}
         addresses={addresses}
         gateways={gateways.map((g) => ({ key: g.gateway ?? "", title: g.gateway_title ?? g.gateway ?? "" }))}
         serviceFee={serviceFee}
+        vatPercent={Number(config.vat_percentage ?? 0)}
         serverTotal={serverTotal}
         zoneId={zoneId}
         schedule={schedule ?? ""}

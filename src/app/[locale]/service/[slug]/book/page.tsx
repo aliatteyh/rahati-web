@@ -9,6 +9,7 @@ import {
   getServiceDetail,
   getServicePackages,
 } from "@/lib/api";
+import { currencyLabel } from "@/lib/currency";
 import {
   BookingWizard,
   type WizardAddOn,
@@ -47,7 +48,7 @@ export default async function BookPage({ params }: { params: Params }) {
   ]);
   if (!service) notFound();
 
-  const currency = config.currency_symbol || dict.common.currency;
+  const currency = currencyLabel(config, locale);
 
   const variants: WizardVariant[] = (service.variations ?? []).map((v) => ({
     key: v.variant_key || v.variant || "variant",
@@ -62,11 +63,12 @@ export default async function BookPage({ params }: { params: Params }) {
     });
   }
 
-  // Subscription packages offered for this sub-category, plus the weekdays the
-  // serving provider actually works — the picker disables the rest.
+  // Subscription packages for this sub-category, plus the weekdays it can be
+  // booked on — the union across every provider serving it, so a day is only
+  // disabled when nobody works it.
   const [servicePackages, availability] = await Promise.all([
     getServicePackages(service.sub_category_id ?? "", locale),
-    getPackageAvailability(service.service_availability?.provider_id ?? null, locale),
+    getPackageAvailability(service.sub_category_id ?? null, locale),
   ]);
 
   // Real, admin-managed add-ons for this service (by category or direct link)
@@ -83,7 +85,7 @@ export default async function BookPage({ params }: { params: Params }) {
       locale={locale}
       dict={dict.booking as unknown as Record<string, string>}
       currency={currency}
-      serviceTax={toNumber(service.tax)}
+      vatPercent={toNumber(config.vat_percentage)}
       serviceFee={toNumber(config.additional_charge_fee_amount)}
       materialCharge={toNumber(config.material_charge)}
       professionalTiers={config.professional_discount_tiers ?? []}

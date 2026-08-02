@@ -19,7 +19,8 @@ const REVALIDATE_SECONDS = 300;
 async function apiGet<T>(
   path: string,
   locale: Locale,
-  fallback: T
+  fallback: T,
+  init?: RequestInit
 ): Promise<T> {
   try {
     const zoneId = await getZoneId();
@@ -30,6 +31,7 @@ async function apiGet<T>(
         zoneId,
       },
       next: { revalidate: REVALIDATE_SECONDS },
+      ...init,
     });
     if (!res.ok) return fallback;
     const json = await res.json();
@@ -49,8 +51,15 @@ async function apiGetList<T>(
   return content?.data ?? [];
 }
 
+/**
+ * Business config — fees, tax rate, material rate, discount tiers.
+ *
+ * Deliberately uncached. Everything here sets a price, so a cached copy shows
+ * the customer one number in the line items while the server charges another,
+ * and an admin editing a rate sees no change until the window expires.
+ */
 export function getConfig(locale: Locale): Promise<BusinessConfig> {
-  return apiGet<BusinessConfig>("/api/v1/customer/config", locale, {});
+  return apiGet<BusinessConfig>("/api/v1/customer/config", locale, {}, { cache: "no-store" });
 }
 
 export function getBanners(locale: Locale, limit = 10): Promise<Banner[]> {
@@ -205,14 +214,26 @@ export interface PackageQuote {
 }
 
 /** The weekdays still bookable once the provider's off day is removed. */
+/**
+ * Which weekdays this sub-category can actually be booked on.
+ *
+ * Ask by sub-category, not by provider: a day is only closed when every
+ * provider serving it is off. Asking about one provider blocked days a
+ * colleague could have covered.
+ */
 export async function getPackageAvailability(
-  providerId: string | null,
+  subCategoryId: string | null,
   locale: Locale
-): Promise<{ selectable_weekdays: number[]; off_days_iso: number[]; max_days_per_week: number }> {
+): Promise<{
+  selectable_weekdays: number[];
+  off_days_iso: number[];
+  max_days_per_week: number;
+  provider_count?: number;
+}> {
   const fallback = { selectable_weekdays: [1, 2, 3, 4, 5, 6, 7], off_days_iso: [], max_days_per_week: 6 };
   try {
     const zoneId = await getZoneId();
-    const query = providerId ? `?provider_id=${encodeURIComponent(providerId)}` : "";
+    const query = subCategoryId ? `?sub_category_id=${encodeURIComponent(subCategoryId)}` : "";
     const res = await fetch(`${API_BASE}/api/v1/customer/service-package/availability${query}`, {
       headers: { Accept: "application/json", "X-localization": locale, zoneId },
       cache: "no-store",
@@ -285,6 +306,9 @@ export interface BookingQuote {
   extra_fee: number;
   referral_discount: number;
   pro_discount: number;
+  /** Server-computed, so the shown line can never disagree with the total. */
+  professional_discount: number;
+  material_charge: number;
   commitment_percent: number;
   commitment_discount: number;
   total_discount_amount: number;
