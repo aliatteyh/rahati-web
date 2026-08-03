@@ -30,7 +30,10 @@ async function apiGet<T>(
         "X-localization": locale,
         zoneId,
       },
-      next: { revalidate: REVALIDATE_SECONDS },
+      // Only one caching directive may be given: spreading `init` over a
+      // `next.revalidate` left both set, which Next warns about and resolves
+      // unpredictably. An explicit `cache` from the caller wins outright.
+      ...(init?.cache ? {} : { next: { revalidate: REVALIDATE_SECONDS } }),
       ...init,
     });
     if (!res.ok) return fallback;
@@ -208,6 +211,10 @@ export interface PackageQuote {
   discount_percent: number;
   undiscounted_visit_price: number;
   net_visit_price: number;
+  /** The discount alone — you_save also nets off the fee and its tax. */
+  package_discount: number;
+  extra_fee: number;
+  fee_tax: number;
   you_save: number;
   dates: string[];
   first_visit: string;

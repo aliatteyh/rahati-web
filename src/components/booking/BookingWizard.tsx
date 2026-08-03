@@ -175,6 +175,82 @@ export function BookingWizard({
   const [weekdays, setWeekdays] = useState<Set<number>>(new Set());
   const [weeks, setWeeks] = useState(2);
 
+  /**
+   * Keep the customer's choices across a trip to the login page.
+   *
+   * Placing an order sends anyone not signed in to /login, and every choice —
+   * hours, professionals, materials, the package, the weekdays, the time — lived
+   * only in memory, so they came back to an empty form that had quietly reset to
+   * a single visit. A refresh cost the same. sessionStorage is the right scope:
+   * it survives the round trip and dies with the tab.
+   */
+  const draftKey = `rahati:booking:${serviceSlug}`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.sessionStorage.getItem(draftKey);
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw) as Record<string, unknown>;
+      if (typeof d.variantIndex === "number" && d.variantIndex < safeVariants.length) {
+        setVariantIndex(d.variantIndex);
+      }
+      if (typeof d.professionals === "number") setProfessionals(d.professionals);
+      if (typeof d.materials === "boolean") setMaterials(d.materials);
+      if (typeof d.instructions === "string") setInstructions(d.instructions);
+      if (Array.isArray(d.selectedAddOns)) setSelectedAddOns(new Set(d.selectedAddOns as string[]));
+      if (typeof d.dateIndex === "number") setDateIndex(d.dateIndex);
+      if (typeof d.timeSlot === "string") setTimeSlot(d.timeSlot);
+      if (typeof d.bookingMode === "string" && (MODES as readonly string[]).includes(d.bookingMode)) {
+        setBookingMode(d.bookingMode as BookingMode);
+      }
+      if (typeof d.packageId === "string") setPackageId(d.packageId);
+      if (Array.isArray(d.packageWeekdays)) setPackageWeekdays(new Set(d.packageWeekdays as number[]));
+      if (typeof d.weeks === "number") setWeeks(d.weeks);
+      if (typeof d.step === "number") setStep(d.step);
+    } catch {
+      // A draft we cannot read is worth less than a clean form.
+      window.sessionStorage.removeItem(draftKey);
+    }
+    // Restoring once on mount is the point; re-running would fight the customer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(
+      draftKey,
+      JSON.stringify({
+        variantIndex,
+        professionals,
+        materials,
+        instructions,
+        selectedAddOns: [...selectedAddOns],
+        dateIndex,
+        timeSlot,
+        bookingMode,
+        packageId,
+        packageWeekdays: [...packageWeekdays],
+        weeks,
+        step,
+      })
+    );
+  }, [
+    draftKey,
+    variantIndex,
+    professionals,
+    materials,
+    instructions,
+    selectedAddOns,
+    dateIndex,
+    timeSlot,
+    bookingMode,
+    packageId,
+    packageWeekdays,
+    weeks,
+    step,
+  ]);
+
   const variant = safeVariants[variantIndex];
 
   /** Every mode except a single visit and a package produces its own date list. */
@@ -315,6 +391,8 @@ export function BookingWizard({
         return;
       }
       if (data.ok) {
+        // The cart now holds the order, so the draft has done its job.
+        if (typeof window !== "undefined") window.sessionStorage.removeItem(draftKey);
         const instr = encodeURIComponent(instructions);
         if (isPackageMode && packageId) {
           // The server already generated the exact visit list; send that rather
@@ -1284,16 +1362,34 @@ export function BookingWizard({
                       label={dict.perVisit}
                       value={money(packageQuote.undiscounted_visit_price)}
                     />
+                    {materialsFee > 0 && (
+                      /* Folded into the per-visit price above, so it is noted
+                         rather than added — listing it again would double it. */
+                      <Line
+                        label={dict.material}
+                        value={`${dict.included} · ${money(materialsFee)}`}
+                        muted
+                      />
+                    )}
                     <Line label={dict.visits} value={`× ${packageQuote.total_visits}`} muted />
                     {packageQuote.discount_percent > 0 && (
                       <Line
+                        /* The discount alone. you_save nets off the fee and its
+                           tax as well, so using it here left the lines short of
+                           the total by exactly those charges. */
                         label={`${dict.packageDiscount} (${packageQuote.discount_percent}%)`}
-                        value={`- ${money(packageQuote.you_save)}`}
+                        value={`- ${money(packageQuote.package_discount)}`}
                         accent
                       />
                     )}
-                    {serviceFee > 0 && (
-                      <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />
+                    {packageQuote.extra_fee > 0 && (
+                      <Line label={dict.serviceFee} value={`+ ${money(packageQuote.extra_fee)}`} />
+                    )}
+                    {packageQuote.fee_tax > 0 && (
+                      <Line
+                        label={`${dict.vat} (${vatPercent}%)`}
+                        value={`+ ${money(packageQuote.fee_tax)}`}
+                      />
                     )}
                   </>
                 ) : (
