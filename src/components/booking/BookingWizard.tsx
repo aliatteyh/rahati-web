@@ -60,6 +60,13 @@ export interface BookingWizardProps {
 const WEEKDAY_ORDER = [6, 7, 1, 2, 3, 4, 5];
 
 /**
+ * Visits one weekday contributes per month — mirrors
+ * ServicePackageQuote::VISITS_PER_WEEKDAY_PER_MONTH. Four, not 4.35: packages
+ * are sold as a round number the customer can check against their calendar.
+ */
+const VISITS_PER_WEEKDAY_PER_MONTH = 4;
+
+/**
  * What the customer is buying, in the order they'd consider it.
  *
  * Replaces the old "once / multiple" plus a separate daily-weekly-custom
@@ -450,6 +457,14 @@ export function BookingWizard({
   }, [quoteKey, locale, serviceId]);
 
   const selectedPackage = servicePackages.find((p) => p.id === packageId) ?? null;
+
+  // A package sells a band of weekdays; outside it the server refuses, so the
+  // picker must not let the customer build a selection that cannot be bought.
+  const packageMinDays = Math.max(1, selectedPackage?.min_days_per_week ?? 1);
+  const packageMaxDays = Math.min(
+    maxDaysPerWeek,
+    selectedPackage?.max_days_per_week ?? maxDaysPerWeek
+  );
 
   // Headline for the tab: the best saving any package on offer can reach.
   const bestPackageSaving = servicePackages.reduce(
@@ -903,7 +918,12 @@ export function BookingWizard({
                                that deliver it further down. */
                             <span className="mt-1 block text-xs text-muted">
                               {pkg.tiers
-                                .map((t) => t.visits_per_month ?? t.days_per_week * 4)
+                                .filter(
+                                  (t) =>
+                                    t.days_per_week >= pkg.min_days_per_week &&
+                                    t.days_per_week <= pkg.max_days_per_week
+                                )
+                                .map((t) => t.visits_per_month ?? t.days_per_week * VISITS_PER_WEEKDAY_PER_MONTH)
                                 .join(" · ")}{" "}
                               {dict.servicesPerMonth}
                             </span>
@@ -923,21 +943,34 @@ export function BookingWizard({
                     {packageId && (
                       <>
                         <div>
-                          <p className="mb-2 text-sm font-semibold text-ink">{dict.chooseDays}</p>
+                          {/* The cap is the package's own, not the system's: a
+                              two-day package must not let six be picked, which
+                              the server now refuses anyway. */}
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-ink">{dict.chooseDays}</p>
+                            {packageWeekdays.size >= packageMaxDays && (
+                              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-dark">
+                                ⚠ {dict.maxDaysReached}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-2">
                             {WEEKDAY_ORDER.map((iso) => {
                               const off = providerOffDays.includes(iso);
                               const on = packageWeekdays.has(iso);
+                              // Full: selected days stay removable, the rest go
+                              // quiet rather than silently ignoring the tap.
+                              const full = !on && packageWeekdays.size >= packageMaxDays;
                               return (
                                 <button
                                   key={iso}
                                   type="button"
-                                  disabled={off}
-                                  title={off ? dict.providerOffDay : undefined}
+                                  disabled={off || full}
+                                  title={off ? dict.providerOffDay : full ? dict.maxDaysReached : undefined}
                                   onClick={() => {
                                     const next = new Set(packageWeekdays);
                                     if (next.has(iso)) next.delete(iso);
-                                    else if (next.size < maxDaysPerWeek) next.add(iso);
+                                    else if (next.size < packageMaxDays) next.add(iso);
                                     setPackageWeekdays(next);
                                   }}
                                   className={`rounded-full border px-3 py-1.5 text-sm transition ${
@@ -945,7 +978,9 @@ export function BookingWizard({
                                       ? "cursor-not-allowed border-border bg-surface-soft text-muted/50 line-through"
                                       : on
                                         ? "border-primary bg-primary text-white"
-                                        : "border-border text-muted hover:border-primary"
+                                        : full
+                                          ? "cursor-not-allowed border-border bg-surface text-muted/40"
+                                          : "border-border text-muted hover:border-primary"
                                   }`}
                                 >
                                   {isoWeekdayName(iso)}
@@ -954,10 +989,24 @@ export function BookingWizard({
                             })}
                           </div>
                           <p className="mt-2 text-xs text-muted">
-                            {selectableWeekdays.length < 7
-                              ? dict.offDayExcluded
-                              : dict.maxSixDays}
+                            {(packageMinDays === packageMaxDays
+                              ? dict.packageExactly
+                              : dict.packageRange
+                            )
+                              .replace("{min}", String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH))
+                              .replace("{max}", String(packageMaxDays * VISITS_PER_WEEKDAY_PER_MONTH))}
+                            {selectableWeekdays.length < 7 ? ` · ${dict.offDayExcluded}` : ""}
                           </p>
+                          {/* Below the minimum the booking cannot go through, so
+                              say it here rather than at the checkout button. */}
+                          {packageWeekdays.size > 0 && packageWeekdays.size < packageMinDays && (
+                            <p className="mt-1 text-xs font-semibold text-danger">
+                              {dict.packageBelowMin.replace(
+                                "{min}",
+                                String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH)
+                              )}
+                            </p>
+                          )}
 
                           {/* Names the saving and the reason that earned it, so a
                               moving total reads as a reward rather than a number
