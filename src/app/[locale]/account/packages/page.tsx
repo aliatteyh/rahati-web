@@ -5,6 +5,7 @@ import { getConfig, formatPrice } from "@/lib/api";
 import { currencyLabel } from "@/lib/currency";
 import { authGetList } from "@/lib/account";
 import { CancelPackageButton } from "@/components/account/CancelPackageButton";
+import { RenewPackageButton } from "@/components/account/RenewPackageButton";
 
 interface MyPackage {
   id: string;
@@ -21,6 +22,8 @@ interface MyPackage {
   total_amount: number;
   start_date: string | null;
   expire_date: string | null;
+  service_slug?: string | null;
+  visits_per_month?: number;
   refund_amount: number;
 }
 
@@ -128,6 +131,31 @@ export default async function MyPackagesPage({
                     </>
                   )}
                 </dl>
+
+                {/* Renewal is offered once the package is finished — active or
+                    expired — because that is when the customer decides whether
+                    to carry on. A canceled one is refused by the backend. */}
+                {pkg.status !== "canceled" && (
+                  <div className="mt-4 border-t border-border pt-3">
+                    <RenewPackageButton
+                      packageId={pkg.id}
+                      locale={locale}
+                      serviceSlug={pkg.service_slug ?? null}
+                      money={money}
+                      labels={{
+                        renew: t.renew,
+                        renewing: t.renewing,
+                        newPeriod: t.newPeriod,
+                        visitsLabel: t.visitsLabel,
+                        confirm: t.confirmRenew,
+                        priceChanged: t.priceChanged,
+                        samePrice: t.samePrice,
+                        failed: t.renewFailed,
+                        back: t.backLabel,
+                      }}
+                    />
+                  </div>
+                )}
 
                 {pkg.status === "active" && (
                   <div className="mt-4 border-t border-border pt-3">
