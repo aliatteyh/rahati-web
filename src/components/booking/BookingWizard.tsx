@@ -545,12 +545,12 @@ export function BookingWizard({
         ? Math.max(0, quote.grand_total - couponDiscount * occurrenceCount)
         : localTotal;
 
-  // What each materials choice actually costs, all-in. Showing the difference
-  // as a rate made the customer do the arithmetic; showing both totals lets
-  // them compare at a glance, which is the decision they are actually making.
-  const materialDelta = materialCost * occurrenceCount;
-  const totalWithoutMaterials = Math.max(0, grandTotal - (materials ? materialDelta : 0));
-  const totalWithMaterials = totalWithoutMaterials + materialDelta;
+  // The two cards price the service and the materials, and nothing else — no
+  // service fee, no tax. Those are the same whichever card is picked, so
+  // folding them in would inflate both numbers and bury the one difference the
+  // customer is being asked to weigh.
+  const priceWithoutMaterials = serviceAmount * occurrenceCount;
+  const priceWithMaterials = (serviceAmount + materialCost) * occurrenceCount;
 
   async function applyCoupon() {
     const code = coupon.trim();
@@ -723,7 +723,7 @@ export function BookingWizard({
                 <div className="grid gap-3 sm:grid-cols-2">
                   {([false, true] as const).map((wants) => {
                     const selected = wants === materials;
-                    const price = wants ? totalWithMaterials : totalWithoutMaterials;
+                    const price = wants ? priceWithMaterials : priceWithoutMaterials;
                     return (
                       <button
                         key={String(wants)}

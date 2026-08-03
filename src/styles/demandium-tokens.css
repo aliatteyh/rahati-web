@@ -1,0 +1,157 @@
+/*
+ * Design tokens extracted from the Demandium Flutter app (C:\010101, v3.8.0).
+ *
+ * This is the app's palette, not the website's — the two currently have separate
+ * visual identities, and `#4153B3` is the Demandium template default rather than
+ * anything chosen for Rahati. Import this only if the decision is to align the
+ * website with the app; otherwise treat it as reference.
+ *
+ * The one part worth taking regardless is the status colour map at the bottom:
+ * a booking status resolves to a colour in one place instead of an if/else
+ * repeated in every template.
+ */
+
+:root {
+  /* ---- Brand ---- */
+  --dm-primary: #4153b3;
+  --dm-primary-light: #ecedf7;
+  --dm-primary-dark: #34428f;
+  --dm-secondary: #ff9900;
+  --dm-secondary-light: #ffda6d;
+  --dm-tertiary: #d35221;
+
+  /* ---- Surfaces ---- */
+  --dm-bg: #ffffff;
+  --dm-surface: #fcfcfc;
+  --dm-card: #f5f5f5;
+  --dm-hover: #f8fafc;
+  --dm-focus: #fff9e5;
+  --dm-shadow: #e6e5e5;
+  --dm-search-border: #eff1f4;
+
+  /* ---- Text ---- */
+  --dm-text: #000000;
+  --dm-text-muted: #758493;
+  --dm-text-hint: #a4a4a4;
+  --dm-text-disabled: #8797ab;
+  --dm-on-primary: #f8fafc;
+  --dm-link: #036fbe;
+
+  /* ---- Semantic ---- */
+  --dm-error: #ff4040;
+  --dm-success: #04bb7b;
+  --dm-info: #3c76f1;
+  --dm-warning: #ffbb38;
+
+  /* ---- Type ----
+     The app scales at a 1300px breakpoint; the second value is the mobile size. */
+  --dm-font: Roboto, system-ui, sans-serif;
+  --dm-text-xs: 0.625rem;   /* 10px → 14px ≥1300 */
+  --dm-text-sm: 0.75rem;    /* 12px → 13px */
+  --dm-text-base: 0.875rem; /* 14px → 16px */
+  --dm-text-lg: 1rem;       /* 16px → 18px */
+  --dm-text-xl: 1.125rem;   /* 18px → 20px */
+  --dm-text-2xl: 1.5rem;    /* 24px → 26px */
+
+  /* ---- Spacing ---- */
+  --dm-space-1: 2px;
+  --dm-space-2: 3px;
+  --dm-space-3: 5px;
+  --dm-space-4: 8px;
+  --dm-space-5: 10px;
+  --dm-space-6: 15px;
+  --dm-space-7: 20px;
+  --dm-space-8: 25px;
+  --dm-space-9: 35px;
+  --dm-space-10: 40px;
+
+  /* ---- Radius ---- */
+  --dm-radius-sm: 5px;
+  --dm-radius-md: 7px;
+  --dm-radius: 10px;
+  --dm-radius-lg: 15px;
+  --dm-radius-xl: 20px;
+}
+
+/*
+ * Dark mode lightens the brand colour rather than inverting it, so it stays
+ * legible on a near-black ground — worth keeping if these tokens are adopted.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dm-primary: #7a87ca;
+    --dm-primary-dark: #34428f;
+    --dm-secondary: #f57d00;
+
+    --dm-bg: #151515;
+    --dm-surface: #151515;
+    --dm-card: #10324a;      /* deep blue, not grey */
+    --dm-hover: rgba(4, 97, 165, 0.25);
+    --dm-focus: #484848;
+    --dm-shadow: rgba(226, 241, 255, 0.2);
+    --dm-search-border: #363e47;
+
+    --dm-text: #ffffff;
+    --dm-text-muted: #9bb8da;
+    --dm-text-hint: #c0bfbf;
+    --dm-link: #ffffff;
+
+    --dm-error: #c33d3d;
+    --dm-success: #019463;
+    --dm-info: #245bd1;
+    --dm-warning: #e6a832;
+  }
+}
+
+:root[data-theme="dark"] {
+  --dm-primary: #7a87ca;
+  --dm-bg: #151515;
+  --dm-card: #10324a;
+  --dm-text: #ffffff;
+  --dm-text-muted: #9bb8da;
+}
+
+:root[data-theme="light"] {
+  --dm-primary: #4153b3;
+  --dm-bg: #ffffff;
+  --dm-card: #f5f5f5;
+  --dm-text: #000000;
+  --dm-text-muted: #758493;
+}
+
+/*
+ * Booking status colours.
+ *
+ * Each status is a tinted background with a saturated text colour, so a pill
+ * reads at a glance without a legend. Identical in both themes — the tints are
+ * translucent, so they sit correctly on either ground.
+ *
+ * Usage: <span class="dm-status dm-status--completed">Completed</span>
+ */
+.dm-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: var(--dm-text-sm);
+  font-weight: 600;
+}
+
+.dm-status--pending    { background: rgba(123, 194, 246, 0.27); color: #058df3; }
+.dm-status--accepted   { background: rgba(154, 208, 251, 0.29); color: #2b95ff; }
+.dm-status--ongoing    { background: rgba(154, 197, 248, 0.38); color: #2b95ff; }
+.dm-status--completed  { background: rgba(175, 244, 193, 0.37); color: #03b158; }
+.dm-status--settled    { background: rgba(147, 179, 71, 0.43);  color: #7b9826; }
+.dm-status--canceled   { background: rgba(246, 169, 169, 0.32); color: #f44747; }
+.dm-status--approved   { background: rgba(53, 110, 76, 0.50);   color: #16b559; }
+.dm-status--expired    { background: rgba(124, 59, 59, 0.55);   color: #9ca8af; }
+.dm-status--running    { background: rgba(60, 79, 216, 0.47);   color: #707ec6; }
+.dm-status--denied     { background: rgba(110, 55, 55, 0.40);   color: #ff3737; }
+.dm-status--paused     { background: #0461a5;                   color: #ffffff; }
+.dm-status--resumed    { background: rgba(47, 94, 65, 0.44);    color: #16b559; }
+
+/* Subscription events, kept because packages reuse the same vocabulary. */
+.dm-status--subscription-purchase { background: rgba(236, 201, 141, 0.24); color: #e7680a; }
+.dm-status--subscription-renew    { background: rgba(107, 245, 162, 0.11); color: #16b559; }
+.dm-status--subscription-shift    { background: rgba(37, 153, 238, 0.27);  color: #0461a5; }
+.dm-status--subscription-refund   { background: rgba(201, 126, 238, 0.11); color: #ba4af8; }
