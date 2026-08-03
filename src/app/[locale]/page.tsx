@@ -3,6 +3,7 @@ import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import {
   getBanners,
+  getCampaigns,
   getCategories,
   getConfig,
   getPopularServices,
@@ -27,11 +28,12 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [categories, popular, config, banners] = await Promise.all([
+  const [categories, popular, config, banners, campaigns] = await Promise.all([
     getCategories(locale),
     getPopularServices(locale, 8),
     getConfig(locale),
     getBanners(locale),
+    getCampaigns(locale),
   ]);
   const currency = currencyLabel(config, locale);
 
@@ -124,6 +126,50 @@ export default async function HomePage({
           )}
         </div>
       </section>
+
+      {/* Campaigns — the discount already applies at checkout; without this the
+          customer only met a running promotion by opening one of its services. */}
+      {campaigns.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-16">
+          <SectionHeader
+            title={dict.campaign.title}
+            subtitle={dict.campaign.subtitle}
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {campaigns.map((campaign) => {
+              const amount = Number(campaign.discount?.discount_amount ?? 0);
+              const isPercent =
+                campaign.discount?.discount_amount_type === "percent" ||
+                campaign.discount?.discount_amount_type === "percentage";
+              return (
+                <Link
+                  key={campaign.id}
+                  href={`${base}/campaign/${campaign.id}`}
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary"
+                >
+                  {campaign.cover_image_full_path && (
+                    <img
+                      src={campaign.cover_image_full_path}
+                      alt=""
+                      className="aspect-[16/7] w-full object-cover"
+                    />
+                  )}
+                  <div className="flex items-center justify-between gap-3 p-4">
+                    <span className="min-w-0 font-semibold text-ink">
+                      {campaign.campaign_name}
+                    </span>
+                    {amount > 0 && isPercent && (
+                      <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white">
+                        {amount}% {dict.campaign.off}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Categories */}
       {categories.length > 0 && (

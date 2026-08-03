@@ -439,5 +439,13 @@
     "loading": "Loading…",
     "currency": "AED",
     "backHome": "Back to home"
+  },
+  "campaign": {
+    "title": "Offers",
+    "subtitle": "Limited-time campaigns",
+    "off": "off",
+    "endsOn": "Ends on",
+    "noServices": "No services in this campaign yet.",
+    "seeAll": "See offer"
   }
 }

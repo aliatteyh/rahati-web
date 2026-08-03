@@ -155,6 +155,56 @@ export interface CouponResult {
   message?: string;
 }
 
+/**
+ * A promotional campaign: a discount the admin runs over a set of services or
+ * categories for a period.
+ *
+ * The discount itself is already applied at the point of sale — CartLineBuilder
+ * takes the greater of the service and campaign discounts. What was missing was
+ * anywhere for the customer to see the campaign, so a running promotion reached
+ * them only if they happened to open one of its services.
+ */
+export interface Campaign {
+  id: string;
+  campaign_name: string;
+  cover_image_full_path?: string | null;
+  thumbnail_full_path?: string | null;
+  discount?: {
+    discount_title?: string;
+    discount_amount?: number | string;
+    discount_amount_type?: string;
+    start_date?: string;
+    end_date?: string;
+  } | null;
+}
+
+/** Live campaigns for the customer's zone. */
+export function getCampaigns(locale: Locale, limit = 10): Promise<Campaign[]> {
+  return apiGetList<Campaign>(
+    `/api/v1/customer/campaign?limit=${limit}&offset=1`,
+    locale
+  );
+}
+
+/** The services a campaign covers. Rows carry either a service or a category. */
+export interface CampaignItem {
+  id: string;
+  discount_type: string;
+  service?: Service | null;
+  category?: Category | null;
+}
+
+export function getCampaignItems(
+  campaignId: string,
+  locale: Locale,
+  limit = 50
+): Promise<CampaignItem[]> {
+  return apiGetList<CampaignItem>(
+    `/api/v1/customer/campaign/data/items?campaign_id=${encodeURIComponent(campaignId)}&limit=${limit}&offset=1`,
+    locale
+  );
+}
+
 export interface ServicePackageTier {
   days_per_week: number;
   /** What the package is sold by: 4, 8, 12, 16, 20 or 24 services a month. */
