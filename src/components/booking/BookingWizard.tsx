@@ -897,6 +897,17 @@ export function BookingWizard({
                               <span className="block text-xs text-muted">{pkg.short_description}</span>
                             )}
                           </span>
+                          {pkg.tiers?.length > 0 && (
+                            /* The ladder in the customer's own units: they buy a
+                               number of services a month, and pick the weekdays
+                               that deliver it further down. */
+                            <span className="mt-1 block text-xs text-muted">
+                              {pkg.tiers
+                                .map((t) => t.visits_per_month ?? t.days_per_week * 4)
+                                .join(" · ")}{" "}
+                              {dict.servicesPerMonth}
+                            </span>
+                          )}
                           {pkg.max_discount_percent > 0 && (
                             /* "Up to", because the headline rate is only reached at
                                the top of the ladder — a flat "-25%" is a promise the

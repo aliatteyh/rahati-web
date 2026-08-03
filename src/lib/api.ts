@@ -154,6 +154,8 @@ export interface CouponResult {
 
 export interface ServicePackageTier {
   days_per_week: number;
+  /** What the package is sold by: 4, 8, 12, 16, 20 or 24 services a month. */
+  visits_per_month?: number;
   discount_percent: number;
   price_override: number | null;
 }
