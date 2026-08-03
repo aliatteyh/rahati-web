@@ -188,6 +188,17 @@ export function BookingWizard({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // Only resume a draft we deliberately parked on the way to login. Restoring
+    // on every visit meant a choice made once — materials, say — came back
+    // pre-selected on the next booking, which reads as the form deciding for
+    // the customer.
+    const resuming = window.sessionStorage.getItem(`${draftKey}:resume`) === "1";
+    window.sessionStorage.removeItem(`${draftKey}:resume`);
+    if (!resuming) {
+      window.sessionStorage.removeItem(draftKey);
+      return;
+    }
+
     const raw = window.sessionStorage.getItem(draftKey);
     if (!raw) return;
     try {
@@ -387,6 +398,9 @@ export function BookingWizard({
       });
       const data = await res.json();
       if (data.needsLogin) {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(`${draftKey}:resume`, "1");
+        }
         router.push(`/${locale}/login`);
         return;
       }
