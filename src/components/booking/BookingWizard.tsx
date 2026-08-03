@@ -360,9 +360,10 @@ export function BookingWizard({
   // Materials are charged per hour of booked time, mirroring MaterialCharge.php.
   // Professionals deliberately do not multiply it: one set of materials serves
   // the visit however many people arrive.
-  const materialsFee = materials
-    ? Math.round(materialCharge * (variant.durationMinutes / 60) * 100) / 100
-    : 0;
+  // Kept whether or not materials are selected, so the two options can be
+  // priced side by side — the customer compares totals, not a rate.
+  const materialCost = Math.round(materialCharge * (variant.durationMinutes / 60) * 100) / 100;
+  const materialsFee = materials ? materialCost : 0;
   const itemsSubtotal = serviceAmount + materialsFee + addOnsTotal;
 
   // Service / campaign discount on the service amount; backend applies the GREATER of the two
@@ -544,6 +545,13 @@ export function BookingWizard({
         ? Math.max(0, quote.grand_total - couponDiscount * occurrenceCount)
         : localTotal;
 
+  // What each materials choice actually costs, all-in. Showing the difference
+  // as a rate made the customer do the arithmetic; showing both totals lets
+  // them compare at a glance, which is the decision they are actually making.
+  const materialDelta = materialCost * occurrenceCount;
+  const totalWithoutMaterials = Math.max(0, grandTotal - (materials ? materialDelta : 0));
+  const totalWithMaterials = totalWithoutMaterials + materialDelta;
+
   async function applyCoupon() {
     const code = coupon.trim();
     if (!code) return;
@@ -712,29 +720,34 @@ export function BookingWizard({
               {/* Materials */}
               <div>
                 <p className="mb-3 font-semibold text-ink">{dict.materialsQuestion}</p>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setMaterials(false)}
-                    className={`rounded-full border px-5 py-2 text-sm font-medium transition ${
-                      !materials
-                        ? "border-primary bg-primary-light text-primary-dark"
-                        : "border-border text-muted hover:border-primary"
-                    }`}
-                  >
-                    {dict.materialsNo}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMaterials(true)}
-                    className={`rounded-full border px-5 py-2 text-sm font-medium transition ${
-                      materials
-                        ? "border-primary bg-primary-light text-primary-dark"
-                        : "border-border text-muted hover:border-primary"
-                    }`}
-                  >
-                    {dict.materialsYes}
-                  </button>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {([false, true] as const).map((wants) => {
+                    const selected = wants === materials;
+                    const price = wants ? totalWithMaterials : totalWithoutMaterials;
+                    return (
+                      <button
+                        key={String(wants)}
+                        type="button"
+                        onClick={() => setMaterials(wants)}
+                        className={`rounded-xl border p-4 text-start transition ${
+                          selected
+                            ? "border-primary bg-primary-light"
+                            : "border-border bg-surface hover:border-primary"
+                        }`}
+                      >
+                        <span
+                          className={`block text-sm font-medium ${
+                            selected ? "text-primary-dark" : "text-ink"
+                          }`}
+                        >
+                          {wants ? dict.materialsYes : dict.materialsNo}
+                        </span>
+                        <span className="mt-1 block text-lg font-bold text-ink">
+                          {money(price)}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Say the rate out loud: a per-hour charge is a surprise on the
@@ -783,6 +796,16 @@ export function BookingWizard({
                           active ? "border-primary bg-primary-light" : "border-border hover:border-primary"
                         }`}
                       >
+                        {/* The API sends image_full_path as null when nothing was
+                            uploaded, so the card degrades to text rather than
+                            showing a broken frame. */}
+                        {a.image && (
+                          <img
+                            src={a.image}
+                            alt=""
+                            className="mb-2 aspect-square w-full rounded-xl object-cover"
+                          />
+                        )}
                         <span className="flex items-start justify-between gap-2">
                           <span className="text-sm font-semibold text-ink">{a.name}</span>
                           <span
