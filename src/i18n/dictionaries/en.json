@@ -338,6 +338,8 @@
     "packageRange": "This package is {min}–{max} services a month.",
     "packageExactly": "This package is {min} services a month.",
     "packageBelowMin": "Pick more days — this package starts at {min} services a month.",
+    "packageAboveMax": "Too many days — this package is up to {max} services a month.",
+    "packageNoTier": "This package is not sold for that number of days. Pick another combination.",
     "visits": "Total visits",
     "perVisit": "Per visit",
     "period": "Period",

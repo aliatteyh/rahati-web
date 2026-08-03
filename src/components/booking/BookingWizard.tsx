@@ -460,11 +460,21 @@ export function BookingWizard({
 
   // A package sells a band of weekdays; outside it the server refuses, so the
   // picker must not let the customer build a selection that cannot be bought.
-  const packageMinDays = Math.max(1, selectedPackage?.min_days_per_week ?? 1);
-  const packageMaxDays = Math.min(
-    maxDaysPerWeek,
-    selectedPackage?.max_days_per_week ?? maxDaysPerWeek
-  );
+  // Built from the tiers that actually exist, intersected with the package's
+  // own limits. A package can be saved with a wide day range but only one
+  // priced tier, and offering the unpriced days just walks the customer into a
+  // refusal they could not have predicted.
+  const packageSellableDays = (selectedPackage?.tiers ?? [])
+    .map((t) => t.days_per_week)
+    .filter(
+      (d) =>
+        d >= (selectedPackage?.min_days_per_week ?? 1) &&
+        d <= Math.min(maxDaysPerWeek, selectedPackage?.max_days_per_week ?? maxDaysPerWeek)
+    )
+    .sort((a, b) => a - b);
+
+  const packageMinDays = packageSellableDays[0] ?? 1;
+  const packageMaxDays = packageSellableDays[packageSellableDays.length - 1] ?? maxDaysPerWeek;
 
   // Headline for the tab: the best saving any package on offer can reach.
   const bestPackageSaving = servicePackages.reduce(
@@ -1056,7 +1066,21 @@ export function BookingWizard({
                         )}
 
                         {!packageLoading && packageQuote && !packageQuote.valid && (
-                          <p className="text-sm text-danger">{dict.noDatesForPackage}</p>
+                          <p className="text-sm text-danger">
+                            {packageQuote.reason === "below_min"
+                              ? dict.packageBelowMin.replace(
+                                  "{min}",
+                                  String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH)
+                                )
+                              : packageQuote.reason === "above_max"
+                                ? dict.packageAboveMax.replace(
+                                    "{max}",
+                                    String(packageMaxDays * VISITS_PER_WEEKDAY_PER_MONTH)
+                                  )
+                                : packageQuote.reason === "no_tier"
+                                  ? dict.packageNoTier
+                                  : dict.noDatesForPackage}
+                          </p>
                         )}
                       </>
                     )}
