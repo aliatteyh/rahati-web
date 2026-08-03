@@ -906,184 +906,189 @@ export function BookingWizard({
                     {/* Choose the plan */}
                     <div className="space-y-2">
                       {servicePackages.map((pkg) => (
-                        <button
+                        <div
                           key={pkg.id}
-                          type="button"
-                          onClick={() => setPackageId(pkg.id)}
-                          className={`flex w-full items-start justify-between gap-3 rounded-xl border p-3 text-start transition ${
+                          className={`rounded-xl border transition ${
                             packageId === pkg.id
                               ? "border-primary bg-primary-light"
                               : "border-border bg-white hover:border-primary"
                           }`}
                         >
-                          <span className="min-w-0">
-                            <span className="block font-semibold text-ink">{pkg.name}</span>
-                            {pkg.short_description && (
-                              <span className="block text-xs text-muted">{pkg.short_description}</span>
-                            )}
-                          </span>
-                          {pkg.tiers?.length > 0 && (
-                            /* The ladder in the customer's own units: they buy a
-                               number of services a month, and pick the weekdays
-                               that deliver it further down. */
-                            <span className="mt-1 block text-xs text-muted">
-                              {pkg.tiers
-                                .filter(
-                                  (t) =>
-                                    t.days_per_week >= pkg.min_days_per_week &&
-                                    t.days_per_week <= pkg.max_days_per_week
-                                )
-                                .map((t) => t.visits_per_month ?? t.days_per_week * VISITS_PER_WEEKDAY_PER_MONTH)
-                                .join(" · ")}{" "}
-                              {dict.servicesPerMonth}
-                            </span>
-                          )}
-                          {pkg.max_discount_percent > 0 && (
-                            /* "Up to", because the headline rate is only reached at
-                               the top of the ladder — a flat "-25%" is a promise the
-                               two-day option breaks, and the customer notices. */
-                            <span className="shrink-0 rounded-full bg-primary px-2 py-1 text-xs font-bold text-white">
-                              {dict.saveUpTo} {pkg.max_discount_percent}%
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    {packageId && (
-                      <>
-                        <div>
-                          {/* The cap is the package's own, not the system's: a
-                              two-day package must not let six be picked, which
-                              the server now refuses anyway. */}
-                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-ink">{dict.chooseDays}</p>
-                            {packageWeekdays.size >= packageMaxDays && (
-                              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-dark">
-                                ⚠ {dict.maxDaysReached}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {WEEKDAY_ORDER.map((iso) => {
-                              const off = providerOffDays.includes(iso);
-                              const on = packageWeekdays.has(iso);
-                              // Full: selected days stay removable, the rest go
-                              // quiet rather than silently ignoring the tap.
-                              const full = !on && packageWeekdays.size >= packageMaxDays;
-                              return (
-                                <button
-                                  key={iso}
-                                  type="button"
-                                  disabled={off || full}
-                                  title={off ? dict.providerOffDay : full ? dict.maxDaysReached : undefined}
-                                  onClick={() => {
-                                    const next = new Set(packageWeekdays);
-                                    if (next.has(iso)) next.delete(iso);
-                                    else if (next.size < packageMaxDays) next.add(iso);
-                                    setPackageWeekdays(next);
-                                  }}
-                                  className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                                    off
-                                      ? "cursor-not-allowed border-border bg-surface-soft text-muted/50 line-through"
-                                      : on
-                                        ? "border-primary bg-primary text-white"
-                                        : full
-                                          ? "cursor-not-allowed border-border bg-surface text-muted/40"
-                                          : "border-border text-muted hover:border-primary"
-                                  }`}
-                                >
-                                  {isoWeekdayName(iso)}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <p className="mt-2 text-xs text-muted">
-                            {(packageMinDays === packageMaxDays
-                              ? dict.packageExactly
-                              : dict.packageRange
-                            )
-                              .replace("{min}", String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH))
-                              .replace("{max}", String(packageMaxDays * VISITS_PER_WEEKDAY_PER_MONTH))}
-                            {selectableWeekdays.length < 7 ? ` · ${dict.offDayExcluded}` : ""}
-                          </p>
-                          {/* Below the minimum the booking cannot go through, so
-                              say it here rather than at the checkout button. */}
-                          {packageWeekdays.size > 0 && packageWeekdays.size < packageMinDays && (
-                            <p className="mt-1 text-xs font-semibold text-danger">
-                              {dict.packageBelowMin.replace(
-                                "{min}",
-                                String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH)
+                          <button
+                            type="button"
+                            onClick={() => setPackageId(pkg.id)}
+                            className="flex w-full items-start justify-between gap-3 p-3 text-start"
+                          >
+                            <span className="min-w-0">
+                              <span className="block font-semibold text-ink">{pkg.name}</span>
+                              {pkg.short_description && (
+                                <span className="block text-xs text-muted">{pkg.short_description}</span>
                               )}
-                            </p>
-                          )}
-
-                          {/* Names the saving and the reason that earned it, so a
-                              moving total reads as a reward rather than a number
-                              changing on its own. */}
-                          {packageQuote?.valid && packageQuote.discount_percent > 0 && (
-                            <p className="mt-2 rounded-lg bg-primary-light/60 px-3 py-2 text-sm font-medium text-primary-dark">
-                              🏷️ {dict.youSavedByChoosing
-                                .replace("{percent}", String(packageQuote.discount_percent))
-                                .replace("{days}", String(packageQuote.days_per_week))}
-                            </p>
-                          )}
-                        </div>
-
-                        {packageLoading && (
-                          <p className="text-sm text-muted">{dict.calculating}</p>
-                        )}
-
-                        {!packageLoading && packageQuote?.valid && (
-                          <div className="rounded-xl border border-primary/30 bg-white p-3 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted">{dict.visits}</span>
-                              <span className="font-semibold text-ink">{packageQuote.total_visits}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted">{dict.perVisit}</span>
-                              <span className="text-ink">
-                                <s className="text-muted">{money(packageQuote.undiscounted_visit_price)}</s>{" "}
-                                <span className="font-semibold">{money(packageQuote.net_visit_price)}</span>
+                            </span>
+                            {pkg.tiers?.length > 0 && (
+                              /* The ladder in the customer's own units: they buy a
+                                 number of services a month, and pick the weekdays
+                                 that deliver it further down. */
+                              <span className="mt-1 block text-xs text-muted">
+                                {pkg.tiers
+                                  .filter(
+                                    (t) =>
+                                      t.days_per_week >= pkg.min_days_per_week &&
+                                      t.days_per_week <= pkg.max_days_per_week
+                                  )
+                                  .map((t) => t.visits_per_month ?? t.days_per_week * VISITS_PER_WEEKDAY_PER_MONTH)
+                                  .join(" · ")}{" "}
+                                {dict.servicesPerMonth}
                               </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted">{dict.period}</span>
-                              <span className="text-ink">
-                                {packageQuote.first_visit.slice(0, 10)} → {packageQuote.last_visit.slice(0, 10)}
+                            )}
+                            {pkg.max_discount_percent > 0 && (
+                              /* "Up to", because the headline rate is only reached at
+                                 the top of the ladder — a flat "-25%" is a promise the
+                                 two-day option breaks, and the customer notices. */
+                              <span className="shrink-0 rounded-full bg-primary px-2 py-1 text-xs font-bold text-white">
+                                {dict.saveUpTo} {pkg.max_discount_percent}%
                               </span>
+                            )}
+                          </button>
+
+                        {packageId === pkg.id && (
+                          <>
+                            <div>
+                              {/* The cap is the package's own, not the system's: a
+                                  two-day package must not let six be picked, which
+                                  the server now refuses anyway. */}
+                              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-sm font-semibold text-ink">{dict.chooseDays}</p>
+                                {packageWeekdays.size >= packageMaxDays && (
+                                  <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-dark">
+                                    ⚠ {dict.maxDaysReached}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {WEEKDAY_ORDER.map((iso) => {
+                                  const off = providerOffDays.includes(iso);
+                                  const on = packageWeekdays.has(iso);
+                                  // Full: selected days stay removable, the rest go
+                                  // quiet rather than silently ignoring the tap.
+                                  const full = !on && packageWeekdays.size >= packageMaxDays;
+                                  return (
+                                    <button
+                                      key={iso}
+                                      type="button"
+                                      disabled={off || full}
+                                      title={off ? dict.providerOffDay : full ? dict.maxDaysReached : undefined}
+                                      onClick={() => {
+                                        const next = new Set(packageWeekdays);
+                                        if (next.has(iso)) next.delete(iso);
+                                        else if (next.size < packageMaxDays) next.add(iso);
+                                        setPackageWeekdays(next);
+                                      }}
+                                      className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                                        off
+                                          ? "cursor-not-allowed border-border bg-surface-soft text-muted/50 line-through"
+                                          : on
+                                            ? "border-primary bg-primary text-white"
+                                            : full
+                                              ? "cursor-not-allowed border-border bg-surface text-muted/40"
+                                              : "border-border text-muted hover:border-primary"
+                                      }`}
+                                    >
+                                      {isoWeekdayName(iso)}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <p className="mt-2 text-xs text-muted">
+                                {(packageMinDays === packageMaxDays
+                                  ? dict.packageExactly
+                                  : dict.packageRange
+                                )
+                                  .replace("{min}", String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH))
+                                  .replace("{max}", String(packageMaxDays * VISITS_PER_WEEKDAY_PER_MONTH))}
+                                {selectableWeekdays.length < 7 ? ` · ${dict.offDayExcluded}` : ""}
+                              </p>
+                              {/* Below the minimum the booking cannot go through, so
+                                  say it here rather than at the checkout button. */}
+                              {packageWeekdays.size > 0 && packageWeekdays.size < packageMinDays && (
+                                <p className="mt-1 text-xs font-semibold text-danger">
+                                  {dict.packageBelowMin.replace(
+                                    "{min}",
+                                    String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH)
+                                  )}
+                                </p>
+                              )}
+
+                              {/* Names the saving and the reason that earned it, so a
+                                  moving total reads as a reward rather than a number
+                                  changing on its own. */}
+                              {packageQuote?.valid && packageQuote.discount_percent > 0 && (
+                                <p className="mt-2 rounded-lg bg-primary-light/60 px-3 py-2 text-sm font-medium text-primary-dark">
+                                  🏷️ {dict.youSavedByChoosing
+                                    .replace("{percent}", String(packageQuote.discount_percent))
+                                    .replace("{days}", String(packageQuote.days_per_week))}
+                                </p>
+                              )}
                             </div>
-                            {packageQuote.you_save > 0 && (
-                              <div className="mt-1 flex justify-between border-t border-border pt-1 font-semibold text-primary-dark">
-                                <span>{dict.youSave}</span>
-                                <span>{money(packageQuote.you_save)}</span>
+
+                            {packageLoading && (
+                              <p className="text-sm text-muted">{dict.calculating}</p>
+                            )}
+
+                            {!packageLoading && packageQuote?.valid && (
+                              <div className="rounded-xl border border-primary/30 bg-white p-3 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-muted">{dict.visits}</span>
+                                  <span className="font-semibold text-ink">{packageQuote.total_visits}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted">{dict.perVisit}</span>
+                                  <span className="text-ink">
+                                    <s className="text-muted">{money(packageQuote.undiscounted_visit_price)}</s>{" "}
+                                    <span className="font-semibold">{money(packageQuote.net_visit_price)}</span>
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted">{dict.period}</span>
+                                  <span className="text-ink">
+                                    {packageQuote.first_visit.slice(0, 10)} → {packageQuote.last_visit.slice(0, 10)}
+                                  </span>
+                                </div>
+                                {packageQuote.you_save > 0 && (
+                                  <div className="mt-1 flex justify-between border-t border-border pt-1 font-semibold text-primary-dark">
+                                    <span>{dict.youSave}</span>
+                                    <span>{money(packageQuote.you_save)}</span>
+                                  </div>
+                                )}
+                                {packageQuote.skipped_off_days > 0 && (
+                                  <p className="mt-2 text-xs text-muted">{dict.offDayExcluded}</p>
+                                )}
                               </div>
                             )}
-                            {packageQuote.skipped_off_days > 0 && (
-                              <p className="mt-2 text-xs text-muted">{dict.offDayExcluded}</p>
-                            )}
-                          </div>
-                        )}
 
-                        {!packageLoading && packageQuote && !packageQuote.valid && (
-                          <p className="text-sm text-danger">
-                            {packageQuote.reason === "below_min"
-                              ? dict.packageBelowMin.replace(
-                                  "{min}",
-                                  String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH)
-                                )
-                              : packageQuote.reason === "above_max"
-                                ? dict.packageAboveMax.replace(
-                                    "{max}",
-                                    String(packageMaxDays * VISITS_PER_WEEKDAY_PER_MONTH)
-                                  )
-                                : packageQuote.reason === "no_tier"
-                                  ? dict.packageNoTier
-                                  : dict.noDatesForPackage}
-                          </p>
+                            {!packageLoading && packageQuote && !packageQuote.valid && (
+                              <p className="text-sm text-danger">
+                                {/* below_min is already said inline the moment
+                                    the selection drops below the minimum,
+                                    without waiting for the server — repeating
+                                    it here printed the same sentence twice. */}
+                                {packageQuote.reason === "below_min"
+                                  ? ""
+                                  : packageQuote.reason === "above_max"
+                                    ? dict.packageAboveMax.replace(
+                                        "{max}",
+                                        String(packageMaxDays * VISITS_PER_WEEKDAY_PER_MONTH)
+                                      )
+                                    : packageQuote.reason === "no_tier"
+                                      ? dict.packageNoTier
+                                      : dict.noDatesForPackage}
+                              </p>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
