@@ -952,7 +952,7 @@ export function BookingWizard({
                           </button>
 
                         {packageId === pkg.id && (
-                          <>
+                          <div className="space-y-3 border-t border-border/70 px-3 pb-3 pt-3">
                             <div>
                               {/* The cap is the package's own, not the system's: a
                                   two-day package must not let six be picked, which
@@ -1084,7 +1084,7 @@ export function BookingWizard({
                                       : dict.noDatesForPackage}
                               </p>
                             )}
-                          </>
+                          </div>
                         )}
                         </div>
                       ))}
