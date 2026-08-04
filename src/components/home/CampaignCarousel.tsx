@@ -32,33 +32,52 @@ export function CampaignCarousel({
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  useEffect(() => {
+  const count = campaigns.length;
+  const loops = count > 1;
+
+  /**
+   * The row is rendered twice when there is more than one campaign.
+   *
+   * Wrapping by resetting the index rewound the whole row in front of the
+   * customer. Scrolling on into a second copy and then stepping back by exactly
+   * one set — with no animation, so nothing is visible — lets the last card hand
+   * over to the first without the row ever appearing to go backwards.
+   */
+  const slides = loops ? [...campaigns, ...campaigns] : campaigns;
+
+  /** Bring a card to the start of the track. Visual delta, so RTL needs no case. */
+  const scrollToCard = (i: number, behavior: ScrollBehavior) => {
     const track = trackRef.current;
-    const card = track?.children[index] as HTMLElement | undefined;
+    const card = track?.children[i] as HTMLElement | undefined;
     if (!track || !card) return;
-
-    // Scroll by the visual gap between the card and the track rather than to an
-    // absolute offset: right-to-left pages report scrollLeft differently across
-    // browsers, and a relative delta needs no special case for Arabic.
     const delta = card.getBoundingClientRect().left - track.getBoundingClientRect().left;
-    if (Math.abs(delta) > 1) track.scrollBy({ left: delta, behavior: "smooth" });
-  }, [index]);
+    if (Math.abs(delta) > 1) track.scrollBy({ left: delta, behavior });
+  };
 
-  // Auto-advance, wrapping back to the first card. Pauses on hover and while a
-  // touch is in progress, so it never yanks a card away mid-read.
   useEffect(() => {
-    if (intervalSeconds <= 0 || campaigns.length < 2 || paused) return;
-    const id = setInterval(
-      () => setIndex((i) => (i + 1) % campaigns.length),
-      intervalSeconds * 1000
-    );
+    scrollToCard(index, "smooth");
+
+    // Landed on the first card of the duplicate set: let the animation finish,
+    // then step back a whole set instantly. Same pixels on screen, index home.
+    if (loops && index === count) {
+      const id = setTimeout(() => {
+        scrollToCard(0, "auto");
+        setIndex(0);
+      }, 500);
+      return () => clearTimeout(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, count, loops]);
+
+  // Auto-advance. Pauses on hover and while a touch is in progress, so a card is
+  // never pulled away mid-read.
+  useEffect(() => {
+    if (intervalSeconds <= 0 || !loops || paused) return;
+    const id = setInterval(() => setIndex((i) => i + 1), intervalSeconds * 1000);
     return () => clearInterval(id);
-  }, [intervalSeconds, campaigns.length, paused]);
+  }, [intervalSeconds, loops, paused]);
 
-  if (campaigns.length === 0) return null;
-
-  const canGoBack = index > 0;
-  const canGoOn = index < campaigns.length - 1;
+  if (count === 0) return null;
 
   return (
     <div
@@ -71,14 +90,14 @@ export function CampaignCarousel({
         ref={trackRef}
         className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {campaigns.map((campaign) => {
+        {slides.map((campaign, i) => {
           const amount = Number(campaign.discount?.discount_amount ?? 0);
           const isPercent =
             campaign.discount?.discount_amount_type === "percent" ||
             campaign.discount?.discount_amount_type === "percentage";
           return (
             <Link
-              key={campaign.id}
+              key={`${campaign.id}-${i}`}
               href={`/${locale}/campaign/${campaign.id}`}
               className="group w-full shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary sm:w-[calc(50%-0.5rem)]"
             >
@@ -112,18 +131,11 @@ export function CampaignCarousel({
         })}
       </div>
 
-      {campaigns.length > 1 && (
+      {loops && (
         <>
-          <Arrow
-            side="start"
-            disabled={!canGoBack}
-            onClick={() => setIndex((i) => Math.max(0, i - 1))}
-          />
-          <Arrow
-            side="end"
-            disabled={!canGoOn}
-            onClick={() => setIndex((i) => Math.min(campaigns.length - 1, i + 1))}
-          />
+          {/* Both wrap, so neither arrow is ever a dead control. */}
+          <Arrow side="start" onClick={() => setIndex((i) => (i <= 0 ? count - 1 : i - 1))} />
+          <Arrow side="end" onClick={() => setIndex((i) => i + 1)} />
         </>
       )}
     </div>
@@ -136,20 +148,17 @@ export function CampaignCarousel({
  */
 function Arrow({
   side,
-  disabled,
   onClick,
 }: {
   side: "start" | "end";
-  disabled: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
       aria-label={side === "start" ? "Previous" : "Next"}
-      className={`absolute top-1/2 z-10 hidden -translate-y-1/2 place-items-center rounded-full border border-border bg-surface/95 shadow-sm transition disabled:opacity-0 sm:grid ${
+      className={`absolute top-1/2 z-10 hidden -translate-y-1/2 place-items-center rounded-full border border-border bg-surface/95 shadow-sm transition sm:grid ${
         side === "start" ? "start-2" : "end-2"
       } h-9 w-9 text-ink hover:border-primary hover:text-primary`}
     >
