@@ -181,6 +181,7 @@ export default async function HomePage({
             locale={locale}
             sponsoredLabel={dict.ads.label}
             ctaLabel={dict.ads.cta}
+            intervalSeconds={Number(config.campaign_slider_interval ?? 0)}
           />
         </section>
       )}

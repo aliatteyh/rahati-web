@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import type { Advertisement } from "@/lib/api";
@@ -19,49 +19,87 @@ import type { Advertisement } from "@/lib/api";
  *
  * A rail rather than a grid: ads are a glance on the way past, and stacking them
  * would push the real catalogue off the screen as soon as a few providers buy in.
+ *
+ * It turns on its own, on the same admin-set interval as the campaign row. Two
+ * neighbouring rows moving at different speeds would read as a fault rather than
+ * a choice, so they share one setting.
  */
 export function AdvertisementRail({
   ads,
   locale,
   sponsoredLabel,
   ctaLabel,
+  intervalSeconds = 0,
 }: {
   ads: Advertisement[];
   locale: Locale;
   sponsoredLabel: string;
   ctaLabel: string;
+  /** Admin-set seconds between slides; 0 leaves the row still. */
+  intervalSeconds?: number;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  const count = ads.length;
+  const loops = count > 1;
 
   /**
-   * Scroll by one card's width, measured rather than assumed.
+   * The row is rendered twice when there is more than one advertisement.
    *
-   * Right-to-left pages disagree about the sign of scrollLeft across browsers,
-   * so the step is taken from where the cards actually are and handed straight
-   * to scrollBy, which is direction-aware. Arabic needs no special case.
+   * Rewinding to the start in front of the customer looks like a fault. Running
+   * on into a second copy and then stepping back by exactly one set — instantly,
+   * so nothing is visible — lets the last card hand over to the first without the
+   * row ever appearing to go backwards.
    */
-  const step = (direction: 1 | -1) => {
+  const slides = loops ? [...ads, ...ads] : ads;
+
+  /** Bring a card to the start of the track. Visual delta, so RTL needs no case. */
+  const scrollToCard = (i: number, behavior: ScrollBehavior) => {
     const track = trackRef.current;
-    const first = track?.children[0] as HTMLElement | undefined;
-    const second = track?.children[1] as HTMLElement | undefined;
-    if (!track || !first) return;
-    const width = second
-      ? Math.abs(second.getBoundingClientRect().left - first.getBoundingClientRect().left)
-      : first.getBoundingClientRect().width;
-    track.scrollBy({ left: width * direction, behavior: "smooth" });
+    const card = track?.children[i] as HTMLElement | undefined;
+    if (!track || !card) return;
+    const delta = card.getBoundingClientRect().left - track.getBoundingClientRect().left;
+    if (Math.abs(delta) > 1) track.scrollBy({ left: delta, behavior });
   };
 
-  if (ads.length === 0) return null;
+  useEffect(() => {
+    scrollToCard(index, "smooth");
+    if (loops && index === count) {
+      const id = setTimeout(() => {
+        scrollToCard(0, "auto");
+        setIndex(0);
+      }, 500);
+      return () => clearTimeout(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, count, loops]);
+
+  // Pauses on hover and while a touch is in progress, so a card is never pulled
+  // away mid-read.
+  useEffect(() => {
+    if (intervalSeconds <= 0 || !loops || paused) return;
+    const id = setInterval(() => setIndex((i) => i + 1), intervalSeconds * 1000);
+    return () => clearInterval(id);
+  }, [intervalSeconds, loops, paused]);
+
+  if (count === 0) return null;
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+    >
       <div
         ref={trackRef}
         className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {ads.map((ad) => (
+        {slides.map((ad, i) => (
           <AdCard
-            key={ad.id}
+            key={`${ad.id}-${i}`}
             ad={ad}
             locale={locale}
             sponsoredLabel={sponsoredLabel}
@@ -70,10 +108,11 @@ export function AdvertisementRail({
         ))}
       </div>
 
-      {ads.length > 1 && (
+      {loops && (
         <>
-          <Arrow side="start" onClick={() => step(-1)} />
-          <Arrow side="end" onClick={() => step(1)} />
+          {/* Both wrap, so neither arrow is ever a dead control. */}
+          <Arrow side="start" onClick={() => setIndex((i) => (i <= 0 ? count - 1 : i - 1))} />
+          <Arrow side="end" onClick={() => setIndex((i) => i + 1)} />
         </>
       )}
     </div>
@@ -107,7 +146,7 @@ function AdCard({
   return (
     <Link
       href={href}
-      className="group w-[85%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary sm:w-[calc(50%-0.5rem)]"
+      className="group w-full shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary sm:w-[calc(50%-0.5rem)]"
     >
       <div className="relative">
         {video ? (
