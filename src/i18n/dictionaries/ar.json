@@ -449,5 +449,15 @@
     "endsOn": "تنتهي في",
     "noServices": "لا توجد خدمات في هذه الحملة بعد.",
     "seeAll": "شاهد العرض"
+  },
+  "provider": {
+    "servicesServed": "خدمة منجزة",
+    "availability": "أوقات العمل",
+    "hours": "ساعات العمل",
+    "services": "الخدمات المقدَّمة",
+    "reviews": "التقييمات",
+    "noReviews": "لا توجد تقييمات بعد.",
+    "aCustomer": "عميل",
+    "unavailable": "لا يستقبل حجوزات"
   }
 }

@@ -449,5 +449,15 @@
     "endsOn": "Ends on",
     "noServices": "No services in this campaign yet.",
     "seeAll": "See offer"
+  },
+  "provider": {
+    "servicesServed": "services completed",
+    "availability": "Availability",
+    "hours": "Working hours",
+    "services": "Services offered",
+    "reviews": "Reviews",
+    "noReviews": "No reviews yet.",
+    "aCustomer": "A customer",
+    "unavailable": "Not taking bookings"
   }
 }

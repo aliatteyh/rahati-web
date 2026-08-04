@@ -205,6 +205,69 @@ export function getCampaignItems(
   );
 }
 
+/** A provider, as the customer sees them. */
+export interface ProviderProfile {
+  id: string;
+  company_name?: string;
+  company_phone?: string;
+  logo_full_path?: string | null;
+  cover_image_full_path?: string | null;
+  avg_rating?: number;
+  total_service_served?: number;
+  subscribed_services_count?: number;
+  service_availability?: number;
+  time_schedule?: { start_time?: string; end_time?: string } | null;
+  weekends?: string[];
+}
+
+export interface ProviderDetails {
+  provider: ProviderProfile;
+  rating?: { average_rating?: number; rating_count?: number; review_count?: number } | null;
+  reviews?: {
+    id?: string;
+    review_comment?: string;
+    review_rating?: number;
+    created_at?: string;
+    customer?: { first_name?: string; last_name?: string } | null;
+  }[];
+  sub_categories?: Category[];
+}
+
+/**
+ * A provider's public profile.
+ *
+ * The customer is trusting someone to come into their home, and the site never
+ * named them — a booking simply arrived with a company attached.
+ */
+export async function getProviderDetails(
+  providerId: string,
+  locale: Locale
+): Promise<ProviderDetails | null> {
+  try {
+    const zoneId = await getZoneId();
+    const res = await fetch(
+      `${API_BASE}/api/v1/customer/provider-details?id=${encodeURIComponent(providerId)}&limit=10&offset=1`,
+      {
+        headers: { Accept: "application/json", "X-localization": locale, zoneId },
+        next: { revalidate: REVALIDATE_SECONDS },
+      }
+    );
+    const json = await res.json();
+    const content = json?.content;
+    if (!content?.provider) return null;
+
+    // Reviews arrive paginated; the profile only shows the first page.
+    return {
+      provider: content.provider as ProviderProfile,
+      rating: content.rating ?? null,
+      reviews: Array.isArray(content.reviews) ? content.reviews : (content.reviews?.data ?? []),
+      sub_categories: content.sub_categories ?? [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export interface ServicePackageTier {
   days_per_week: number;
   /** What the package is sold by: 4, 8, 12, 16, 20 or 24 services a month. */

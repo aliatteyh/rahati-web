@@ -64,6 +64,7 @@ interface Booking {
   detail?: Detail[];
   customer?: Person;
   provider?: {
+    id?: string;
     company_name?: string;
     name?: string;
     phone?: string;
@@ -294,7 +295,18 @@ export default async function BookingDetailPage({
             <div className="mx-auto mt-3 h-16 w-16 overflow-hidden rounded-full">
               <Thumb src={b.provider?.logo_full_path} alt={providerName || "P"} rounded="rounded-full" />
             </div>
-            <p className="mt-2 text-sm font-medium text-ink">{providerName || "—"}</p>
+            {/* The one place the customer already meets their provider, so it
+                is where a link to who they are belongs. */}
+            {b.provider?.id ? (
+              <Link
+                href={`/${locale}/provider/${b.provider.id}`}
+                className="mt-2 block text-sm font-medium text-primary hover:underline"
+              >
+                {providerName || "—"}
+              </Link>
+            ) : (
+              <p className="mt-2 text-sm font-medium text-ink">{providerName || "—"}</p>
+            )}
             {b.provider?.phone && <p className="text-xs text-muted">{b.provider.phone}</p>}
             {b.provider?.avg_rating != null && Number(b.provider.avg_rating) > 0 && (
               <p className="mt-1 text-xs font-medium text-accent-dark">
