@@ -99,6 +99,7 @@ function AdCard({
     ?.provider_cover_image_full_path;
   const logo = ad.attachments?.find((a) => a.provider_profile_image_full_path)
     ?.provider_profile_image_full_path;
+  const video = ad.promotional_video_full_path;
   const rating = Number(ad.provider_rating ?? ad.provider?.avg_rating ?? 0);
 
   const href = ad.provider_id ? `/${locale}/provider/${ad.provider_id}` : `/${locale}/services`;
@@ -109,7 +110,22 @@ function AdCard({
       className="group w-[85%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary sm:w-[calc(50%-0.5rem)]"
     >
       <div className="relative">
-        {cover ? (
+        {video ? (
+          /* A video promotion carries its file on the advertisement itself, not
+             in `attachments` — the relation there excludes it. Muted, looping
+             and inline so it behaves like artwork rather than seizing the page;
+             `playsInline` is what stops iOS opening it fullscreen on its own. */
+          <video
+            src={video}
+            className="aspect-[16/6] w-full bg-ink object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={cover ?? undefined}
+          />
+        ) : cover ? (
           <img src={cover} alt="" className="aspect-[16/6] w-full object-cover" />
         ) : (
           /* No artwork uploaded — the provider's name becomes the picture rather
