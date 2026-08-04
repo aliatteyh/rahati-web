@@ -2,6 +2,7 @@ import Link from "next/link";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import {
+  getAdvertisements,
   getBanners,
   getCampaigns,
   getFeaturedCategories,
@@ -14,6 +15,7 @@ import {
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { SearchBox } from "@/components/search/SearchBox";
 import { CampaignCarousel } from "@/components/home/CampaignCarousel";
+import { AdvertisementRail } from "@/components/home/AdvertisementRail";
 import { CategoryCard } from "@/components/CategoryCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -31,13 +33,14 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [categories, popular, config, banners, campaigns, featured] = await Promise.all([
+  const [categories, popular, config, banners, campaigns, featured, ads] = await Promise.all([
     getCategories(locale),
     getPopularServices(locale, 8),
     getConfig(locale),
     getBanners(locale),
     getCampaigns(locale),
     getFeaturedCategories(locale),
+    getAdvertisements(locale),
   ]);
   const currency = currencyLabel(config, locale);
 
@@ -154,6 +157,21 @@ export default async function HomePage({
             locale={locale}
             offLabel={dict.campaign.off}
             intervalSeconds={Number(config.campaign_slider_interval ?? 0)}
+          />
+        </section>
+      )}
+
+      {/* Provider advertisements — approved in the admin panel and already
+          scoped to the customer's zone by the API, so a promotion only shows
+          where its provider actually works. Marked sponsored on every card. */}
+      {ads.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-16">
+          <SectionHeader title={dict.ads.title} subtitle={dict.ads.subtitle} />
+          <AdvertisementRail
+            ads={ads}
+            locale={locale}
+            sponsoredLabel={dict.ads.label}
+            ctaLabel={dict.ads.cta}
           />
         </section>
       )}

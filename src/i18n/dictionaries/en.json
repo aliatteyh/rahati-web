@@ -455,6 +455,12 @@
     "noServices": "No services in this campaign yet.",
     "seeAll": "See offer"
   },
+  "ads": {
+    "title": "Featured providers",
+    "subtitle": "Promotions from providers working in your area",
+    "label": "Sponsored",
+    "cta": "View provider"
+  },
   "provider": {
     "servicesServed": "services completed",
     "availability": "Availability",

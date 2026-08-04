@@ -256,6 +256,46 @@ export function getCampaignItems(
   );
 }
 
+/**
+ * A provider's advertisement — a promotion the admin approves and the customer
+ * sees on the home page.
+ *
+ * Not a banner: a banner is the platform talking, an advertisement is a named
+ * provider talking, so it carries their identity and leads to their profile.
+ * The backend already scopes the list to the provider's zone, which is what
+ * keeps a Dubai promotion out of an Abu Dhabi customer's home page.
+ */
+export interface Advertisement {
+  id: string;
+  title?: string;
+  description?: string;
+  default_title?: string;
+  default_description?: string;
+  provider_id?: string;
+  promotional_video_full_path?: string | null;
+  provider_rating?: number | null;
+  provider_review?: number | null;
+  provider?: {
+    id?: string;
+    company_name?: string;
+    avg_rating?: number;
+    rating_count?: number;
+  } | null;
+  attachments?: Array<{
+    type?: string;
+    provider_cover_image_full_path?: string | null;
+    provider_profile_image_full_path?: string | null;
+  }> | null;
+}
+
+/** Live advertisements for the customer's zone. */
+export function getAdvertisements(locale: Locale, limit = 10): Promise<Advertisement[]> {
+  return apiGetList<Advertisement>(
+    `/api/v1/customer/advertisements/ads-list?limit=${limit}&offset=1`,
+    locale
+  );
+}
+
 /** A provider, as the customer sees them. */
 export interface ProviderProfile {
   id: string;
