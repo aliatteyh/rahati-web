@@ -66,6 +66,7 @@ export function AdvertisementRail({
             locale={locale}
             sponsoredLabel={sponsoredLabel}
             ctaLabel={ctaLabel}
+            alone={ads.length === 1}
           />
         ))}
       </div>
@@ -85,11 +86,14 @@ function AdCard({
   locale,
   sponsoredLabel,
   ctaLabel,
+  alone = false,
 }: {
   ad: Advertisement;
   locale: Locale;
   sponsoredLabel: string;
   ctaLabel: string;
+  /** The only advertisement running — take the whole row rather than half. */
+  alone?: boolean;
 }) {
   // `title`/`description` carry the translated copy when one exists; the
   // `default_*` pair is what the provider originally wrote.
@@ -107,7 +111,12 @@ function AdCard({
   return (
     <Link
       href={href}
-      className="group w-[85%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary sm:w-[calc(50%-0.5rem)]"
+      className={`group shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary ${
+        // Two to a row is the intent, but a single advertisement at half width
+        // leaves an empty half beside it that reads as something failing to
+        // load. On its own it takes the row.
+        alone ? "w-full" : "w-[85%] sm:w-[calc(50%-0.5rem)]"
+      }`}
     >
       <div className="relative">
         {video ? (
