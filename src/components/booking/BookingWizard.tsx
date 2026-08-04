@@ -597,6 +597,41 @@ export function BookingWizard({
   const packageMinDays = packageSellableDays[0] ?? 1;
   const packageMaxDays = packageSellableDays[packageSellableDays.length - 1] ?? maxDaysPerWeek;
 
+  /**
+   * Days to start a package off with, spread across the week.
+   *
+   * Every package sells a fixed number of days, so switching to one while the
+   * previous package's days were still selected left the count wrong and the
+   * server refused the quote — the customer saw an empty panel and no reason
+   * for it. Seeding a valid selection means the price is there the moment a
+   * package is picked, which is also what makes the six packages comparable:
+   * otherwise each one costs three taps just to reveal its number.
+   *
+   * Spread rather than consecutive — someone buying three cleans a week wants
+   * them spaced, not Sunday to Tuesday — and never a day the provider is off.
+   * Suggested, not imposed: every chip stays free to change.
+   */
+  const suggestedPackageDays = (count: number): Set<number> => {
+    const available = WEEKDAY_ORDER.filter((iso) => !activeOffDays.includes(iso));
+    const wanted = Math.min(count, available.length);
+    if (wanted <= 0) return new Set();
+
+    const picked = new Set<number>();
+    const step = available.length / wanted;
+    for (let i = 0; i < wanted; i++) {
+      // Walk forward from the ideal slot so a collision takes the next free day
+      // rather than silently returning fewer days than the package requires.
+      for (let j = 0; j < available.length; j++) {
+        const day = available[(Math.round(i * step) + j) % available.length];
+        if (!picked.has(day)) {
+          picked.add(day);
+          break;
+        }
+      }
+    }
+    return picked;
+  };
+
   // Headline for the tab: the best saving any package on offer can reach.
   const bestPackageSaving = servicePackages.reduce(
     (best, p) => Math.max(best, p.max_discount_percent ?? 0),
@@ -1084,7 +1119,21 @@ export function BookingWizard({
                         >
                           <button
                             type="button"
-                            onClick={() => setPackageId(pkg.id)}
+                            onClick={() => {
+                              setPackageId(pkg.id);
+                              // Carrying the previous package's days over left
+                              // the count wrong for the new one, and the quote
+                              // came back refused with nothing on screen.
+                              const days = (pkg.tiers ?? [])
+                                .map((t) => t.days_per_week)
+                                .filter(
+                                  (d) =>
+                                    d >= pkg.min_days_per_week &&
+                                    d <= Math.min(maxDaysPerWeek, pkg.max_days_per_week)
+                                )
+                                .sort((a, b) => a - b);
+                              setPackageWeekdays(suggestedPackageDays(days[0] ?? pkg.min_days_per_week));
+                            }}
                             className="flex w-full items-start justify-between gap-3 p-3 text-start"
                           >
                             <span className="min-w-0">
@@ -1126,7 +1175,12 @@ export function BookingWizard({
                                   two-day package must not let six be picked, which
                                   the server now refuses anyway. */}
                               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                <p className="text-sm font-semibold text-ink">{dict.chooseDays}</p>
+                                <p className="text-sm font-semibold text-ink">
+                                  {dict.chooseDays}
+                                  {/* Said plainly, because the days were picked
+                                      for the customer rather than by them. */}
+                                  <span className="ms-2 font-normal text-muted">{dict.daysSuggested}</span>
+                                </p>
                                 {packageWeekdays.size >= packageMaxDays && (
                                   <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-dark">
                                     ⚠ {dict.maxDaysReached}
