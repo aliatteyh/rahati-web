@@ -35,3 +35,20 @@ export function currencyLabel(
 
   return String(config.currency_symbol ?? "") || code;
 }
+
+/**
+ * A price with its currency, for display.
+ *
+ * Lives here rather than in `api.ts` so client components can use it: `api.ts`
+ * reads cookies, which cannot cross into the browser bundle.
+ */
+export function formatPrice(
+  value: number | string | undefined | null,
+  currency: string
+): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (Number.isNaN(num)) return null;
+  const rounded = Number.isInteger(num) ? num : Math.round(num * 100) / 100;
+  return `${currency} ${rounded.toLocaleString()}`;
+}

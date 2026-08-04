@@ -111,6 +111,16 @@
     "transactionHistory": "سجل الحركات",
     "noTransactions": "لا توجد حركات بعد.",
     "walletUnavailable": "المحفظة ونقاط الولاء غير مفعّلة.",
+    "topUpTitle": "إضافة رصيد",
+    "topUpAmount": "المبلغ",
+    "topUpMethod": "طريقة الدفع",
+    "topUpSubmit": "إضافة رصيد",
+    "topUpFailed": "تعذّر بدء عملية الدفع. حاول مرة أخرى.",
+    "bonusOn": "مكافأة عند إضافة",
+    "bonusUpTo": "بحد أقصى",
+    "bonusEndsOn": "تنتهي",
+    "bonusYouGet": "تحصل على {bonus} مجاناً — يصل إلى محفظتك {total}.",
+    "bonusAddMore": "أضف {amount} أو أكثر لتحصل على مكافأة.",
     "notifications": "الإشعارات",
     "noNotifications": "لا توجد إشعارات بعد.",
     "proMember": "عضوية Pro",
@@ -478,6 +488,8 @@
     "prompt": "اكتب ما تحتاجه ونجده لك.",
     "noResults": "لا نتائج لـ «{q}».",
     "browseAll": "تصفّح كل الخدمات",
+    "recent": "عمليات بحث سابقة",
+    "clearRecent": "مسح",
     "resultCount": "{count} نتيجة لـ «{q}»"
   }
 }

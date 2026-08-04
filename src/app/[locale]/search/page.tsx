@@ -2,9 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { formatPrice, getConfig, searchServices, serviceFromPrice } from "@/lib/api";
+import {
+  formatPrice,
+  getConfig,
+  getRecentSearches,
+  searchServices,
+  serviceFromPrice,
+} from "@/lib/api";
 import { currencyLabel } from "@/lib/currency";
 import { SearchBox } from "@/components/search/SearchBox";
+import { RecentSearches } from "@/components/search/RecentSearches";
 
 type Params = Promise<{ locale: string }>;
 type Search = Promise<{ q?: string }>;
@@ -38,10 +45,13 @@ export default async function SearchPage({
   const t = dict.search as unknown as Record<string, string>;
 
   const query = q.trim();
+  // The history is read after the search runs, so the term just typed is already
+  // in it — the list would otherwise always be one search behind.
   const [results, config] = await Promise.all([
     searchServices(query, locale),
     getConfig(locale),
   ]);
+  const recent = await getRecentSearches(locale);
   const currency = currencyLabel(config, locale);
 
   return (
@@ -49,6 +59,13 @@ export default async function SearchPage({
       <h1 className="mb-4 text-2xl font-bold text-ink">{t.title}</h1>
 
       <SearchBox locale={locale} initial={query} placeholder={t.placeholder} label={t.submit} />
+
+      <RecentSearches
+        locale={locale}
+        items={recent}
+        title={t.recent}
+        clearLabel={t.clearRecent}
+      />
 
       {query === "" ? (
         <p className="mt-8 text-muted">{t.prompt}</p>

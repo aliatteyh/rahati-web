@@ -2,8 +2,9 @@ import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
 import { currencyLabel } from "@/lib/currency";
-import { authGet } from "@/lib/account";
+import { authGet, authGetList } from "@/lib/account";
 import { ConfirmActionButton } from "@/components/account/ConfirmActionButton";
+import { WalletTopUp, type WalletBonus } from "@/components/account/WalletTopUp";
 
 interface Trx {
   id?: string;
@@ -101,7 +102,17 @@ export default async function WalletPage({
   const walletOn = Number(config.wallet_status) === 1;
   const loyaltyOn = Number(config.loyalty_point_status) === 1;
 
-  const [wallet, loyalty] = await Promise.all([
+  // Top-up gateways come from the same config field checkout reads, so the two
+  // screens can never offer a different set of ways to pay.
+  const gateways = (
+    (config as unknown as {
+      payment_gateways?: Array<{ gateway?: string; gateway_title?: string }>;
+    }).payment_gateways ?? []
+  )
+    .filter((g) => g.gateway)
+    .map((g) => ({ key: g.gateway ?? "", title: g.gateway_title ?? g.gateway ?? "" }));
+
+  const [wallet, loyalty, bonuses] = await Promise.all([
     walletOn
       ? authGet<WalletData>(
           "/api/v1/customer/wallet-transaction?limit=50&offset=1",
@@ -116,6 +127,9 @@ export default async function WalletPage({
           {}
         )
       : Promise.resolve({} as LoyaltyData),
+    walletOn
+      ? authGetList<WalletBonus>("/api/v1/customer/bonus-list?limit=20&offset=1", locale)
+      : Promise.resolve([] as WalletBonus[]),
   ]);
 
   const points = Number(loyalty.loyalty_point ?? 0);
@@ -173,6 +187,31 @@ export default async function WalletPage({
           </div>
         )}
       </div>
+
+      {/* Top-up. The bonus was already credited on every add-fund; until now the
+          customer had no way to learn it existed, so nobody topped up to reach a
+          threshold. */}
+      {walletOn && (
+        <WalletTopUp
+          locale={locale}
+          currency={currency}
+          bonuses={bonuses}
+          gateways={gateways}
+          labels={{
+            title: a.topUpTitle,
+            amount: a.topUpAmount,
+            method: a.topUpMethod,
+            submit: a.topUpSubmit,
+            processing: a.processing,
+            failed: a.topUpFailed,
+            bonusOn: a.bonusOn,
+            upTo: a.bonusUpTo,
+            endsOn: a.bonusEndsOn,
+            youGet: a.bonusYouGet,
+            addMore: a.bonusAddMore,
+          }}
+        />
+      )}
 
       {/* Wallet history */}
       {walletOn && (

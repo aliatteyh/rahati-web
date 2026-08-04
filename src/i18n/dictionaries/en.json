@@ -111,6 +111,16 @@
     "transactionHistory": "Transaction history",
     "noTransactions": "No transactions yet.",
     "walletUnavailable": "Wallet and loyalty points are not enabled.",
+    "topUpTitle": "Add money",
+    "topUpAmount": "Amount",
+    "topUpMethod": "Payment method",
+    "topUpSubmit": "Add money",
+    "topUpFailed": "Could not start the payment. Please try again.",
+    "bonusOn": "bonus on",
+    "bonusUpTo": "up to",
+    "bonusEndsOn": "Ends",
+    "bonusYouGet": "You get {bonus} free — {total} lands in your wallet.",
+    "bonusAddMore": "Add {amount} or more to earn a bonus.",
     "notifications": "Notifications",
     "noNotifications": "No notifications yet.",
     "proMember": "Pro membership",
@@ -478,6 +488,8 @@
     "prompt": "Type what you need and we'll find it.",
     "noResults": "Nothing matched “{q}”.",
     "browseAll": "Browse all services",
+    "recent": "Recent searches",
+    "clearRecent": "Clear",
     "resultCount": "{count} result(s) for “{q}”"
   }
 }

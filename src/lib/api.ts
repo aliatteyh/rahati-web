@@ -1,5 +1,6 @@
 import type { Locale } from "@/i18n/config";
 import { getZoneId } from "./zone";
+import { getToken } from "./session";
 import type {
   AddOn,
   Banner,
@@ -157,6 +158,11 @@ export async function searchServices(
   if (!term) return [];
   try {
     const zoneId = await getZoneId();
+    // Signed in, the backend records the term against the customer — which is
+    // what fills their recent searches and the admin's keyword analytics. Signed
+    // out the search still runs; it simply leaves no trace, which is the right
+    // default for someone who has not identified themselves.
+    const token = await getToken();
     const res = await fetch(`${API_BASE}/api/v1/customer/service/search`, {
       method: "POST",
       headers: {
@@ -164,6 +170,7 @@ export async function searchServices(
         Accept: "application/json",
         "X-localization": locale,
         zoneId,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ string: term, limit, offset: 1 }),
       cache: "no-store",
@@ -173,6 +180,55 @@ export async function searchServices(
     // this page does not use.
     const services = json?.content?.services;
     return (Array.isArray(services) ? services : services?.data ?? []) as Service[];
+  } catch {
+    return [];
+  }
+}
+
+/** One term the customer searched before. */
+export interface RecentSearch {
+  id: string;
+  keyword: string;
+}
+
+/**
+ * The customer's own recent search terms.
+ *
+ * Deliberately not `authGet`: that redirects to the login page when there is no
+ * token, and the search page is public. Here a missing token simply means no
+ * history, and the page renders exactly as it always did. The endpoint also
+ * answers 404 rather than an empty list when nothing has been searched yet.
+ */
+export async function getRecentSearches(locale: Locale, limit = 8): Promise<RecentSearch[]> {
+  const token = await getToken();
+  if (!token) return [];
+  try {
+    const zoneId = await getZoneId();
+    const res = await fetch(
+      `${API_BASE}/api/v1/customer/recently-searched-keywords?limit=${limit}&offset=1`,
+      {
+        headers: {
+          Accept: "application/json",
+          "X-localization": locale,
+          Authorization: `Bearer ${token}`,
+          zoneId,
+        },
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    const rows = json?.content?.data ?? json?.content ?? [];
+    if (!Array.isArray(rows)) return [];
+
+    // The same term searched twice is two rows; the customer wants one chip.
+    const seen = new Set<string>();
+    return rows.filter((r: RecentSearch) => {
+      const key = (r?.keyword ?? "").trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   } catch {
     return [];
   }
@@ -676,16 +732,11 @@ export async function getServiceReviews(
 }
 
 /** Format a raw price string/number using the config currency. */
-export function formatPrice(
-  value: number | string | undefined | null,
-  currency: string
-): string | null {
-  if (value === undefined || value === null || value === "") return null;
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (Number.isNaN(num)) return null;
-  const rounded = Number.isInteger(num) ? num : Math.round(num * 100) / 100;
-  return `${currency} ${rounded.toLocaleString()}`;
-}
+// Re-exported so the many `from "@/lib/api"` call sites keep working. The
+// implementation lives in `currency.ts` because this module reads cookies, and
+// a client component importing a value from here would drag `next/headers` into
+// the browser bundle and fail the build.
+export { formatPrice } from "./currency";
 
 /**
  * The "from" price shown on cards/detail = the cheapest real, bookable option.
