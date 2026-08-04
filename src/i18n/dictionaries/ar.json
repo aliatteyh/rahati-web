@@ -177,7 +177,7 @@
     "bookAgain": "احجز مجدداً",
     "qty": "الكمية",
     "unitPrice": "سعر الوحدة",
-    "rebook": "احجز مجدداً",
+    "rebook": "احجز مرة أخرى",
     "couponDiscount": "خصم الكوبون",
     "campaignDiscount": "خصم الحملة",
     "serviceFee": "رسوم الخدمة",
@@ -202,7 +202,9 @@
     "status_ongoing": "الخدمة جارية",
     "status_completed": "اكتملت الخدمة",
     "status_canceled": "أُلغي الحجز",
-    "packages": "باقاتي"
+    "packages": "باقاتي",
+    "rebooking": "جارٍ الإضافة…",
+    "rebookFailed": "تعذّر إعادة الحجز. حاول مرة أخرى."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",

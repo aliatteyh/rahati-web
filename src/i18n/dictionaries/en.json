@@ -202,7 +202,9 @@
     "status_ongoing": "Service ongoing",
     "status_completed": "Service completed",
     "status_canceled": "Booking canceled",
-    "packages": "My packages"
+    "packages": "My packages",
+    "rebooking": "Adding…",
+    "rebookFailed": "Couldn't rebook. Please try again."
   },
   "hero": {
     "badge": "Trusted home services",

@@ -4,6 +4,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
 import { currencyLabel } from "@/lib/currency";
 import { authGetList } from "@/lib/account";
+import { RebookButton } from "@/components/account/RebookButton";
 import { CancelBookingButton } from "@/components/account/CancelBookingButton";
 
 interface Booking {
@@ -119,6 +120,20 @@ export default async function BookingsPage({
                 ) : (
                   summary
                 )}
+                {/* Rebooking is offered once the work is behind them — that is
+                    when "again, please" is the thing they want. */}
+                {b.id && (b.booking_status === "completed" || b.booking_status === "settled") && (
+                  <div className="mt-3 flex justify-end">
+                    <RebookButton
+                      bookingId={b.id}
+                      locale={locale}
+                      label={a.rebook}
+                      loadingLabel={a.rebooking}
+                      failedLabel={a.rebookFailed}
+                    />
+                  </div>
+                )}
+
                 {(canContact || b.booking_status === "pending") && b.id && (
                   <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
                     {canContact && (
