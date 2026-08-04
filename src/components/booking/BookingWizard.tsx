@@ -612,7 +612,28 @@ export function BookingWizard({
    * Suggested, not imposed: every chip stays free to change.
    */
   const suggestedPackageDays = (count: number): Set<number> => {
-    const available = WEEKDAY_ORDER.filter((iso) => !activeOffDays.includes(iso));
+    // Which off days to plan around.
+    //
+    // With a provider chosen, theirs. Without one, "any provider" closes a day
+    // only when every provider is off — which is usually no days at all, and
+    // that is fine for a two-day package and fatal for a six-day one. Six days
+    // is a full working week: it fits only if the days chosen are exactly the
+    // ones some single provider works. Suggesting six days drawn from all seven
+    // guarantees one of them is somebody's day off, and the server then drops it
+    // and refuses a package the customer was shown as available.
+    //
+    // So the suggestion is built around a provider who could actually take it —
+    // the one with the fewest off days among those with room for this many.
+    const providerOffSets = bookableProviders
+      .map((p) => (p.weekends ?? []).map((d) => ISO_BY_WEEKDAY[String(d).toLowerCase()]).filter(Boolean))
+      .filter((off) => 7 - off.length >= count)
+      .sort((a, b) => a.length - b.length);
+
+    const planningOffDays = chosenProvider
+      ? activeOffDays
+      : providerOffSets[0] ?? providerOffDays;
+
+    const available = WEEKDAY_ORDER.filter((iso) => !planningOffDays.includes(iso));
     const wanted = Math.min(count, available.length);
     if (wanted <= 0) return new Set();
 
