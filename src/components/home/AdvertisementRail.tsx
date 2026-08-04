@@ -95,10 +95,10 @@ function AdCard({
   // `default_*` pair is what the provider originally wrote.
   const title = ad.title || ad.default_title || ad.provider?.company_name || "";
   const description = ad.description || ad.default_description || "";
-  const cover = ad.attachments?.find((a) => a.provider_cover_image_full_path)
-    ?.provider_cover_image_full_path;
-  const logo = ad.attachments?.find((a) => a.provider_profile_image_full_path)
-    ?.provider_profile_image_full_path;
+  // Flattened onto the advertisement by the controller, which unsets the
+  // `attachments` relation before responding — reading it there finds nothing.
+  const cover = ad.provider_cover_image_full_path;
+  const logo = ad.provider_profile_image_full_path;
   const video = ad.promotional_video_full_path;
   const rating = Number(ad.provider_rating ?? ad.provider?.avg_rating ?? 0);
 

@@ -328,6 +328,13 @@ export interface Advertisement {
   default_title?: string;
   default_description?: string;
   provider_id?: string;
+  /**
+   * The artwork arrives flattened onto the advertisement, not under
+   * `attachments`: the controller copies each attachment's path up to these
+   * fields and then unsets the relation before responding.
+   */
+  provider_cover_image_full_path?: string | null;
+  provider_profile_image_full_path?: string | null;
   promotional_video_full_path?: string | null;
   provider_rating?: number | null;
   provider_review?: number | null;
@@ -337,11 +344,6 @@ export interface Advertisement {
     avg_rating?: number;
     rating_count?: number;
   } | null;
-  attachments?: Array<{
-    type?: string;
-    provider_cover_image_full_path?: string | null;
-    provider_profile_image_full_path?: string | null;
-  }> | null;
 }
 
 /** Live advertisements for the customer's zone. */
