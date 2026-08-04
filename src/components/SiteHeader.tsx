@@ -8,6 +8,7 @@ import { AuthButtons } from "./auth/AuthButtons";
 import { AccountMenu } from "./auth/AccountMenu";
 import { HeaderSearchLink } from "./search/HeaderSearchLink";
 import { HeaderLocation } from "./location/HeaderLocation";
+import { AutoLocate } from "./location/AutoLocate";
 
 export async function SiteHeader({
   locale,
@@ -58,6 +59,10 @@ export async function SiteHeader({
           {/* Hides itself on the home page, where the hero already carries a
               real search field. */}
           <HeaderSearchLink locale={locale} label={dict.search.title} />
+          {/* Asks the browser for the visitor's area once, on a first visit,
+              and does nothing visible either way. Lives in the header because
+              it must run on every page, not only the home page. */}
+          <AutoLocate />
           <HeaderLocation
             dict={dict.location as unknown as Record<string, string>}
             initialZoneName={zone?.name}

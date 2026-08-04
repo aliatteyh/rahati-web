@@ -465,6 +465,13 @@
     "noServices": "No services in this campaign yet.",
     "seeAll": "See offer"
   },
+  "providers": {
+    "title": "Providers near you",
+    "subtitle": "Trusted teams working in your area",
+    "served": "{count} services completed",
+    "km": "km",
+    "away": "away"
+  },
   "ads": {
     "title": "Featured providers",
     "subtitle": "Promotions from providers working in your area",

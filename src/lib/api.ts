@@ -1,5 +1,5 @@
 import type { Locale } from "@/i18n/config";
-import { getZoneId } from "./zone";
+import { getZoneId, getCustomerCoords } from "./zone";
 import { getToken } from "./session";
 import type {
   AddOn,
@@ -367,6 +367,94 @@ export interface ProviderProfile {
   service_availability?: number;
   time_schedule?: { start_time?: string; end_time?: string } | null;
   weekends?: string[];
+}
+
+/** A provider on the home page rail, with how far away they are. */
+export interface NearbyProvider {
+  id: string;
+  company_name?: string;
+  logo_full_path?: string | null;
+  avg_rating?: number;
+  rating_count?: number;
+  total_service_served?: number;
+  subscribed_services_count?: number;
+  coordinates?: { latitude?: string | number; longitude?: string | number } | null;
+  /** Kilometres from the customer, when their location is known. */
+  distance_km?: number;
+}
+
+/** Great-circle distance in kilometres. */
+function haversineKm(
+  aLat: number,
+  aLon: number,
+  bLat: number,
+  bLon: number
+): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(bLat - aLat);
+  const dLon = toRad(bLon - aLon);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/**
+ * Providers who serve this customer, nearest first.
+ *
+ * The backend already returns only providers in the customer's zone who can
+ * take another booking, but a zone is a whole city — inside one, everybody
+ * looked equally close. Both sides of the distance were already available and
+ * simply never compared: the provider's coordinates come with the row, and the
+ * customer's are captured when their area is resolved.
+ *
+ * Sorting happens here rather than in a new endpoint because it needs the
+ * customer's position, which is ours and not the API's.
+ *
+ * Without a known position this falls back to rating. Distance is an
+ * improvement on that ordering, never a requirement for it.
+ */
+export async function getNearbyProviders(
+  locale: Locale,
+  limit = 12
+): Promise<NearbyProvider[]> {
+  try {
+    const zoneId = await getZoneId();
+    const res = await fetch(`${API_BASE}/api/v1/customer/provider/list`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-localization": locale,
+        zoneId,
+      },
+      body: JSON.stringify({ limit, offset: 1, sort_by: "popular" }),
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const content = json?.content;
+    const rows = (Array.isArray(content) ? content : content?.data ?? []) as NearbyProvider[];
+
+    const me = await getCustomerCoords();
+    if (!me) return rows;
+
+    const withDistance = rows.map((provider) => {
+      const lat = Number(provider.coordinates?.latitude);
+      const lon = Number(provider.coordinates?.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return provider;
+      return { ...provider, distance_km: haversineKm(me.lat, me.lon, lat, lon) };
+    });
+
+    // A provider with no coordinates on file sorts last rather than first — an
+    // unknown distance is not a short one.
+    return withDistance.sort(
+      (a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity)
+    );
+  } catch {
+    return [];
+  }
 }
 
 /** A provider the customer may pick for this sub-category. */

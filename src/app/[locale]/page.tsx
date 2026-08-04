@@ -6,6 +6,7 @@ import {
   getBanners,
   getCampaigns,
   getFeaturedCategories,
+  getNearbyProviders,
   getCategories,
   getConfig,
   getPopularServices,
@@ -17,6 +18,7 @@ import { SearchBox } from "@/components/search/SearchBox";
 import { CampaignCarousel } from "@/components/home/CampaignCarousel";
 import { AdvertisementRail } from "@/components/home/AdvertisementRail";
 import { CategoryStrip } from "@/components/home/CategoryStrip";
+import { ProviderRail } from "@/components/home/ProviderRail";
 import { ServiceCard } from "@/components/ServiceCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -33,7 +35,7 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [categories, popular, config, banners, campaigns, featured, ads] = await Promise.all([
+  const [categories, popular, config, banners, campaigns, featured, ads, providers] = await Promise.all([
     getCategories(locale),
     getPopularServices(locale, 8),
     getConfig(locale),
@@ -41,6 +43,7 @@ export default async function HomePage({
     getCampaigns(locale),
     getFeaturedCategories(locale),
     getAdvertisements(locale),
+    getNearbyProviders(locale),
   ]);
   const currency = currencyLabel(config, locale);
 
@@ -144,38 +147,6 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* Campaigns — the discount already applies at checkout; without this the
-          customer only met a running promotion by opening one of its services. */}
-      {campaigns.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pt-16">
-          <SectionHeader
-            title={dict.campaign.title}
-            subtitle={dict.campaign.subtitle}
-          />
-          <CampaignCarousel
-            campaigns={campaigns}
-            locale={locale}
-            offLabel={dict.campaign.off}
-            intervalSeconds={Number(config.campaign_slider_interval ?? 0)}
-          />
-        </section>
-      )}
-
-      {/* Provider advertisements — approved in the admin panel and already
-          scoped to the customer's zone by the API, so a promotion only shows
-          where its provider actually works. Marked sponsored on every card. */}
-      {ads.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pt-16">
-          <SectionHeader title={dict.ads.title} subtitle={dict.ads.subtitle} />
-          <AdvertisementRail
-            ads={ads}
-            locale={locale}
-            sponsoredLabel={dict.ads.label}
-            ctaLabel={dict.ads.cta}
-          />
-        </section>
-      )}
-
       {/* Categories */}
       {categories.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-16">
@@ -195,6 +166,21 @@ export default async function HomePage({
             ]}
             locale={locale}
             seeAllLabel={dict.sections.seeAll}
+          />
+        </section>
+      )}
+
+      {/* Provider advertisements — approved in the admin panel and already
+          scoped to the customer's zone by the API, so a promotion only shows
+          where its provider actually works. Marked sponsored on every card. */}
+      {ads.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-16">
+          <SectionHeader title={dict.ads.title} subtitle={dict.ads.subtitle} />
+          <AdvertisementRail
+            ads={ads}
+            locale={locale}
+            sponsoredLabel={dict.ads.label}
+            ctaLabel={dict.ads.cta}
           />
         </section>
       )}
@@ -219,6 +205,45 @@ export default async function HomePage({
               ))}
             </div>
           </div>
+        </section>
+      )}
+
+      {/* Providers near you — ordered by real distance when the customer's
+          location is known, by rating when it is not. Sits after the services
+          because it answers "who would do this?", which is the question that
+          follows "what can I book?". */}
+      {providers.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-16">
+          <SectionHeader
+            title={dict.providers.title}
+            subtitle={dict.providers.subtitle}
+          />
+          <ProviderRail
+            providers={providers}
+            locale={locale}
+            labels={{
+              served: dict.providers.served,
+              km: dict.providers.km,
+              away: dict.providers.away,
+            }}
+          />
+        </section>
+      )}
+
+      {/* Campaigns — the discount already applies at checkout; without this the
+          customer only met a running promotion by opening one of its services. */}
+      {campaigns.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-16">
+          <SectionHeader
+            title={dict.campaign.title}
+            subtitle={dict.campaign.subtitle}
+          />
+          <CampaignCarousel
+            campaigns={campaigns}
+            locale={locale}
+            offLabel={dict.campaign.off}
+            intervalSeconds={Number(config.campaign_slider_interval ?? 0)}
+          />
         </section>
       )}
 

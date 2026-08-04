@@ -87,7 +87,15 @@ export function LocationPicker({
       await fetch("/api/location/set", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: loc.zoneId, name: loc.zoneName, count: loc.count }),
+        // Coordinates go with it: they are what lets a listing be ordered by
+        // how near it actually is, rather than by which city it is in.
+        body: JSON.stringify({
+          id: loc.zoneId,
+          name: loc.zoneName,
+          count: loc.count,
+          lat: loc.lat,
+          lon: loc.lon,
+        }),
       });
       setResolved(loc);
       onResolved?.(loc);

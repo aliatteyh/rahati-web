@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
-export const ZONE_COOKIE = "rahati_zone";
+export { ZONE_COOKIE } from "./cookies";
+import { ZONE_COOKIE } from "./cookies";
 
 /** The public/default zone used for anonymous browsing when none is chosen. */
 export const DEFAULT_ZONE_ID =
@@ -10,6 +11,9 @@ export interface ZoneInfo {
   id: string;
   name?: string;
   count?: number;
+  /** Where the customer actually is, when they have let us know. */
+  lat?: number;
+  lon?: number;
 }
 
 /** Read the chosen zone (id/name/available-count) from the cookie, if any. */
@@ -23,6 +27,19 @@ export async function getZoneInfo(): Promise<ZoneInfo | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * The customer's own coordinates, or null.
+ *
+ * Null is an ordinary case, not a failure: someone who has never shared their
+ * location still gets the whole site, just ordered by rating instead of by
+ * distance. Nothing may depend on this being present.
+ */
+export async function getCustomerCoords(): Promise<{ lat: number; lon: number } | null> {
+  const info = await getZoneInfo();
+  if (typeof info?.lat !== "number" || typeof info?.lon !== "number") return null;
+  return { lat: info.lat, lon: info.lon };
 }
 
 /** Zone id for API requests — the chosen zone, else the default zone. */
