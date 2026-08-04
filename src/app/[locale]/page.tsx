@@ -11,6 +11,7 @@ import {
   serviceFromPrice,
 } from "@/lib/api";
 import { BannerCarousel } from "@/components/BannerCarousel";
+import { CampaignCarousel } from "@/components/home/CampaignCarousel";
 import { CategoryCard } from "@/components/CategoryCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -135,39 +136,12 @@ export default async function HomePage({
             title={dict.campaign.title}
             subtitle={dict.campaign.subtitle}
           />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {campaigns.map((campaign) => {
-              const amount = Number(campaign.discount?.discount_amount ?? 0);
-              const isPercent =
-                campaign.discount?.discount_amount_type === "percent" ||
-                campaign.discount?.discount_amount_type === "percentage";
-              return (
-                <Link
-                  key={campaign.id}
-                  href={`${base}/campaign/${campaign.id}`}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition hover:border-primary"
-                >
-                  {campaign.cover_image_full_path && (
-                    <img
-                      src={campaign.cover_image_full_path}
-                      alt=""
-                      className="aspect-[16/7] w-full object-cover"
-                    />
-                  )}
-                  <div className="flex items-center justify-between gap-3 p-4">
-                    <span className="min-w-0 font-semibold text-ink">
-                      {campaign.campaign_name}
-                    </span>
-                    {amount > 0 && isPercent && (
-                      <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white">
-                        {amount}% {dict.campaign.off}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <CampaignCarousel
+            campaigns={campaigns}
+            locale={locale}
+            offLabel={dict.campaign.off}
+            intervalSeconds={Number(config.campaign_slider_interval ?? 0)}
+          />
         </section>
       )}
 
