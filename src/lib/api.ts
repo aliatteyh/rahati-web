@@ -141,6 +141,43 @@ export async function getCategoryContents(
   return results;
 }
 
+/**
+ * Search services by name.
+ *
+ * The site had no search at all — a customer who knew what they wanted had to
+ * find it by guessing which category it lived under. POST rather than GET
+ * because that is what the endpoint accepts.
+ */
+export async function searchServices(
+  query: string,
+  locale: Locale,
+  limit = 24
+): Promise<Service[]> {
+  const term = query.trim();
+  if (!term) return [];
+  try {
+    const zoneId = await getZoneId();
+    const res = await fetch(`${API_BASE}/api/v1/customer/service/search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-localization": locale,
+        zoneId,
+      },
+      body: JSON.stringify({ string: term, limit, offset: 1 }),
+      cache: "no-store",
+    });
+    const json = await res.json();
+    // The envelope wraps the paginator under `services`, alongside price filters
+    // this page does not use.
+    const services = json?.content?.services;
+    return (Array.isArray(services) ? services : services?.data ?? []) as Service[];
+  } catch {
+    return [];
+  }
+}
+
 export function getServiceDetail(
   slug: string,
   locale: Locale

@@ -12,6 +12,7 @@ import {
   serviceFromPrice,
 } from "@/lib/api";
 import { BannerCarousel } from "@/components/BannerCarousel";
+import { SearchBox } from "@/components/search/SearchBox";
 import { CampaignCarousel } from "@/components/home/CampaignCarousel";
 import { CategoryCard } from "@/components/CategoryCard";
 import { ServiceCard } from "@/components/ServiceCard";
@@ -101,6 +102,16 @@ export default async function HomePage({
               >
                 {dict.hero.ctaSecondary}
               </Link>
+            </div>
+
+            {/* Under the two calls to action: someone who already knows what
+                they want can say it instead of browsing for it. */}
+            <div className="mt-6 max-w-md">
+              <SearchBox
+                locale={locale}
+                placeholder={dict.search.placeholder}
+                label={dict.search.submit}
+              />
             </div>
             <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm text-muted">
               {[dict.hero.stat1, dict.hero.stat2, dict.hero.stat3].map((s) => (

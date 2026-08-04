@@ -39,6 +39,8 @@ export async function SiteHeader({
           <span className="text-lg font-bold text-ink">{brand}</span>
         </Link>
 
+        {/* In the bar itself, so a customer who knows what they want never has
+            to guess which category it lives under. */}
         <nav className="hidden items-center gap-7 md:flex">
           {nav.map((item) => (
             <Link
@@ -52,6 +54,18 @@ export async function SiteHeader({
         </nav>
 
         <div className="flex items-center gap-3">
+          {/* The bar is already full; the field itself lives in the hero, where
+              the customer is deciding what they want. */}
+          <Link
+            href={`${base}/search`}
+            aria-label={dict.search.title}
+            className="grid h-9 w-9 place-items-center rounded-full border border-border text-muted transition hover:border-primary hover:text-primary"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
+            </svg>
+          </Link>
           <HeaderLocation
             dict={dict.location as unknown as Record<string, string>}
             initialZoneName={zone?.name}

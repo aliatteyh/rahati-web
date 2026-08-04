@@ -464,5 +464,14 @@
     "noReviews": "لا توجد تقييمات بعد.",
     "aCustomer": "عميل",
     "unavailable": "لا يستقبل حجوزات"
+  },
+  "search": {
+    "title": "ابحث عن خدمة",
+    "placeholder": "ما الذي تحتاجه؟ مثال: تنظيف",
+    "submit": "بحث",
+    "prompt": "اكتب ما تحتاجه ونجده لك.",
+    "noResults": "لا نتائج لـ «{q}».",
+    "browseAll": "تصفّح كل الخدمات",
+    "resultCount": "{count} نتيجة لـ «{q}»"
   }
 }

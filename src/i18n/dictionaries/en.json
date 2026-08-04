@@ -464,5 +464,14 @@
     "noReviews": "No reviews yet.",
     "aCustomer": "A customer",
     "unavailable": "Not taking bookings"
+  },
+  "search": {
+    "title": "Search services",
+    "placeholder": "What do you need? e.g. cleaning",
+    "submit": "Search",
+    "prompt": "Type what you need and we'll find it.",
+    "noResults": "Nothing matched “{q}”.",
+    "browseAll": "Browse all services",
+    "resultCount": "{count} result(s) for “{q}”"
   }
 }
