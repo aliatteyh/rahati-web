@@ -149,7 +149,7 @@ export default async function HomePage({
 
       {/* Categories */}
       {categories.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-16">
+        <section className="mx-auto max-w-6xl px-4 pt-16">
           {/* No "see all" in the heading — it is the ninth tile in the row,
               where someone looks once the eight on offer are not what they
               wanted. */}
