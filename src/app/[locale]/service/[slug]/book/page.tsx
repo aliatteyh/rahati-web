@@ -4,6 +4,7 @@ import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import {
   getConfig,
+  getBookableProviders,
   getPackageAvailability,
   getServiceAddOns,
   getServiceDetail,
@@ -66,9 +67,10 @@ export default async function BookPage({ params }: { params: Params }) {
   // Subscription packages for this sub-category, plus the weekdays it can be
   // booked on — the union across every provider serving it, so a day is only
   // disabled when nobody works it.
-  const [servicePackages, availability] = await Promise.all([
+  const [servicePackages, availability, bookableProviders] = await Promise.all([
     getServicePackages(service.sub_category_id ?? "", locale),
     getPackageAvailability(service.sub_category_id ?? null, locale),
+    getBookableProviders(service.sub_category_id ?? "", locale),
   ]);
 
   // Real, admin-managed add-ons for this service (by category or direct link)
@@ -111,6 +113,7 @@ export default async function BookPage({ params }: { params: Params }) {
       providerOffDays={availability.off_days_iso}
       maxDaysPerWeek={availability.max_days_per_week}
       providerId={service.service_availability?.provider_id ?? null}
+      bookableProviders={bookableProviders}
     />
   );
 }

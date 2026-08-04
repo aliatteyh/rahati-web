@@ -21,6 +21,9 @@ export async function POST(request: Request) {
     professional_count: Number(body.professional_count ?? 1),
     need_materials: Number(body.need_materials ?? 0),
     add_ons: Array.isArray(body.add_ons) ? body.add_ons : [],
+    // Omitted unless the customer chose, so the backend keeps assigning as
+    // before rather than receiving an empty string it has to validate away.
+    ...(body.provider_id ? { provider_id: String(body.provider_id) } : {}),
     // Only sent when the customer is buying a package; the backend treats a
     // null package id as an ordinary line.
     ...(body.service_package_id

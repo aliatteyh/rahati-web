@@ -220,6 +220,46 @@ export interface ProviderProfile {
   weekends?: string[];
 }
 
+/** A provider the customer may pick for this sub-category. */
+export interface BookableProvider {
+  id: string;
+  company_name?: string;
+  logo_full_path?: string | null;
+  avg_rating?: number;
+  rating_count?: number;
+  weekends?: string[];
+  time_schedule?: { start_time?: string; end_time?: string } | null;
+}
+
+/**
+ * Providers who can actually take this booking — in the zone, subscribed to the
+ * sub-category, available, not suspended and not already full for the day.
+ *
+ * Empty is a real answer, not a failure: the picker then stays hidden and the
+ * server assigns as it did before.
+ */
+export async function getBookableProviders(
+  subCategoryId: string,
+  locale: Locale
+): Promise<BookableProvider[]> {
+  if (!subCategoryId) return [];
+  try {
+    const zoneId = await getZoneId();
+    const res = await fetch(
+      `${API_BASE}/api/v1/customer/provider/list-by-sub-category?sub_category_id=${encodeURIComponent(subCategoryId)}`,
+      {
+        headers: { Accept: "application/json", "X-localization": locale, zoneId },
+        cache: "no-store",
+      }
+    );
+    const json = await res.json();
+    const content = json?.content;
+    return (Array.isArray(content) ? content : content?.data ?? []) as BookableProvider[];
+  } catch {
+    return [];
+  }
+}
+
 export interface ProviderDetails {
   provider: ProviderProfile;
   rating?: { average_rating?: number; rating_count?: number; review_count?: number } | null;

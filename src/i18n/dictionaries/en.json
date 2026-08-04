@@ -386,7 +386,12 @@
     "mostPopular": "Most popular",
     "singleVisitHint": "A one-off booking, no commitment.",
     "onceAWeekHint": "Every week on the day you pick below, at the same time.",
-    "everyTwoWeeksHint": "Every 14 days on the day you pick below, at the same time."
+    "everyTwoWeeksHint": "Every 14 days on the day you pick below, at the same time.",
+    "chooseProvider": "Who would you like?",
+    "anyProvider": "Any available provider",
+    "anyProviderHint": "We'll assign whoever is free on your days.",
+    "offOn": "Off on",
+    "everyDay": "Works every day"
   },
   "checkout": {
     "title": "Checkout",

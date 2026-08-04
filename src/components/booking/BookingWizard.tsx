@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
-import type { BookingQuote, PackageQuote, ServicePackage } from "@/lib/api";
+import type {
+  BookableProvider,
+  BookingQuote,
+  PackageQuote,
+  ServicePackage,
+} from "@/lib/api";
 import type { DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
 
 type Dict = Record<string, string>;
@@ -54,10 +59,18 @@ export interface BookingWizardProps {
   providerOffDays?: number[];
   maxDaysPerWeek?: number;
   providerId?: string | null;
+  /** Providers who can take this booking; empty leaves the server to assign. */
+  bookableProviders?: BookableProvider[];
 }
 
 /** Saturday first, matching how the admin panel lists the week. */
 const WEEKDAY_ORDER = [6, 7, 1, 2, 3, 4, 5];
+
+/** Off days arrive as lowercase weekday names; the pickers work in ISO numbers. */
+const ISO_BY_WEEKDAY: Record<string, number> = {
+  monday: 1, tuesday: 2, wednesday: 3, thursday: 4,
+  friday: 5, saturday: 6, sunday: 7,
+};
 
 /**
  * Visits one weekday contributes per month — mirrors
@@ -143,6 +156,7 @@ export function BookingWizard({
   providerOffDays = [],
   maxDaysPerWeek = 6,
   providerId = null,
+  bookableProviders = [],
 }: BookingWizardProps) {
   const safeVariants: WizardVariant[] =
     variants.length > 0 ? variants : [{ key: "default", price: 0, durationMinutes: 60 }];
@@ -261,6 +275,21 @@ export function BookingWizard({
     weeks,
     step,
   ]);
+
+  /**
+   * An explicit provider choice, or null for "whoever is free".
+   *
+   * Picking one narrows the day picker to that provider's working week. Leaving
+   * it null keeps the previous behaviour: the days offered are those at least
+   * one provider works, and the server assigns whoever covers the chosen ones.
+   */
+  const [chosenProviderId, setChosenProviderId] = useState<string | null>(null);
+  const chosenProvider = bookableProviders.find((p) => p.id === chosenProviderId) ?? null;
+
+  /** ISO weekdays the booking must avoid, given the current choice. */
+  const activeOffDays = chosenProvider
+    ? (chosenProvider.weekends ?? []).map((d) => ISO_BY_WEEKDAY[String(d).toLowerCase()]).filter(Boolean)
+    : providerOffDays;
 
   const variant = safeVariants[variantIndex];
 
@@ -389,6 +418,8 @@ export function BookingWizard({
           add_ons: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
           // Carried on the cart line so checkout creates a package purchase and
           // applies the package discount instead of the commitment tier.
+          // Only when the customer actually chose; otherwise the server picks.
+          provider_id: chosenProviderId,
           service_package_id: isPackageMode ? packageId : null,
           package_days_per_week:
             isPackageMode ? packageQuote?.days_per_week ?? null : null,
@@ -834,6 +865,51 @@ export function BookingWizard({
                 </div>
               </div>
 
+              {/* Provider — only where there is an actual choice to make. */}
+              {bookableProviders.length > 1 && (
+                <div>
+                  <p className="mb-3 font-semibold text-ink">{dict.chooseProvider}</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[null, ...bookableProviders].map((p) => {
+                      const selected = (p?.id ?? null) === chosenProviderId;
+                      const offNames = (p?.weekends ?? [])
+                        .map((d) => isoWeekdayName(ISO_BY_WEEKDAY[String(d).toLowerCase()]))
+                        .filter(Boolean);
+                      return (
+                        <button
+                          key={p?.id ?? "any"}
+                          type="button"
+                          onClick={() => setChosenProviderId(p?.id ?? null)}
+                          className={`rounded-xl border p-3 text-start transition ${
+                            selected
+                              ? "border-primary bg-primary-light"
+                              : "border-border bg-surface hover:border-primary"
+                          }`}
+                        >
+                          <span className="block text-sm font-semibold text-ink">
+                            {p ? p.company_name : dict.anyProvider}
+                          </span>
+                          {p ? (
+                            <span className="mt-0.5 block text-xs text-muted">
+                              {Number(p.avg_rating ?? 0) > 0 && `★ ${Number(p.avg_rating).toFixed(1)} · `}
+                              {/* Their day off, said up front — it is what limits
+                                  the days offered once they are chosen. */}
+                              {offNames.length > 0
+                                ? `${dict.offOn} ${offNames.join(", ")}`
+                                : dict.everyDay}
+                            </span>
+                          ) : (
+                            <span className="mt-0.5 block text-xs text-muted">
+                              {dict.anyProviderHint}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Materials */}
               <div>
                 <p className="mb-3 font-semibold text-ink">{dict.materialsQuestion}</p>
@@ -1059,7 +1135,7 @@ export function BookingWizard({
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {WEEKDAY_ORDER.map((iso) => {
-                                  const off = providerOffDays.includes(iso);
+                                  const off = activeOffDays.includes(iso);
                                   const on = packageWeekdays.has(iso);
                                   // Full: selected days stay removable, the rest go
                                   // quiet rather than silently ignoring the tap.
@@ -1235,7 +1311,7 @@ export function BookingWizard({
                         // A start date on the provider's off day would produce a
                         // schedule whose every visit is skipped server-side.
                         const iso = d.date.getDay() === 0 ? 7 : d.date.getDay();
-                        const off = isRecurring && providerOffDays.includes(iso);
+                        const off = isRecurring && activeOffDays.includes(iso);
                         return (
                           <button
                             key={i}
