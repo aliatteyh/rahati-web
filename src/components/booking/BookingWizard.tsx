@@ -689,7 +689,13 @@ export function BookingWizard({
             packageId,
             serviceId,
             variantKey: variant.key,
-            providerId,
+            // The provider the customer picked, not the one listed against the
+            // service. Sending the service's default meant the quote was priced
+            // against a provider nobody had chosen, whose day off the suggested
+            // days knew nothing about — so the day was dropped, the count fell
+            // short and the package was refused. Null means "any", and the
+            // server then picks the one whose off day fits these days.
+            providerId: chosenProviderId,
             startDate: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`,
             time: (timeSlot ?? "09:00").split("-")[0],
             weekdays: [...packageWeekdays].sort((a, b) => a - b),
@@ -719,6 +725,10 @@ export function BookingWizard({
   }, [
     bookingMode,
     packageId,
+    // Changing provider changes which day is dropped, and therefore the visit
+    // count and the price. Without this the quote kept the previous provider's
+    // answer.
+    chosenProviderId,
     [...packageWeekdays].sort().join(","),
     dateIndex,
     timeSlot,
