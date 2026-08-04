@@ -4,6 +4,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import {
   getBanners,
   getCampaigns,
+  getFeaturedCategories,
   getCategories,
   getConfig,
   getPopularServices,
@@ -29,12 +30,13 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [categories, popular, config, banners, campaigns] = await Promise.all([
+  const [categories, popular, config, banners, campaigns, featured] = await Promise.all([
     getCategories(locale),
     getPopularServices(locale, 8),
     getConfig(locale),
     getBanners(locale),
     getCampaigns(locale),
+    getFeaturedCategories(locale),
   ]);
   const currency = currencyLabel(config, locale);
 
@@ -155,14 +157,21 @@ export default async function HomePage({
             seeAllLabel={dict.sections.seeAll}
           />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {categories.slice(0, 8).map((category) => (
+            {/* Featured first, then the rest — `is_featured` is an editorial
+                choice the admin makes and the site was throwing away. */}
+            {[
+              ...featured,
+              ...categories.filter((c) => !featured.some((f) => f.id === c.id)),
+            ]
+              .slice(0, 8)
+              .map((category) => (
               <CategoryCard
                 key={category.id}
                 category={category}
                 locale={locale}
                 label={dict.category.book}
-              />
-            ))}
+                />
+              ))}
           </div>
         </section>
       )}

@@ -79,6 +79,20 @@ export function getCategories(locale: Locale, limit = 100): Promise<Category[]> 
   );
 }
 
+/**
+ * Categories the admin has flagged as featured.
+ *
+ * Separate from the ordinary list on purpose: `is_featured` is an editorial
+ * decision about what to lead with, and it was being set in the admin and
+ * ignored by the site.
+ */
+export function getFeaturedCategories(locale: Locale, limit = 8): Promise<Category[]> {
+  return apiGetList<Category>(
+    `/api/v1/customer/featured-categories?limit=${limit}&offset=1`,
+    locale
+  );
+}
+
 export function getPopularServices(locale: Locale, limit = 8): Promise<Service[]> {
   return apiGetList<Service>(
     `/api/v1/customer/service/popular?limit=${limit}&offset=1`,
