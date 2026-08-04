@@ -16,7 +16,7 @@ import { BannerCarousel } from "@/components/BannerCarousel";
 import { SearchBox } from "@/components/search/SearchBox";
 import { CampaignCarousel } from "@/components/home/CampaignCarousel";
 import { AdvertisementRail } from "@/components/home/AdvertisementRail";
-import { CategoryCard } from "@/components/CategoryCard";
+import { CategoryStrip } from "@/components/home/CategoryStrip";
 import { ServiceCard } from "@/components/ServiceCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -179,29 +179,23 @@ export default async function HomePage({
       {/* Categories */}
       {categories.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-16">
+          {/* No "see all" in the heading — it is the ninth tile in the row,
+              where someone looks once the eight on offer are not what they
+              wanted. */}
           <SectionHeader
             title={dict.sections.categories}
             subtitle={dict.sections.categoriesSub}
-            href={`${base}/services`}
-            seeAllLabel={dict.sections.seeAll}
           />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {/* Featured first, then the rest — `is_featured` is an editorial
-                choice the admin makes and the site was throwing away. */}
-            {[
+          {/* Featured first, then the rest — `is_featured` is an editorial
+              choice the admin makes and the site was throwing away. */}
+          <CategoryStrip
+            categories={[
               ...featured,
               ...categories.filter((c) => !featured.some((f) => f.id === c.id)),
-            ]
-              .slice(0, 8)
-              .map((category) => (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                locale={locale}
-                label={dict.category.book}
-                />
-              ))}
-          </div>
+            ]}
+            locale={locale}
+            seeAllLabel={dict.sections.seeAll}
+          />
         </section>
       )}
 
