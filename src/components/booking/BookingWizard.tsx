@@ -1334,7 +1334,9 @@ export function BookingWizard({
                                       )
                                     : packageQuote.reason === "no_tier"
                                       ? dict.packageNoTier
-                                      : dict.noDatesForPackage}
+                                      : packageQuote.reason === "no_provider"
+                                        ? dict.packageNoProvider
+                                        : dict.noDatesForPackage}
                               </p>
                             )}
                           </div>
