@@ -6,6 +6,7 @@ import {
   getBanners,
   getCampaigns,
   getFeaturedCategories,
+  withBookableServices,
   getNearbyProviders,
   getCategories,
   getConfig,
@@ -46,6 +47,13 @@ export default async function HomePage({
     getNearbyProviders(locale),
   ]);
   const currency = currencyLabel(config, locale);
+
+  // Featured lead, the rest follow, and anything with no service behind it is
+  // left out rather than offered and then apologised for.
+  const bookableCategories = await withBookableServices(
+    [...featured, ...categories.filter((c) => !featured.some((f) => f.id === c.id))],
+    locale
+  );
 
   const steps = [
     { title: dict.steps.s1Title, text: dict.steps.s1Text },
@@ -148,7 +156,7 @@ export default async function HomePage({
       </section>
 
       {/* Categories */}
-      {categories.length > 0 && (
+      {bookableCategories.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-16">
           {/* No "see all" in the heading — it is the ninth tile in the row,
               where someone looks once the eight on offer are not what they
@@ -158,12 +166,11 @@ export default async function HomePage({
             subtitle={dict.sections.categoriesSub}
           />
           {/* Featured first, then the rest — `is_featured` is an editorial
-              choice the admin makes and the site was throwing away. */}
+              choice the admin makes and the site was throwing away. Categories
+              with nothing to book are dropped: the strip is a set of doors, and
+              none of them should open onto an empty room. */}
           <CategoryStrip
-            categories={[
-              ...featured,
-              ...categories.filter((c) => !featured.some((f) => f.id === c.id)),
-            ]}
+            categories={bookableCategories}
             locale={locale}
             seeAllLabel={dict.sections.seeAll}
           />

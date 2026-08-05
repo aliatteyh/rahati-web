@@ -81,6 +81,39 @@ export function getCategories(locale: Locale, limit = 100): Promise<Category[]> 
 }
 
 /**
+ * Categories that actually have something to book.
+ *
+ * A category with no service behind it is a door onto an empty room: the
+ * customer picks it, waits for a page, and is told there is nothing here. The
+ * catalogue is built long before it is filled, so empty categories are normal
+ * and simply should not be offered yet.
+ *
+ * Emptiness is decided from the service list rather than by walking each
+ * category's sub-categories — one request instead of one per category, and it
+ * answers the question that matters: is there a service a customer could book
+ * under this heading, in this zone, today.
+ *
+ * Order is preserved, so whatever the caller arranged — featured first — still
+ * holds. If the service list cannot be read the categories are returned
+ * untouched: showing a category that turns out to be empty is a much smaller
+ * failure than showing none at all.
+ */
+export async function withBookableServices(
+  categories: Category[],
+  locale: Locale
+): Promise<Category[]> {
+  const services = await apiGetList<Service>(
+    "/api/v1/customer/service?limit=200&offset=1",
+    locale
+  );
+
+  if (services.length === 0) return categories;
+
+  const stocked = new Set(services.map((s) => s.category_id).filter(Boolean));
+  return categories.filter((c) => stocked.has(c.id));
+}
+
+/**
  * Categories the admin has flagged as featured.
  *
  * Separate from the ordinary list on purpose: `is_featured` is an editorial

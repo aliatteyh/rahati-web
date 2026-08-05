@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternatesFor } from "@/lib/seo";
-import { getCategories } from "@/lib/api";
+import { getCategories, withBookableServices } from "@/lib/api";
 import { CategoryCard } from "@/components/CategoryCard";
 import { SectionHeader } from "@/components/SectionHeader";
 
@@ -33,7 +33,9 @@ export default async function ServicesPage({
   const { locale: raw } = await params;
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
-  const categories = await getCategories(locale);
+  // Same rule as the home page: a category with no service behind it is a door
+  // onto an empty room, and "see all" must not lead to more of those.
+  const categories = await withBookableServices(await getCategories(locale), locale);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-14">
