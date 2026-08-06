@@ -30,12 +30,20 @@ export async function POST(request: Request) {
     const userId = info?.id ?? "";
     const origin = request.headers.get("origin") ?? new URL(request.url).origin;
     const callback = `${origin}/${locale}/account/bookings`;
-    const accessToken = Buffer.from(userId).toString("base64url");
+    // Standard base64, not base64url: the payment page decodes with PHP's
+    // base64_decode, which silently drops the "-" and "_" that base64url
+    // substitutes — corrupting the id for any user whose encoding happens to
+    // contain them. The value is URI-encoded below, so "+" and "/" travel safely.
+    const accessToken = Buffer.from(userId).toString("base64");
     const redirect =
       `${API_BASE}/payment?payment_method=${encodeURIComponent(method)}` +
       `&access_token=${encodeURIComponent(accessToken)}` +
       `&zone_id=${encodeURIComponent(zoneId)}` +
       `&service_address_id=${encodeURIComponent(String(addressId))}` +
+      // Required by the payment page's validator; omitting it bounced every
+      // card payment to ?flag=fail before a gateway was ever reached. We only
+      // ever send someone to the customer's own address.
+      `&service_location=customer` +
       (isRepeat
         ? `&service_type=repeat&dates=${encodeURIComponent(dates)}`
         : `&service_schedule=${encodeURIComponent(schedule)}`) +

@@ -21,6 +21,14 @@ interface PaymentGateway {
   gateway_title?: string;
 }
 
+/** An admin-defined way to pay outside the system — a bank transfer, a sent link. */
+interface OfflineMethod {
+  id?: string;
+  method_name?: string;
+  payment_information?: { title?: string; data?: string }[];
+  customer_information?: { field_name?: string; is_required?: boolean }[];
+}
+
 export default async function CheckoutPage({
   params,
   searchParams,
@@ -38,19 +46,29 @@ export default async function CheckoutPage({
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
 
-  const [cartResp, addresses, config, zoneId] = await Promise.all([
+  const [cartResp, addresses, config, zoneId, offlineMethods] = await Promise.all([
     authGet<CartListContent>("/api/v1/customer/cart/list?limit=50&offset=1", locale, {}),
     authGetList<Address>("/api/v1/customer/address?limit=50&offset=1", locale),
     getConfig(locale),
     getZoneId(),
+    authGetList<OfflineMethod>("/api/v1/customer/offline-payment/methods?limit=50&offset=1", locale),
   ]);
 
   const cart = cartResp.cart?.data ?? [];
   const serverTotal = Number(cartResp.total_cost ?? 0);
   const serviceFee = Number(cartResp.service_charge?.amount ?? config.additional_charge_fee_amount ?? 0);
 
-  const gateways = ((config as unknown as { payment_gateways?: PaymentGateway[] })
-    .payment_gateways ?? []) as PaymentGateway[];
+  const settings = config as unknown as {
+    payment_gateways?: PaymentGateway[];
+    digital_payment?: number;
+    cash_after_service?: number;
+    offline_payment?: number;
+  };
+
+  // Each of the three families is admin-switched independently, so a gateway
+  // that is configured but whose family is off must not be offered.
+  const gateways = settings.digital_payment ? settings.payment_gateways ?? [] : [];
+  const offline = settings.offline_payment ? offlineMethods : [];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -64,6 +82,19 @@ export default async function CheckoutPage({
         cart={cart}
         addresses={addresses}
         gateways={gateways.map((g) => ({ key: g.gateway ?? "", title: g.gateway_title ?? g.gateway ?? "" }))}
+        cashAllowed={settings.cash_after_service !== 0}
+        offlineMethods={offline.map((m) => ({
+          id: String(m.id ?? ""),
+          name: m.method_name ?? "",
+          info: (m.payment_information ?? []).map((i) => ({
+            title: i.title ?? "",
+            data: i.data ?? "",
+          })),
+          fields: (m.customer_information ?? []).map((f) => ({
+            name: f.field_name ?? "",
+            required: Boolean(f.is_required),
+          })),
+        }))}
         serviceFee={serviceFee}
         vatPercent={Number(config.vat_percentage ?? 0)}
         serverTotal={serverTotal}

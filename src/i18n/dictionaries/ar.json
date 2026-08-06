@@ -425,6 +425,9 @@
     "repeatVisits": "{n} زيارات مجدولة",
     "payment": "طريقة الدفع",
     "cashAfterService": "الدفع نقدًا بعد الخدمة",
+    "offlineIntro": "حوِّل المبلغ، ثم أخبرنا بتفاصيل التحويل لنطابقه مع حجزك.",
+    "offlineNote": "يُعتمد حجزك فور تأكيدنا استلام المبلغ.",
+    "offlineFieldRequired": "{field} مطلوب",
     "payOnline": "الدفع إلكترونيًا",
     "summary": "ملخّص الطلب",
     "serviceAmount": "مبلغ الخدمة",
@@ -444,7 +447,8 @@
     "emptyCart": "سلتك فارغة.",
     "contactName": "اسم جهة الاتصال",
     "contactNumber": "رقم جهة الاتصال",
-    "selectAddressFirst": "الرجاء اختيار أو إضافة عنوان."
+    "selectAddressFirst": "الرجاء اختيار أو إضافة عنوان.",
+    "offlineAttachFailed": "لم نتمكّن من تسجيل تفاصيل تحويلك. حجزك قائم — راسلنا برقم العملية لنطابق الدفعة."
   },
   "cta": {
     "title": "جاهز لحجز خدمتك الأولى؟",

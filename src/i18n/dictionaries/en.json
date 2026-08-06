@@ -425,6 +425,9 @@
     "repeatVisits": "{n} visits scheduled",
     "payment": "Payment method",
     "cashAfterService": "Cash after service",
+    "offlineIntro": "Send the payment, then tell us where it came from so we can match it to your booking.",
+    "offlineNote": "Your booking is confirmed once we verify the payment.",
+    "offlineFieldRequired": "{field} is required",
     "payOnline": "Pay online",
     "summary": "Order summary",
     "serviceAmount": "Service amount",
@@ -444,7 +447,8 @@
     "emptyCart": "Your cart is empty.",
     "contactName": "Contact name",
     "contactNumber": "Contact number",
-    "selectAddressFirst": "Please select or add an address."
+    "selectAddressFirst": "Please select or add an address.",
+    "offlineAttachFailed": "We could not record your transfer details. Your booking stands — please contact us with the reference so we can match the payment."
   },
   "cta": {
     "title": "Ready to book your first service?",

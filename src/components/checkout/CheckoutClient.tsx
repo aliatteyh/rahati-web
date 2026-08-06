@@ -37,6 +37,22 @@ interface Gateway {
   title: string;
 }
 
+/**
+ * A way to pay that happens outside the system — the admin defines what the
+ * customer is shown (`info`) and what they must send back (`fields`) so the
+ * money can be matched to the booking.
+ */
+export interface OfflineMethod {
+  id: string;
+  name: string;
+  info: { title: string; data: string }[];
+  fields: { name: string; required: boolean }[];
+}
+
+/** Field names come from the admin as snake_case keys, not sentences. */
+const humanise = (s: string) =>
+  s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
 const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 export function CheckoutClient({
@@ -48,6 +64,8 @@ export function CheckoutClient({
   cart,
   addresses,
   gateways,
+  cashAllowed = true,
+  offlineMethods = [],
   serviceFee,
   vatPercent,
   serverTotal,
@@ -65,6 +83,8 @@ export function CheckoutClient({
   cart: CartItem[];
   addresses: Address[];
   gateways: Gateway[];
+  cashAllowed?: boolean;
+  offlineMethods?: OfflineMethod[];
   serviceFee: number;
   /** Global VAT rate; charged on the service fee only. */
   vatPercent: number;
@@ -98,10 +118,23 @@ export function CheckoutClient({
   const [savingAddr, setSavingAddr] = useState(false);
 
   const [when, setWhen] = useState(schedule ? schedule.slice(0, 16).replace(" ", "T") : "");
-  const [method, setMethod] = useState<string>("cash_after_service");
+  // An offline choice is stored as "offline:<id>" so one radio group can cover
+  // all three families; the id is what the backend needs to match the transfer.
+  const [method, setMethod] = useState<string>(() => {
+    if (cashAllowed) return "cash_after_service";
+    if (gateways.length > 0) return gateways[0].key;
+    if (offlineMethods.length > 0) return `offline:${offlineMethods[0].id}`;
+    return "cash_after_service";
+  });
+  const offlineChosen = method.startsWith("offline:")
+    ? offlineMethods.find((m) => `offline:${m.id}` === method)
+    : undefined;
+  const [offlineFields, setOfflineFields] = useState<Record<string, string>>({});
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  /** The booking stands but its transfer details did not attach — say so. */
+  const [attachFailed, setAttachFailed] = useState(false);
 
   const totals = useMemo(() => {
     let serviceAmount = 0, profDiscount = 0, material = 0, addon = 0, discount = 0, coupon = 0, vat = 0, items = 0;
@@ -165,6 +198,18 @@ export function CheckoutClient({
       setError(dict.selectAddressFirst);
       return;
     }
+    // Checked before the booking is created: a missing reference cannot be
+    // supplied afterwards without leaving an unmatched booking behind.
+    if (offlineChosen) {
+      const missing = offlineChosen.fields.find(
+        (f) => f.required && !(offlineFields[f.name] ?? "").trim()
+      );
+      if (missing) {
+        setError(dict.offlineFieldRequired?.replace("{field}", humanise(missing.name)) ?? dict.failed);
+        return;
+      }
+    }
+
     setPlacing(true);
     setError("");
     try {
@@ -175,7 +220,7 @@ export function CheckoutClient({
           locale,
           service_address_id: addressId,
           service_schedule: when ? when.replace("T", " ") + ":00" : schedule,
-          payment_method: method,
+          payment_method: offlineChosen ? "offline_payment" : method,
           zone_id: zoneId,
           ...(isRepeat ? { service_type: "repeat", dates } : {}),
         }),
@@ -186,6 +231,36 @@ export function CheckoutClient({
         return;
       }
       if (data.ok) {
+        // The booking exists now; attaching the transfer details is a second
+        // call, and its failure must not read as a failed booking.
+        if (offlineChosen) {
+          // One cart can produce a booking per sub-category, so the backend
+          // answers with a list even when there is only one.
+          const ids = data.booking?.booking_id;
+          const bookingId = Array.isArray(ids) ? ids[0] : ids;
+
+          // Every declared field is sent, empty ones included: the backend
+          // rejects the whole payload when a key is absent, whether or not it
+          // was marked required — and that rejection would otherwise leave a
+          // booking with no payment record and nobody told.
+          const info: Record<string, string> = {};
+          for (const f of offlineChosen.fields) info[f.name] = offlineFields[f.name] ?? "";
+
+          const attached = await fetch("/api/checkout/offline-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              locale,
+              booking_id: bookingId,
+              offline_payment_id: offlineChosen.id,
+              customer_information: info,
+            }),
+          })
+            .then((r) => r.json())
+            .catch(() => ({ ok: false }));
+
+          if (!attached.ok) setAttachFailed(true);
+        }
         setDone(true);
       } else {
         setError(data.message || dict.failed);
@@ -202,6 +277,11 @@ export function CheckoutClient({
       <div className="mx-auto max-w-md rounded-3xl border border-border bg-surface p-8 text-center">
         <div className="mb-4 text-5xl">✅</div>
         <h1 className="text-xl font-bold text-ink">{dict.success}</h1>
+        {attachFailed && (
+          <p className="mt-4 rounded-xl bg-surface-soft p-3 text-sm text-muted">
+            {dict.offlineAttachFailed}
+          </p>
+        )}
         <Link
           href={`/${locale}/account/bookings`}
           className="mt-6 inline-block rounded-full bg-primary px-6 py-3 font-semibold text-white"
@@ -334,16 +414,78 @@ export function CheckoutClient({
         <section>
           <h2 className="mb-3 text-lg font-semibold text-ink">{dict.payment}</h2>
           <div className="space-y-2">
-            <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${method === "cash_after_service" ? "border-primary bg-primary-light/30" : "border-border bg-surface"}`}>
-              <input type="radio" name="pay" checked={method === "cash_after_service"} onChange={() => setMethod("cash_after_service")} />
-              <span className="text-sm text-ink">💵 {dict.cashAfterService}</span>
-            </label>
+            {cashAllowed && (
+              <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${method === "cash_after_service" ? "border-primary bg-primary-light/30" : "border-border bg-surface"}`}>
+                <input type="radio" name="pay" checked={method === "cash_after_service"} onChange={() => setMethod("cash_after_service")} />
+                <span className="text-sm text-ink">💵 {dict.cashAfterService}</span>
+              </label>
+            )}
+
             {gateways.filter((g) => g.key).map((g) => (
               <label key={g.key} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${method === g.key ? "border-primary bg-primary-light/30" : "border-border bg-surface"}`}>
                 <input type="radio" name="pay" checked={method === g.key} onChange={() => setMethod(g.key)} />
                 <span className="text-sm text-ink">💳 {g.title}</span>
               </label>
             ))}
+
+            {offlineMethods.map((m) => {
+              const key = `offline:${m.id}`;
+              const selected = method === key;
+              return (
+                <div
+                  key={m.id}
+                  className={`rounded-2xl border ${selected ? "border-primary bg-primary-light/30" : "border-border bg-surface"}`}
+                >
+                  <label className="flex cursor-pointer items-center gap-3 p-4">
+                    <input type="radio" name="pay" checked={selected} onChange={() => setMethod(key)} />
+                    <span className="text-sm text-ink">🏦 {m.name}</span>
+                  </label>
+
+                  {/* Details and the form appear only once chosen — three
+                      collapsed methods read as a list, three expanded ones as a wall. */}
+                  {selected && (
+                    <div className="space-y-4 border-t border-border/60 p-4">
+                      {m.info.length > 0 && (
+                        <dl className="space-y-1 rounded-xl bg-surface-soft p-3 text-sm">
+                          {m.info.map((i, idx) => (
+                            <div key={idx} className="flex flex-wrap justify-between gap-2">
+                              <dt className="text-muted">{i.title}</dt>
+                              <dd className="font-medium text-ink">{i.data}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
+
+                      {m.fields.length > 0 && (
+                        <>
+                          <p className="text-sm text-muted">{dict.offlineIntro}</p>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {m.fields.map((f) => (
+                              <div key={f.name}>
+                                <label className="mb-1 block text-sm font-medium text-ink">
+                                  {humanise(f.name)}
+                                  {f.required && <span className="text-accent-dark"> *</span>}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={offlineFields[f.name] ?? ""}
+                                  onChange={(e) =>
+                                    setOfflineFields((prev) => ({ ...prev, [f.name]: e.target.value }))
+                                  }
+                                  className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 outline-none focus:border-primary"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      <p className="text-xs text-muted">{dict.offlineNote}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>
