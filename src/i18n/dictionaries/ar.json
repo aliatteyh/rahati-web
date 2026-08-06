@@ -413,7 +413,9 @@
     "anyProvider": "أي مزوّد متاح",
     "anyProviderHint": "نُسنِد من يكون متاحاً في أيامك.",
     "offOn": "عطلته",
-    "everyDay": "يعمل كل الأيام"
+    "everyDay": "يعمل كل الأيام",
+    "cartConflict": "لديك حجز لم تُكمله لخدمة أخرى. المتابعة هنا ستستبدله.",
+    "cartConflictAction": "استبدله وتابع"
   },
   "checkout": {
     "title": "الدفع",

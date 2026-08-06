@@ -413,7 +413,9 @@
     "anyProvider": "Any available provider",
     "anyProviderHint": "We'll assign whoever is free on your days.",
     "offOn": "Off on",
-    "everyDay": "Works every day"
+    "everyDay": "Works every day",
+    "cartConflict": "You have an unfinished booking for a different service. Starting this one will replace it.",
+    "cartConflictAction": "Replace it and continue"
   },
   "checkout": {
     "title": "Checkout",

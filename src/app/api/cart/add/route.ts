@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isLocale } from "@/i18n/config";
 import { getToken } from "@/lib/session";
-import { authSend } from "@/lib/account";
+import { authSend, authGet } from "@/lib/account";
 import { apiErrorMessage } from "@/lib/apiError";
 
 export async function POST(request: Request) {
@@ -40,5 +40,27 @@ export async function POST(request: Request) {
   }
 
   const { ok, json } = await authSend("POST", "/api/v1/customer/cart/add", payload, locale);
-  return NextResponse.json({ ok, message: apiErrorMessage(json) }, { status: 200 });
+
+  if (ok) return NextResponse.json({ ok, message: apiErrorMessage(json) }, { status: 200 });
+
+  // The commonest refusal is a line left in the cart by an abandoned booking
+  // from another sub-category. Whether that is what happened is decided by
+  // looking at the cart, not by matching the message — the message is translated,
+  // and a check that breaks when the customer switches to Arabic is no check.
+  // cart/list nests its rows under content.cart.data, not content.data, so it
+  // is read directly rather than through the list helper.
+  const cart = await authGet<{ cart?: { data?: { sub_category_id?: string }[] } }>(
+    "/api/v1/customer/cart/list?limit=50&offset=1",
+    locale,
+    {}
+  );
+  const lines = cart.cart?.data ?? [];
+  const blocking = lines.some(
+    (line) => line.sub_category_id && line.sub_category_id !== payload.sub_category_id
+  );
+
+  return NextResponse.json(
+    { ok, conflict: blocking, message: apiErrorMessage(json) },
+    { status: 200 }
+  );
 }

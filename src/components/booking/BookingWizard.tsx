@@ -170,6 +170,8 @@ export function BookingWizard({
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  /** An abandoned booking is still holding the cart; offer to replace it. */
+  const [cartConflict, setCartConflict] = useState(false);
   const [step, setStep] = useState(1);
   // The subscription browser already asked both questions, so start where it
   // left off rather than at the top of the form.
@@ -415,9 +417,35 @@ export function BookingWizard({
     return [{ date: buildSchedule() }];
   }
 
+  /** Discards whatever an abandoned booking left behind, then books this one. */
+  async function replacePreviousAndContinue() {
+    setSubmitting(true);
+    setSubmitError("");
+    setCartConflict(false);
+    try {
+      const res = await fetch("/api/cart/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setSubmitError(data.message || dict.cartFailed);
+        return;
+      }
+    } catch {
+      setSubmitError(dict.cartFailed);
+      return;
+    } finally {
+      setSubmitting(false);
+    }
+    await proceedToCheckout();
+  }
+
   async function proceedToCheckout() {
     setSubmitting(true);
     setSubmitError("");
+    setCartConflict(false);
     try {
       const res = await fetch("/api/cart/add", {
         method: "POST",
@@ -476,6 +504,7 @@ export function BookingWizard({
         }
       } else {
         setSubmitError(data.message || dict.cartFailed);
+        setCartConflict(Boolean(data.conflict));
       }
     } catch {
       setSubmitError(dict.cartFailed);
@@ -1519,7 +1548,25 @@ export function BookingWizard({
                   {submitting ? dict.processing : dict.continue}
                 </button>
                 {submitError && (
-                  <p className="mt-2 text-center text-sm text-accent-dark">{submitError}</p>
+                  <div className="mt-3 rounded-xl border border-accent/40 bg-accent/5 p-3 text-center">
+                    {/* A customer who has never seen a cart cannot act on "clear
+                        your cart", so when that is what happened we say it in
+                        terms of the booking they abandoned and offer the button
+                        that fixes it. */}
+                    <p className="text-sm text-accent-dark">
+                      {cartConflict ? dict.cartConflict : submitError}
+                    </p>
+                    {cartConflict && (
+                      <button
+                        type="button"
+                        onClick={replacePreviousAndContinue}
+                        disabled={submitting}
+                        className="mt-3 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                      >
+                        {submitting ? dict.processing : dict.cartConflictAction}
+                      </button>
+                    )}
+                  </div>
                 )}
                 <p className="mt-2 text-center text-sm text-muted">
                   {timeSlot ? dict.step4Note : dict.selectTimePrompt}
