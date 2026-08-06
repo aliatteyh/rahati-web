@@ -5,7 +5,8 @@
     "services": "Services",
     "howItWorks": "How it works",
     "about": "About",
-    "book": "Book now"
+    "book": "Book now",
+    "blog": "Blog"
   },
   "auth": {
     "login": "Log in",
@@ -509,5 +510,12 @@
     "recent": "Recent searches",
     "clearRecent": "Clear",
     "resultCount": "{count} result(s) for “{q}”"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Guides and tips for a well-kept home.",
+    "all": "All",
+    "empty": "No articles published yet.",
+    "readNext": "Read next"
   }
 }

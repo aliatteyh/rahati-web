@@ -387,6 +387,66 @@ export function getAdvertisements(locale: Locale, limit = 10): Promise<Advertise
   );
 }
 
+
+/** One published article. */
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  thumbnail_full_path?: string | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  published_at?: string | null;
+  click_count?: number;
+  category?: { name?: string; slug?: string } | null;
+  author?: { name?: string } | null;
+}
+
+export interface BlogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  blogs_count?: number;
+}
+
+/** Published articles, newest first, optionally within one category. */
+export function getBlogPosts(
+  locale: Locale,
+  { limit = 12, offset = 1, categorySlug }: { limit?: number; offset?: number; categorySlug?: string } = {}
+): Promise<BlogPost[]> {
+  const category = categorySlug ? `&category_slug=${encodeURIComponent(categorySlug)}` : "";
+  return apiGetList<BlogPost>(
+    `/api/v1/customer/blog?limit=${limit}&offset=${offset}${category}`,
+    locale
+  );
+}
+
+/** Categories that actually have something published behind them. */
+export function getBlogCategories(locale: Locale): Promise<BlogCategory[]> {
+  return apiGetList<BlogCategory>("/api/v1/customer/blog/categories", locale);
+}
+
+/**
+ * One article and a few to read next.
+ *
+ * Uncached: reading an article counts towards its popularity, and a cached
+ * response never reaches the server to be counted.
+ */
+export async function getBlogPost(
+  slug: string,
+  locale: Locale
+): Promise<{ blog: BlogPost; related: BlogPost[] } | null> {
+  const content = await apiGet<{ blog?: BlogPost; related?: BlogPost[] } | null>(
+    `/api/v1/customer/blog/${encodeURIComponent(slug)}`,
+    locale,
+    null,
+    { cache: "no-store" }
+  );
+  if (!content?.blog) return null;
+  return { blog: content.blog, related: content.related ?? [] };
+}
+
 /** A provider, as the customer sees them. */
 export interface ProviderProfile {
   id: string;

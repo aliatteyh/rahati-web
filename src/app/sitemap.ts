@@ -1,11 +1,21 @@
 import type { MetadataRoute } from "next";
 import { locales } from "@/i18n/config";
 import { absoluteUrl } from "@/lib/seo";
-import { getCategories, getSubcategories, getServicesBySubcategory } from "@/lib/api";
+import { getCategories, getSubcategories, getServicesBySubcategory, getBlogPosts } from "@/lib/api";
 
 /** Dynamic sitemap: static pages + all categories/subcategories/services, per locale. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const paths = new Set<string>(["", "/services"]);
+  const paths = new Set<string>(["", "/services", "/blog"]);
+
+  // Articles are written to be found. Left out of the sitemap they rely on being
+  // linked to, which for a new site means not being found at all.
+  try {
+    for (const post of await getBlogPosts("en", { limit: 100 })) {
+      if (post.slug) paths.add(`/blog/${post.slug}`);
+    }
+  } catch {
+    // A sitemap missing the blog is far better than no sitemap.
+  }
 
   try {
     const categories = await getCategories("en");

@@ -29,6 +29,9 @@ export async function SiteHeader({
     { href: `${base}`, label: dict.nav.home },
     { href: `${base}/services`, label: dict.nav.services },
     { href: `${base}#how-it-works`, label: dict.nav.howItWorks },
+    // Articles are written to be found from search, but a reader who arrives on
+    // the site should be able to reach them too.
+    { href: `${base}/blog`, label: dict.nav.blog },
   ];
 
   return (
