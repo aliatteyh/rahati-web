@@ -213,6 +213,8 @@ export default async function HomePage({
                   durationMinutes={serviceFromDuration(service)}
                   minutesLabel={dict.browse.min}
                   featuredLabel={service.is_featured ? dict.browse.featured : undefined}
+                  favouriteLabel={dict.browse.favourite}
+                  locale={locale}
                 />
               ))}
             </div>

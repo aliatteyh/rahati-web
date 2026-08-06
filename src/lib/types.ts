@@ -14,6 +14,7 @@ export interface Service {
   slug?: string;
   category_id?: string;
   is_featured?: number | boolean;
+  is_favorite?: number | boolean;
   sub_category_id?: string;
   image_full_path?: string | null;
   cover_image_full_path?: string | null;

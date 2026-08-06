@@ -277,7 +277,8 @@
     "loadingPrice": "Pricing…",
     "perVisit": "per visit",
     "youSave": "You save",
-    "unavailableHere": "Not available in your area"
+    "unavailableHere": "Not available in your area",
+    "favourite": "Save to favourites"
   },
   "booking": {
     "step": "Step",

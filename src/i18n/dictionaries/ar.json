@@ -277,7 +277,8 @@
     "loadingPrice": "جارٍ التسعير…",
     "perVisit": "للزيارة",
     "youSave": "توفّر",
-    "unavailableHere": "غير متاحة في منطقتك"
+    "unavailableHere": "غير متاحة في منطقتك",
+    "favourite": "احفظ في المفضّلة"
   },
   "booking": {
     "step": "الخطوة",

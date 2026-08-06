@@ -141,6 +141,8 @@ export function SubcategoryBrowser({
                   durationMinutes={minutes}
                   minutesLabel={dict.min}
                   featuredLabel={s.isFeatured ? dict.featured : undefined}
+                  favouriteLabel={dict.favourite}
+                  locale={locale}
                 />
               );
             })}

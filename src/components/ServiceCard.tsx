@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Service } from "@/lib/types";
 import { Thumb } from "./Thumb";
+import { FavouriteButton } from "./FavouriteButton";
 
 /**
  * A service, as it appears in a list.
@@ -24,6 +25,8 @@ export function ServiceCard({
   durationMinutes = null,
   minutesLabel,
   featuredLabel,
+  favouriteLabel,
+  locale,
 }: {
   service: Service;
   priceLabel: string | null;
@@ -34,6 +37,9 @@ export function ServiceCard({
   minutesLabel?: string;
   /** Shown only when the caller says this service is featured. */
   featuredLabel?: string;
+  /** Both required to show the heart; omitted leaves the card as it was. */
+  favouriteLabel?: string;
+  locale?: string;
 }) {
   const rating = Number(service.avg_rating ?? 0);
 
@@ -55,6 +61,19 @@ export function ServiceCard({
         {featuredLabel && (
           <span className="absolute top-3 end-3 rounded-full bg-accent px-3 py-1 text-xs font-bold text-white shadow-sm">
             {featuredLabel}
+          </span>
+        )}
+
+        {/* Opposite corner to the badge, so the two never collide on a card
+            that carries both. */}
+        {favouriteLabel && locale && (
+          <span className="absolute top-3 start-3">
+            <FavouriteButton
+              serviceId={service.id}
+              locale={locale as never}
+              initial={Boolean(service.is_favorite)}
+              label={favouriteLabel}
+            />
           </span>
         )}
 
