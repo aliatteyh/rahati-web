@@ -607,15 +607,21 @@ export async function getServicePackages(
 ): Promise<ServicePackage[]> {
   try {
     const zoneId = await getZoneId();
+    // limit and offset are required by the endpoint's validator, and without
+    // them it answers 400 — which read here as "this sub-category sells no
+    // packages" rather than as a malformed request.
     const res = await fetch(
-      `${API_BASE}/api/v1/customer/service-package?sub_category_id=${encodeURIComponent(subCategoryId)}`,
+      `${API_BASE}/api/v1/customer/service-package?sub_category_id=${encodeURIComponent(subCategoryId)}&limit=50&offset=1`,
       {
         headers: { Accept: "application/json", "X-localization": locale, zoneId },
         cache: "no-store",
       }
     );
     const json = await res.json();
-    return Array.isArray(json?.content) ? (json.content as ServicePackage[]) : [];
+    const content = json?.content;
+    // Paginated or plain, depending on the call — both shapes appear here.
+    const rows = Array.isArray(content) ? content : content?.data;
+    return Array.isArray(rows) ? (rows as ServicePackage[]) : [];
   } catch {
     // A missing catalogue must not take the booking page down with it.
     return [];
@@ -867,6 +873,27 @@ export { formatPrice } from "./currency";
  * ignore `min_bidding_price` (a bidding-system floor, not a fixed price); fall
  * back to starting_price/price, and only then min_bidding_price as a last resort.
  */
+/**
+ * How long the cheapest option takes, in minutes.
+ *
+ * A service can hold several durations at several prices, and the card shows one
+ * of each. Taking the duration from the same variation that set the "from" price
+ * keeps the two halves describing the same thing — a price from one option
+ * beside a duration from another is a quote for a booking nobody can make.
+ */
+export function serviceFromDuration(service: {
+  variations?: { price?: number | string | null; duration_minutes?: number | null }[];
+}): number | null {
+  const priced = (service.variations ?? []).filter(
+    (v) => Number.isFinite(Number(v?.price)) && Number(v?.price) > 0
+  );
+  if (priced.length === 0) return null;
+
+  const cheapest = priced.reduce((a, b) => (Number(a.price) <= Number(b.price) ? a : b));
+  const minutes = Number(cheapest.duration_minutes);
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+}
+
 export function serviceFromPrice(service: {
   variations?: { price?: number | string | null }[];
   starting_price?: number | string | null;

@@ -18,6 +18,7 @@ import {
 } from "@/components/booking/BookingWizard";
 
 type Params = Promise<{ locale: string; slug: string }>;
+type Search = Promise<{ package?: string; variant?: string }>;
 
 function toNumber(v: unknown): number {
   const n = typeof v === "string" ? parseFloat(v) : (v as number);
@@ -38,8 +39,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function BookPage({ params }: { params: Params }) {
+export default async function BookPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Search;
+}) {
   const { locale: raw, slug } = await params;
+  // Arriving from the subscription browser, the customer has already said how
+  // long each visit runs and how often. Asking again is not a confirmation —
+  // it is a second chance to answer differently and end up with a booking they
+  // did not choose.
+  const { package: presetPackage, variant: presetVariant } = await searchParams;
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
 
@@ -101,6 +113,8 @@ export default async function BookPage({ params }: { params: Params }) {
       serviceName={service.name}
       serviceSlug={slug}
       variants={variants}
+      presetPackageId={presetPackage ?? null}
+      presetVariantKey={presetVariant ?? null}
       addOns={addOns}
       workStart={service.service_availability?.time_schedule?.start_time ?? null}
       workEnd={service.service_availability?.time_schedule?.end_time ?? null}

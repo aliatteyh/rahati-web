@@ -2,46 +2,105 @@ import Link from "next/link";
 import type { Service } from "@/lib/types";
 import { Thumb } from "./Thumb";
 
+/**
+ * A service, as it appears in a list.
+ *
+ * Built to a supplied design: artwork carrying its own rating and featured
+ * badges, then the name, a two-line description, and the price paired with how
+ * long that price buys.
+ *
+ * The two overlays sit on the picture rather than under it because they qualify
+ * it — this service, this well rated — and because the space below is spent on
+ * the two things a customer decides with: what it costs and how long it takes.
+ *
+ * Duration comes from the same variation that set the "from" price. A price from
+ * one option beside a duration from another describes a booking nobody can make.
+ */
 export function ServiceCard({
   service,
   priceLabel,
   fromLabel,
   href,
+  durationMinutes = null,
+  minutesLabel,
+  featuredLabel,
 }: {
   service: Service;
   priceLabel: string | null;
   fromLabel: string;
   href?: string;
+  /** Minutes for the cheapest option; omitted hides the pill. */
+  durationMinutes?: number | null;
+  minutesLabel?: string;
+  /** Shown only when the caller says this service is featured. */
+  featuredLabel?: string;
 }) {
+  const rating = Number(service.avg_rating ?? 0);
+
   const inner = (
     <>
-      <div className="aspect-[4/3] w-full overflow-hidden">
-        <Thumb
-          src={service.thumbnail_full_path || service.image_full_path || service.cover_image_full_path}
-          alt={service.name}
-          rounded="rounded-none"
-        />
+      <div className="relative">
+        <div className="aspect-[16/10] w-full overflow-hidden">
+          <Thumb
+            src={
+              service.cover_image_full_path ||
+              service.thumbnail_full_path ||
+              service.image_full_path
+            }
+            alt={service.name}
+            rounded="rounded-none"
+          />
+        </div>
+
+        {featuredLabel && (
+          <span className="absolute top-3 end-3 rounded-full bg-accent px-3 py-1 text-xs font-bold text-white shadow-sm">
+            {featuredLabel}
+          </span>
+        )}
+
+        {rating > 0 && (
+          // A solid chip rather than text on the image: it has to stay legible
+          // over whatever photograph the admin uploaded.
+          <span className="absolute bottom-3 start-3 inline-flex items-center gap-1 rounded-full bg-surface/95 px-2.5 py-1 text-sm font-bold text-ink shadow-sm backdrop-blur">
+            {rating.toFixed(1)}
+            <span className="text-accent">★</span>
+          </span>
+        )}
       </div>
+
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="line-clamp-2 text-base font-semibold text-ink">
+        <h3 className="line-clamp-1 text-base font-bold text-ink group-hover:text-primary">
           {service.name}
         </h3>
-        {service.avg_rating != null && Number(service.avg_rating) > 0 && (
-          <p className="mt-1 flex items-center gap-1 text-xs text-muted">
-            <span className="text-accent">★</span>
-            <span className="font-semibold text-ink">
-              {Number(service.avg_rating).toFixed(1)}
-            </span>
-            {service.rating_count != null && Number(service.rating_count) > 0 && (
-              <span>({service.rating_count})</span>
+
+        {service.short_description && (
+          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">
+            {service.short_description}
+          </p>
+        )}
+
+        {/* Pushed to the bottom so cards in a row line their prices up even when
+            names and descriptions run to different lengths. */}
+        <div className="mt-4 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            {priceLabel && (
+              <>
+                <p className="text-xs text-muted">{fromLabel}</p>
+                <p className="text-lg font-bold text-ink">{priceLabel}</p>
+              </>
             )}
-          </p>
-        )}
-        {priceLabel && (
-          <p className="mt-2 text-sm text-muted">
-            {fromLabel} <span className="font-bold text-primary">{priceLabel}</span>
-          </p>
-        )}
+          </div>
+
+          {durationMinutes && durationMinutes > 0 && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {durationMinutes} {minutesLabel}
+            </span>
+          )}
+        </div>
       </div>
     </>
   );

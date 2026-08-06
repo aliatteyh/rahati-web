@@ -16,6 +16,8 @@ export interface BrowseService {
   name: string;
   slug: string;
   image?: string | null;
+  shortDescription?: string | null;
+  isFeatured?: boolean;
   variants: BrowseVariant[];
   minPrice: number;
   avgRating?: number;
@@ -117,9 +119,18 @@ export function SubcategoryBrowser({
                 name: s.name,
                 slug: s.slug,
                 image_full_path: s.image,
+                short_description: s.shortDescription ?? undefined,
                 avg_rating: s.avgRating,
                 rating_count: s.ratingCount,
               };
+              // The duration shown is the one being filtered on, and the price
+              // is that duration's price — so the card describes a booking the
+              // customer can actually make.
+              const minutes =
+                selected ??
+                (s.variants.length
+                  ? s.variants.reduce((a, b) => (a.price <= b.price ? a : b)).minutes
+                  : null);
               return (
                 <ServiceCard
                   key={s.id}
@@ -127,6 +138,9 @@ export function SubcategoryBrowser({
                   href={`/${locale}/service/${s.slug}`}
                   fromLabel={fromLabel}
                   priceLabel={money(priceFor(s))}
+                  durationMinutes={minutes}
+                  minutesLabel={dict.min}
+                  featuredLabel={s.isFeatured ? dict.featured : undefined}
                 />
               );
             })}

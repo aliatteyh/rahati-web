@@ -59,6 +59,10 @@ export interface BookingWizardProps {
   providerOffDays?: number[];
   maxDaysPerWeek?: number;
   providerId?: string | null;
+  /** Chosen on the subscription browser; locks the frequency here. */
+  presetPackageId?: string | null;
+  /** Chosen on the subscription browser; locks the duration here. */
+  presetVariantKey?: string | null;
   /** Providers who can take this booking; empty leaves the server to assign. */
   bookableProviders?: BookableProvider[];
 }
@@ -156,6 +160,8 @@ export function BookingWizard({
   providerOffDays = [],
   maxDaysPerWeek = 6,
   providerId = null,
+  presetPackageId = null,
+  presetVariantKey = null,
   bookableProviders = [],
 }: BookingWizardProps) {
   const safeVariants: WizardVariant[] =
@@ -165,7 +171,12 @@ export function BookingWizard({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [step, setStep] = useState(1);
-  const [variantIndex, setVariantIndex] = useState(0);
+  // The subscription browser already asked both questions, so start where it
+  // left off rather than at the top of the form.
+  const presetIndex = presetVariantKey
+    ? Math.max(0, variants.findIndex((v) => v.key === presetVariantKey))
+    : 0;
+  const [variantIndex, setVariantIndex] = useState(presetIndex);
   const [professionals, setProfessionals] = useState(1);
   const [materials, setMaterials] = useState(false);
   const [instructions, setInstructions] = useState("");
@@ -178,9 +189,13 @@ export function BookingWizard({
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [dateIndex, setDateIndex] = useState(0);
   const [timeSlot, setTimeSlot] = useState<string | null>(null);
-  const [bookingMode, setBookingMode] = useState<BookingMode>("single");
+  // A package chosen on the browser means the customer is buying a
+  // subscription, so the wizard opens in that mode instead of asking again.
+  const [bookingMode, setBookingMode] = useState<BookingMode>(
+    presetPackageId ? "package" : "single"
+  );
   // Package mode: which package, and which weekdays the customer commits to.
-  const [packageId, setPackageId] = useState<string | null>(null);
+  const [packageId, setPackageId] = useState<string | null>(presetPackageId);
   const [packageWeekdays, setPackageWeekdays] = useState<Set<number>>(new Set());
   const [packageQuote, setPackageQuote] = useState<PackageQuote | null>(null);
   const [packageLoading, setPackageLoading] = useState(false);
@@ -585,6 +600,22 @@ export function BookingWizard({
   // own limits. A package can be saved with a wide day range but only one
   // priced tier, and offering the unpriced days just walks the customer into a
   // refusal they could not have predicted.
+  // Arriving with a package already chosen, seed its days straight away.
+  //
+  // The quote only runs once weekdays exist, so without this the first step
+  // falls back to single-visit pricing and shows one visit's cost where the
+  // customer just saw a whole month's — the same booking quoted twice, in two
+  // different orders of magnitude.
+  useEffect(() => {
+    if (!presetPackageId || !selectedPackage || packageWeekdays.size > 0) return;
+    const days = (selectedPackage.tiers ?? [])
+      .map((t) => t.days_per_week)
+      .filter((d) => d >= selectedPackage.min_days_per_week && d <= selectedPackage.max_days_per_week)
+      .sort((a, b) => a - b);
+    setPackageWeekdays(suggestedPackageDays(days[0] ?? selectedPackage.min_days_per_week));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetPackageId, selectedPackage]);
+
   const packageSellableDays = (selectedPackage?.tiers ?? [])
     .map((t) => t.days_per_week)
     .filter(
@@ -889,7 +920,18 @@ export function BookingWizard({
                 )}
               </div>
 
-              {/* Duration / variant */}
+              {/* Duration / variant.
+                  Locked when it came from the subscription browser: the customer
+                  answered this a screen ago, and offering it again is a way to
+                  end up booking something they did not pick. */}
+              {presetVariantKey ? (
+                <div className="rounded-xl border border-border bg-surface-soft p-4">
+                  <p className="text-sm text-muted">{dict.hoursQuestion}</p>
+                  <p className="mt-1 text-lg font-bold text-ink">
+                    {fmtDuration(variant.durationMinutes)}
+                  </p>
+                </div>
+              ) : (
               <div>
                 <p className="mb-3 font-semibold text-ink">{dict.hoursQuestion}</p>
                 <div className="flex flex-wrap gap-3">
@@ -909,6 +951,7 @@ export function BookingWizard({
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Professionals */}
               <div>
@@ -1090,8 +1133,11 @@ export function BookingWizard({
 
           {step === 3 && (
             <div className="space-y-8">
-              {/* Take the service: once / multiple times */}
-              <div>
+              {/* Take the service: once / multiple times.
+                  Hidden when the frequency came from the subscription browser —
+                  the choice is already made, and the package panel below shows
+                  what it was. */}
+              <div className={presetPackageId ? "hidden" : undefined}>
                 <p className="mb-3 font-semibold text-ink">{dict.takeService}</p>
                 {/* Named for what the customer is buying, not for the mechanism
                     that produces the dates. The package option only appears where

@@ -13,6 +13,7 @@ import {
   getPopularServices,
   formatPrice,
   serviceFromPrice,
+  serviceFromDuration,
 } from "@/lib/api";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { SearchBox } from "@/components/search/SearchBox";
@@ -209,6 +210,9 @@ export default async function HomePage({
                   href={service.slug ? `${base}/service/${service.slug}` : undefined}
                   fromLabel={dict.category.from}
                   priceLabel={formatPrice(serviceFromPrice(service), currency)}
+                  durationMinutes={serviceFromDuration(service)}
+                  minutesLabel={dict.browse.min}
+                  featuredLabel={service.is_featured ? dict.browse.featured : undefined}
                 />
               ))}
             </div>
