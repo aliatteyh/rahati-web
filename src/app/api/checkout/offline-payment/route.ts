@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isLocale } from "@/i18n/config";
 import { authSend } from "@/lib/account";
+import { apiErrorMessage } from "@/lib/apiError";
 
 /**
  * Attaches the customer's transfer details to a booking already placed with
@@ -41,5 +42,5 @@ export async function POST(request: Request) {
     locale
   );
 
-  return NextResponse.json({ ok, message: json?.message }, { status: 200 });
+  return NextResponse.json({ ok, message: apiErrorMessage(json) }, { status: 200 });
 }

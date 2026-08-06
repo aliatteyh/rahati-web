@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isLocale } from "@/i18n/config";
 import { getToken } from "@/lib/session";
 import { authSend } from "@/lib/account";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -39,8 +40,5 @@ export async function POST(request: Request) {
   }
 
   const { ok, json } = await authSend("POST", "/api/v1/customer/cart/add", payload, locale);
-  const message =
-    (json?.message as string) ??
-    (json?.errors as Array<{ message?: string }> | undefined)?.[0]?.message;
-  return NextResponse.json({ ok, message }, { status: 200 });
+  return NextResponse.json({ ok, message: apiErrorMessage(json) }, { status: 200 });
 }

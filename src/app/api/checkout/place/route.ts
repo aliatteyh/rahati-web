@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isLocale } from "@/i18n/config";
 import { authSend, authGet } from "@/lib/account";
+import { apiErrorMessage } from "@/lib/apiError";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
 
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
   const content = json?.content as { flag?: string } | undefined;
   const success = ok && content?.flag !== "fail";
   return NextResponse.json(
-    { ok: success, booking: content, message: json?.message },
+    { ok: success, booking: content, message: apiErrorMessage(json) },
     { status: 200 }
   );
 }
