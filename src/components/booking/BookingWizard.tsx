@@ -1003,50 +1003,12 @@ export function BookingWizard({
                 </div>
               </div>
 
-              {/* Provider — only where there is an actual choice to make. */}
-              {bookableProviders.length > 1 && (
-                <div>
-                  <p className="mb-3 font-semibold text-ink">{dict.chooseProvider}</p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {[null, ...bookableProviders].map((p) => {
-                      const selected = (p?.id ?? null) === chosenProviderId;
-                      const offNames = (p?.weekends ?? [])
-                        .map((d) => isoWeekdayName(ISO_BY_WEEKDAY[String(d).toLowerCase()]))
-                        .filter(Boolean);
-                      return (
-                        <button
-                          key={p?.id ?? "any"}
-                          type="button"
-                          onClick={() => setChosenProviderId(p?.id ?? null)}
-                          className={`rounded-xl border p-3 text-start transition ${
-                            selected
-                              ? "border-primary bg-primary-light"
-                              : "border-border bg-surface hover:border-primary"
-                          }`}
-                        >
-                          <span className="block text-sm font-semibold text-ink">
-                            {p ? p.company_name : dict.anyProvider}
-                          </span>
-                          {p ? (
-                            <span className="mt-0.5 block text-xs text-muted">
-                              {Number(p.avg_rating ?? 0) > 0 && `★ ${Number(p.avg_rating).toFixed(1)} · `}
-                              {/* Their day off, said up front — it is what limits
-                                  the days offered once they are chosen. */}
-                              {offNames.length > 0
-                                ? `${dict.offOn} ${offNames.join(", ")}`
-                                : dict.everyDay}
-                            </span>
-                          ) : (
-                            <span className="mt-0.5 block text-xs text-muted">
-                              {dict.anyProviderHint}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              {/* The customer no longer picks a provider, and no longer sees
+                  one. These are the owner's own teams, not a marketplace of
+                  strangers to compare — showing them asked the customer to make
+                  a choice that was never theirs, and the default they picked
+                  ("any available") left the booking with nobody on it. The
+                  server assigns a qualified team at booking time instead. */}
 
               {/* Materials */}
               <div>
