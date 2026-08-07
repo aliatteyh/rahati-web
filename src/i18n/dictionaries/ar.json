@@ -415,7 +415,11 @@
     "offOn": "عطلته",
     "everyDay": "يعمل كل الأيام",
     "cartConflict": "لديك حجز لم تُكمله لخدمة أخرى. المتابعة هنا ستستبدله.",
-    "cartConflictAction": "استبدله وتابع"
+    "cartConflictAction": "استبدله وتابع",
+    "yourUsualPro": "العامل الذي خدمك سابقاً",
+    "noRatingYet": "لا تقييمات بعد",
+    "visitsBefore": "{n} زيارة لك",
+    "usualProNote": "سنرسله إليك مجدداً إن كان متفرّغاً في اليوم الذي تختاره."
   },
   "checkout": {
     "title": "الدفع",

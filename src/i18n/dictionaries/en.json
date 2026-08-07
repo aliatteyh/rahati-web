@@ -415,7 +415,11 @@
     "offOn": "Off on",
     "everyDay": "Works every day",
     "cartConflict": "You have an unfinished booking for a different service. Starting this one will replace it.",
-    "cartConflictAction": "Replace it and continue"
+    "cartConflictAction": "Replace it and continue",
+    "yourUsualPro": "Your usual professional",
+    "noRatingYet": "No ratings yet",
+    "visitsBefore": "{n} visits to you",
+    "usualProNote": "We'll send them again if they're free on the day you choose."
   },
   "checkout": {
     "title": "Checkout",

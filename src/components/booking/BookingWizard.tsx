@@ -172,6 +172,17 @@ export function BookingWizard({
   const [submitError, setSubmitError] = useState("");
   /** An abandoned booking is still holding the cart; offer to replace it. */
   const [cartConflict, setCartConflict] = useState(false);
+
+  /**
+   * The serviceman who came last time, if there was one.
+   *
+   * The server already prefers them when assigning; this only lets the customer
+   * see it before committing. Null is the ordinary case — first booking, not
+   * signed in, or that person has left — and the card just does not appear.
+   */
+  const [lastServiceman, setLastServiceman] = useState<{
+    id: string; name: string; image: string | null; rating: number; rating_count: number; visits: number;
+  } | null>(null);
   const [step, setStep] = useState(1);
   // The subscription browser already asked both questions, so start where it
   // left off rather than at the top of the form.
@@ -441,6 +452,18 @@ export function BookingWizard({
     }
     await proceedToCheckout();
   }
+
+  useEffect(() => {
+    if (!subCategoryId) return;
+    let cancelled = false;
+
+    fetch(`/api/booking/preferred-serviceman?sub_category_id=${encodeURIComponent(subCategoryId)}&locale=${locale}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setLastServiceman(d.serviceman ?? null); })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [subCategoryId, locale]);
 
   async function proceedToCheckout() {
     setSubmitting(true);
@@ -1002,6 +1025,46 @@ export function BookingWizard({
                   ))}
                 </div>
               </div>
+
+
+              {/* Not a choice — the assignment already prefers them. This is so
+                  the customer knows before they commit, which is the thing they
+                  actually care about: the same person coming back. */}
+              {lastServiceman && (
+                <div className="rounded-2xl border border-primary/30 bg-primary-light/20 p-4">
+                  <p className="mb-3 text-sm font-semibold text-ink">{dict.yourUsualPro}</p>
+                  <div className="flex items-center gap-3">
+                    {lastServiceman.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={lastServiceman.image}
+                        alt={lastServiceman.name}
+                        className="h-14 w-14 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-bold text-white">
+                        {lastServiceman.name.charAt(0)}
+                      </span>
+                    )}
+
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-ink">{lastServiceman.name}</p>
+                      <p className="text-sm text-muted">
+                        {lastServiceman.rating_count > 0
+                          ? `★ ${lastServiceman.rating.toFixed(1)} (${lastServiceman.rating_count})`
+                          : dict.noRatingYet}
+                        {lastServiceman.visits > 0 &&
+                          ` · ${dict.visitsBefore?.replace("{n}", String(lastServiceman.visits))}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Said plainly rather than promised: they come back when they
+                      are free, and pretending otherwise would be a promise the
+                      schedule cannot always keep. */}
+                  <p className="mt-3 text-xs text-muted">{dict.usualProNote}</p>
+                </div>
+              )}
 
               {/* The customer no longer picks a provider, and no longer sees
                   one. These are the owner's own teams, not a marketplace of
