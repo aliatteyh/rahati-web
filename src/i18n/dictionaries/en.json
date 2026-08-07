@@ -450,7 +450,15 @@
     "contactName": "Contact name",
     "contactNumber": "Contact number",
     "selectAddressFirst": "Please select or add an address.",
-    "offlineAttachFailed": "We could not record your transfer details. Your booking stands — please contact us with the reference so we can match the payment."
+    "offlineAttachFailed": "We could not record your transfer details. Your booking stands — please contact us with the reference so we can match the payment.",
+    "cardLoading": "Preparing secure payment…",
+    "cardUnavailable": "Card payment is unavailable right now. Please choose another method.",
+    "cardPay": "Pay now",
+    "cardProcessing": "Processing payment…",
+    "cardFailed": "The payment could not be completed. Please check your card details and try again.",
+    "cardSecure": "Payments are processed securely by Stripe. We never see your card number.",
+    "cardUseFormAbove": "Complete your card details above to pay.",
+    "paidButPending": "Your payment went through, but we could not confirm your booking automatically. It will appear shortly — contact us if it does not."
   },
   "cta": {
     "title": "Ready to book your first service?",

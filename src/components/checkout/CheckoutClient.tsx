@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import { LocationPicker, type ResolvedLocation } from "@/components/location/LocationPicker";
+import { StripeCardForm } from "@/components/checkout/StripeCardForm";
 
 type Dict = Record<string, string>;
 
@@ -135,6 +136,21 @@ export function CheckoutClient({
   const [done, setDone] = useState(false);
   /** The booking stands but its transfer details did not attach — say so. */
   const [attachFailed, setAttachFailed] = useState(false);
+
+  /** Card payment is taken in place, so this gateway skips the redirect path. */
+  const payingByCard = method === "stripe";
+
+  // Memoised: StripeCardForm prepares the payment once, and a fresh object each
+  // render would look like a new request to it.
+  const intentBody = useMemo(
+    () => ({
+      service_address_id: addressId,
+      service_schedule: when ? when.replace("T", " ") + ":00" : schedule,
+      zone_id: zoneId,
+      ...(isRepeat ? { service_type: "repeat", dates } : {}),
+    }),
+    [addressId, when, schedule, zoneId, isRepeat, dates]
+  );
 
   const totals = useMemo(() => {
     let serviceAmount = 0, profDiscount = 0, material = 0, addon = 0, discount = 0, coupon = 0, vat = 0, items = 0;
@@ -421,12 +437,33 @@ export function CheckoutClient({
               </label>
             )}
 
-            {gateways.filter((g) => g.key).map((g) => (
-              <label key={g.key} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${method === g.key ? "border-primary bg-primary-light/30" : "border-border bg-surface"}`}>
-                <input type="radio" name="pay" checked={method === g.key} onChange={() => setMethod(g.key)} />
-                <span className="text-sm text-ink">💳 {g.title}</span>
-              </label>
-            ))}
+            {gateways.filter((g) => g.key).map((g) => {
+              const selected = method === g.key;
+              // Stripe collects the card here; the others still hand off to a
+              // hosted page, so only Stripe opens a form in place.
+              const inline = g.key === "stripe";
+              return (
+                <div
+                  key={g.key}
+                  className={`rounded-2xl border ${selected ? "border-primary bg-primary-light/30" : "border-border bg-surface"}`}
+                >
+                  <label className="flex cursor-pointer items-center gap-3 p-4">
+                    <input type="radio" name="pay" checked={selected} onChange={() => setMethod(g.key)} />
+                    <span className="text-sm text-ink">💳 {g.title}</span>
+                  </label>
+                  {selected && inline && addressId && (
+                    <div className="border-t border-border/60 p-4">
+                      <StripeCardForm
+                        locale={locale}
+                        dict={dict}
+                        intentBody={intentBody}
+                        onPaid={() => setDone(true)}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {offlineMethods.map((m) => {
               const key = `offline:${m.id}`;
@@ -509,6 +546,11 @@ export function CheckoutClient({
             </div>
           </div>
           {error && <p className="text-sm text-accent-dark">{error}</p>}
+          {/* The card form carries its own pay button — two would be two ways to
+              be charged for the same booking. */}
+          {payingByCard ? (
+            <p className="mt-2 text-center text-sm text-muted">{dict.cardUseFormAbove}</p>
+          ) : (
           <button
             type="button"
             onClick={placeOrder}
@@ -517,6 +559,7 @@ export function CheckoutClient({
           >
             {placing ? dict.placing : dict.placeOrder}
           </button>
+          )}
         </div>
       </aside>
     </div>
