@@ -100,10 +100,13 @@ export function StripeCardForm({
       options={{
         clientSecret: intent.client_secret,
         locale: locale === "ar" ? "ar" : "en",
+        // The teal of the wordmark, not an approximation of it. The card fields
+        // sit inside our own page, so a near-miss reads as a third party's form
+        // pasted in — which is the whole thing this replaced.
         appearance: {
           theme: "flat",
           variables: {
-            colorPrimary: "#0f766e",
+            colorPrimary: "#007773",
             borderRadius: "12px",
             fontSizeBase: "15px",
           },
