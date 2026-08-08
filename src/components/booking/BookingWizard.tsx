@@ -1725,7 +1725,10 @@ export function BookingWizard({
                   {/* Said before paying, not discovered at cancellation: this
                       system credits a wallet and has no way to reverse a card
                       charge. */}
-                  {prepaid && (
+                  {/* Shown whenever the purchase will be prepaid — including a
+                      package sold upfront-only, where nobody clicks anything
+                      and the warning would otherwise never appear at all. */}
+                  {(prepaid || !perVisitAvailable) && (
                     <p className="mt-3 text-xs text-muted">{dict.prepaidRefundNote}</p>
                   )}
                 </div>
