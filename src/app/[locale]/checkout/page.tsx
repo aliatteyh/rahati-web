@@ -38,11 +38,13 @@ export default async function CheckoutPage({
     schedule?: string;
     instructions?: string;
     service_type?: string;
+    /** "prepaid" when the customer chose to pay the whole package upfront. */
+    pay?: string;
     dates?: string;
   }>;
 }) {
   const { locale: raw } = await params;
-  const { schedule, instructions, service_type, dates } = await searchParams;
+  const { schedule, instructions, service_type, dates, pay } = await searchParams;
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
 
@@ -95,6 +97,13 @@ export default async function CheckoutPage({
   const gateways = settings.digital_payment ? settings.payment_gateways ?? [] : [];
   const offline = settings.offline_payment ? offlineMethods : [];
 
+  // A prepaid package is paid before any work starts, so "cash after service"
+  // is not a slower way to pay it — it is a contradiction. The server already
+  // refuses that combination and quietly downgrades the purchase to
+  // pay-per-visit; offering the option here would let someone choose upfront
+  // payment and receive something else.
+  const prepaid = pay === "prepaid";
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <CheckoutClient
@@ -107,7 +116,7 @@ export default async function CheckoutPage({
         cart={cart}
         addresses={addresses}
         gateways={gateways.map((g) => ({ key: g.gateway ?? "", title: g.gateway_title ?? g.gateway ?? "" }))}
-        cashAllowed={settings.cash_after_service !== 0}
+        cashAllowed={!prepaid && settings.cash_after_service !== 0}
         offlineMethods={offline.map((m) => ({
           id: String(m.id ?? ""),
           name: m.method_name ?? "",

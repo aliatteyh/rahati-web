@@ -174,6 +174,8 @@ export function BookingWizard({
   const [cartConflict, setCartConflict] = useState(false);
   /** The service on the unfinished booking this one would replace. */
   const [replacing, setReplacing] = useState("");
+  /** Pay the package upfront, or per visit as each one happens. */
+  const [prepaid, setPrepaid] = useState(false);
 
   /**
    * The serviceman who came last time, if there was one.
@@ -513,7 +515,13 @@ export function BookingWizard({
           service_package_id: isPackageMode ? packageId : null,
           package_days_per_week:
             isPackageMode ? packageQuote?.days_per_week ?? null : null,
-          package_payment_mode: isPackageMode ? "pay_per_visit" : null,
+          // Was hardcoded to pay_per_visit, so the allow_prepaid flag the
+          // admin sets was stored, read, and then ignored at the one moment it
+          // mattered. Six packages on production offered upfront payment that
+          // no customer could ever choose.
+          package_payment_mode: isPackageMode
+            ? (prepaidAvailable && prepaid ? "prepaid" : "pay_per_visit")
+            : null,
           locale,
         }),
       });
@@ -536,7 +544,8 @@ export function BookingWizard({
             JSON.stringify((packageQuote?.dates ?? []).map((d) => ({ date: d })))
           );
           router.push(
-            `/${locale}/checkout?service_type=repeat&dates=${dates}&instructions=${instr}`
+            `/${locale}/checkout?service_type=repeat&dates=${dates}&instructions=${instr}` +
+              (prepaidAvailable && prepaid ? "&pay=prepaid" : "")
           );
           return;
         }
@@ -670,6 +679,8 @@ export function BookingWizard({
   }, [quoteKey, locale, serviceId]);
 
   const selectedPackage = servicePackages.find((p) => p.id === packageId) ?? null;
+  /** Only offered when the admin allowed it on this package. */
+  const prepaidAvailable = Number(selectedPackage?.allow_prepaid ?? 0) === 1;
 
   // A package sells a band of weekdays; outside it the server refuses, so the
   // picker must not let the customer build a selection that cannot be bought.
@@ -1662,6 +1673,50 @@ export function BookingWizard({
                     value={`${packageQuote.first_visit.slice(0, 10)} → ${packageQuote.last_visit.slice(0, 10)}`}
                   />
                 </>
+              )}
+
+              {/* Offered only where the admin allowed it, and with both amounts
+                  on screen — "pay upfront" means nothing next to a per-visit
+                  price the customer has to work out for themselves. */}
+              {isPackageMode && prepaidAvailable && packageQuote?.valid && (
+                <div className="mt-4 rounded-2xl border border-border p-4">
+                  <p className="mb-3 text-sm font-semibold text-ink">{dict.howToPay}</p>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setPrepaid(false)}
+                      className={`rounded-xl border p-3 text-start text-sm transition ${
+                        !prepaid ? "border-primary bg-primary/5" : "border-border"
+                      }`}
+                    >
+                      <span className="block font-semibold text-ink">{dict.payPerVisit}</span>
+                      <span className="block text-muted">
+                        {money(packageQuote.net_visit_price)} · {dict.perVisit}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPrepaid(true)}
+                      className={`rounded-xl border p-3 text-start text-sm transition ${
+                        prepaid ? "border-primary bg-primary/5" : "border-border"
+                      }`}
+                    >
+                      <span className="block font-semibold text-ink">{dict.payUpfront}</span>
+                      <span className="block text-muted">
+                        {money(packageQuote.grand_total)} · {dict.wholePackage}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Said before paying, not discovered at cancellation: this
+                      system credits a wallet and has no way to reverse a card
+                      charge. */}
+                  {prepaid && (
+                    <p className="mt-3 text-xs text-muted">{dict.prepaidRefundNote}</p>
+                  )}
+                </div>
               )}
               <Row label={dict.duration} value={fmtDuration(variant.durationMinutes)} />
               <Row label={dict.professionals} value={String(professionals)} />

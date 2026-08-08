@@ -366,7 +366,7 @@
     "packageNoProvider": "No team covers your area for this package yet. Try a single visit, or change your location.",
     "packageNoTier": "This package is not sold for that number of days. Pick another combination.",
     "visits": "Total visits",
-    "perVisit": "Per visit",
+    "perVisit": "each visit",
     "period": "Period",
     "youSave": "You save",
     "calculating": "Calculating…",
@@ -420,7 +420,12 @@
     "noRatingYet": "No ratings yet",
     "visitsBefore": "{n} visits to you",
     "usualProNote": "We'll send them again if they're free on the day you choose.",
-    "cartConflictNamed": "You have an unfinished booking for {service}. Continuing here will replace it."
+    "cartConflictNamed": "You have an unfinished booking for {service}. Continuing here will replace it.",
+    "howToPay": "How would you like to pay?",
+    "payPerVisit": "Pay per visit",
+    "payUpfront": "Pay upfront",
+    "wholePackage": "the whole package",
+    "prepaidRefundNote": "If you cancel, the unused balance is returned as wallet credit — it does not go back to your card."
   },
   "checkout": {
     "title": "Checkout",
