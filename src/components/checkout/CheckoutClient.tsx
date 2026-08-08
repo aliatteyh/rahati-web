@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
+import type { CartQuote } from "@/lib/api";
 import { LocationPicker, type ResolvedLocation } from "@/components/location/LocationPicker";
 import { StripeCardForm } from "@/components/checkout/StripeCardForm";
 
@@ -70,6 +71,7 @@ export function CheckoutClient({
   serviceFee,
   vatPercent,
   serverTotal,
+  quote,
   zoneId,
   schedule,
   serviceType = "regular",
@@ -90,6 +92,8 @@ export function CheckoutClient({
   /** Global VAT rate; charged on the service fee only. */
   vatPercent: number;
   serverTotal: number;
+  /** The server's own breakdown for a repeat booking, or null for a single one. */
+  quote: CartQuote | null;
   zoneId: string;
   schedule: string;
   instructions: string;
@@ -168,20 +172,9 @@ export function CheckoutClient({
     // VAT is charged on the service fee only, once per booking.
     vat += (num(serviceFee) * num(vatPercent)) / 100;
 
-    // A cart line is priced for one visit. On a repeat booking the lines are
-    // delivered once per date, so the figures above describe a single visit
-    // while the total below covers them all — a subtotal smaller than the
-    // total it sits above reads as an error even when the total is right.
-    const visits = Math.max(1, dates.length);
-
     return {
-      serviceAmount: serviceAmount * visits,
-      profDiscount: profDiscount * visits,
-      material: material * visits,
-      addon: addon * visits,
-      discount: discount * visits,
-      coupon, vat,
-      grand: serverTotal > 0 ? serverTotal : items * visits + num(serviceFee) + vat,
+      serviceAmount, profDiscount, material, addon, discount, coupon, vat,
+      grand: serverTotal > 0 ? serverTotal : items + num(serviceFee) + vat,
     };
   }, [cart, serviceFee, vatPercent, serverTotal, dates]);
 
@@ -542,6 +535,29 @@ export function CheckoutClient({
       <aside className="lg:sticky lg:top-20 lg:self-start">
         <div className="space-y-3 rounded-2xl border border-border bg-surface p-5 text-sm">
           <h2 className="text-lg font-bold text-ink">{dict.summary}</h2>
+
+          {/* A repeat booking cannot be described by the cart: a line is priced
+              for one visit and knows nothing about the other nineteen. Summing
+              the lines showed one visit's cost under a whole package's total,
+              and multiplying them here produced a number stranger still. The
+              server that bills the booking already returns the breakdown —
+              show that, and there is only one arithmetic in the system. */}
+          {quote ? (
+            <>
+              <Line label={dict.perVisitPrice} value={money(quote.per_occurrence)} />
+              <Line label={dict.visitCount} value={`× ${quote.occurrences}`} />
+              {quote.total_discount_amount > 0 && (
+                <Line label={dict.discount} value={`- ${money(quote.total_discount_amount)}`} />
+              )}
+              {quote.extra_fee > 0 && (
+                <Line label={dict.serviceFee} value={`+ ${money(quote.extra_fee)}`} />
+              )}
+              {quote.total_tax_amount > 0 && (
+                <Line label={dict.vat} value={`+ ${money(quote.total_tax_amount)}`} />
+              )}
+            </>
+          ) : (
+            <>
           <Line label={dict.serviceAmount} value={money(totals.serviceAmount)} />
           {totals.profDiscount > 0 && <Line label={dict.professionalDiscount} value={`- ${money(totals.profDiscount)}`} />}
           {totals.material > 0 && <Line label={dict.material} value={`+ ${money(totals.material)}`} />}
@@ -550,6 +566,8 @@ export function CheckoutClient({
           {totals.coupon > 0 && <Line label={dict.coupon} value={`- ${money(totals.coupon)}`} />}
           {serviceFee > 0 && <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />}
           {totals.vat > 0 && <Line label={dict.vat} value={`+ ${money(totals.vat)}`} />}
+            </>
+          )}
           <div className="border-t border-border pt-3">
             <div className="flex items-center justify-between text-base font-bold text-ink">
               <span>{dict.total}</span>

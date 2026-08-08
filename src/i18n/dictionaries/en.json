@@ -469,7 +469,9 @@
     "cardFailed": "The payment could not be completed. Please check your card details and try again.",
     "cardSecure": "Payments are processed securely by Stripe. We never see your card number.",
     "cardUseFormAbove": "Complete your card details above to pay.",
-    "paidButPending": "Your payment went through, but we could not confirm your booking automatically. It will appear shortly — contact us if it does not."
+    "paidButPending": "Your payment went through, but we could not confirm your booking automatically. It will appear shortly — contact us if it does not.",
+    "perVisitPrice": "Price per visit",
+    "visitCount": "Visits"
   },
   "cta": {
     "title": "Ready to book your first service?",

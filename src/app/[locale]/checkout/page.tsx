@@ -79,10 +79,8 @@ export default async function CheckoutPage({
     }
   })();
 
-  if (visitDates.length > 0) {
-    const quote = await fetchCartQuote(visitDates, locale);
-    if (quote && quote.grand_total > 0) serverTotal = quote.grand_total;
-  }
+  const quote = visitDates.length > 0 ? await fetchCartQuote(visitDates, locale) : null;
+  if (quote && quote.grand_total > 0) serverTotal = quote.grand_total;
   const serviceFee = Number(cartResp.service_charge?.amount ?? config.additional_charge_fee_amount ?? 0);
 
   const settings = config as unknown as {
@@ -140,6 +138,7 @@ export default async function CheckoutPage({
         serviceFee={serviceFee}
         vatPercent={Number(config.vat_percentage ?? 0)}
         serverTotal={serverTotal}
+        quote={quote}
         zoneId={zoneId}
         schedule={schedule ?? ""}
         instructions={instructions ?? ""}

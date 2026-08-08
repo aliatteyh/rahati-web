@@ -979,10 +979,19 @@ export function serviceFromPrice(service: {
  * there and the visit count is what the cart cannot express. Same endpoint,
  * cart mode, and therefore the same calculator the booking is billed from.
  */
+export interface CartQuote {
+  occurrences: number;
+  per_occurrence: number;
+  extra_fee: number;
+  total_discount_amount: number;
+  total_tax_amount: number;
+  grand_total: number;
+}
+
 export async function fetchCartQuote(
   dates: string[],
   locale: Locale
-): Promise<{ grand_total: number; occurrences: number } | null> {
+): Promise<CartQuote | null> {
   if (dates.length === 0) return null;
 
   const { ok, json } = await authSend(
@@ -996,7 +1005,11 @@ export async function fetchCartQuote(
   if (!ok || !content) return null;
 
   return {
-    grand_total: Number(content.grand_total ?? 0),
     occurrences: Number(content.occurrences ?? dates.length),
+    per_occurrence: Number(content.per_occurrence ?? 0),
+    extra_fee: Number(content.extra_fee ?? 0),
+    total_discount_amount: Number(content.total_discount_amount ?? 0),
+    total_tax_amount: Number(content.total_tax_amount ?? 0),
+    grand_total: Number(content.grand_total ?? 0),
   };
 }
