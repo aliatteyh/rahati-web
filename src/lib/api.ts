@@ -1,6 +1,7 @@
 import type { Locale } from "@/i18n/config";
 import { getZoneId, getCustomerCoords } from "./zone";
 import { getToken } from "./session";
+import { authSend } from "./account";
 import type {
   AddOn,
   Banner,
@@ -968,4 +969,34 @@ export function serviceFromPrice(service: {
     service.starting_price ?? service.price ?? service.min_bidding_price ?? 0
   );
   return Number.isFinite(fallback) ? fallback : 0;
+}
+
+/**
+ * Price the customer's actual cart across a list of visit dates.
+ *
+ * `fetchBookingQuote` prices a line the wizard has not added yet, so it needs a
+ * service and variant. Checkout has the opposite problem: the cart is already
+ * there and the visit count is what the cart cannot express. Same endpoint,
+ * cart mode, and therefore the same calculator the booking is billed from.
+ */
+export async function fetchCartQuote(
+  dates: string[],
+  locale: Locale
+): Promise<{ grand_total: number; occurrences: number } | null> {
+  if (dates.length === 0) return null;
+
+  const { ok, json } = await authSend(
+    "POST",
+    "/api/v1/customer/booking/quote",
+    { dates: JSON.stringify(dates) },
+    locale
+  );
+
+  const content = (json as { content?: Record<string, unknown> })?.content;
+  if (!ok || !content) return null;
+
+  return {
+    grand_total: Number(content.grand_total ?? 0),
+    occurrences: Number(content.occurrences ?? dates.length),
+  };
 }

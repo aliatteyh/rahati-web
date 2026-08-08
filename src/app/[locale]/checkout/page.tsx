@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { getConfig } from "@/lib/api";
+import { fetchCartQuote, getConfig } from "@/lib/api";
 import { currencyLabel } from "@/lib/currency";
 
 // Transactional page — not indexable.
@@ -55,7 +55,32 @@ export default async function CheckoutPage({
   ]);
 
   const cart = cartResp.cart?.data ?? [];
-  const serverTotal = Number(cartResp.total_cost ?? 0);
+
+  // The cart knows one visit; a subscription is twenty.
+  //
+  // `cart.total_cost` is the sum of the lines, and a line is priced per visit —
+  // it has no idea the booking repeats. Checkout was showing that single-visit
+  // figure while the wizard showed the package total and the server charged the
+  // package total, so the last screen before paying was the one screen with the
+  // wrong number on it. Ask the same calculator the server bills from.
+  let serverTotal = Number(cartResp.total_cost ?? 0);
+
+  const visitDates: string[] = (() => {
+    if (service_type !== "repeat" || !dates) return [];
+    try {
+      const parsed = JSON.parse(dates) as { date?: string }[] | string[];
+      return parsed
+        .map((d) => (typeof d === "string" ? d : d?.date ?? ""))
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  })();
+
+  if (visitDates.length > 0) {
+    const quote = await fetchCartQuote(visitDates, locale);
+    if (quote && quote.grand_total > 0) serverTotal = quote.grand_total;
+  }
   const serviceFee = Number(cartResp.service_charge?.amount ?? config.additional_charge_fee_amount ?? 0);
 
   const settings = config as unknown as {
