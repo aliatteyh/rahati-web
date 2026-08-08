@@ -1,5 +1,0 @@
-SERVICE=0f2a434f-9847-4d7f-a600-5aeb0bec26de
-NAME=Leak Fixing
-CAT=bf9940d0-f365-4da8-8938-d4345a74ed00
-SUB=6c194e1a-eafc-4548-8e2e-53156a634dab
-  variant=demo-standard price=120 zone=a1614dbe

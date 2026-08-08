@@ -42,3 +42,6 @@ next-env.d.ts
 
 # allow committing the example env
 !.env.example
+
+# scratch notes from debugging sessions
+leak.txt
