@@ -366,8 +366,14 @@ export function BookingWizard({
     );
   }, [locale]);
 
-  // 30-minute slots limited to the serving provider's working hours; falls back
-  // to 08:00–20:00 when the provider hasn't set a schedule.
+  // Start times the work can actually finish within.
+  //
+  // The slot list used to end 30 minutes before closing regardless of how long
+  // the service takes, so a six-hour clean could be started at 20:30 against a
+  // 21:00 close. Nothing downstream caught it: the customer picked a time the
+  // form offered, paid, and the serviceman was booked until half past two in
+  // the morning. The last offered start is now closing minus the duration of
+  // the chosen variant.
   const timeSlots = useMemo(() => {
     const toMinutes = (t?: string | null): number | null => {
       const m = /^(\d{1,2}):(\d{2})/.exec(t ?? "");
@@ -380,12 +386,13 @@ export function BookingWizard({
     const fmt = (mins: number) =>
       `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
     const slots: string[] = [];
-    // Only whole 30-min slots that finish on/before the provider's end time.
-    for (let s = startMin; s + 30 <= endMin; s += 30) {
-      slots.push(`${fmt(s)}-${fmt(s + 30)}`);
+    // The visit has to end by closing time, not merely begin before it.
+    const span = Math.max(30, variant.durationMinutes || 30);
+    for (let s = startMin; s + span <= endMin; s += 30) {
+      slots.push(`${fmt(s)}-${fmt(s + span)}`);
     }
     return slots;
-  }, [workStart, workEnd]);
+  }, [workStart, workEnd, variant.durationMinutes]);
 
   const addOnsTotal = useMemo(
     () =>
