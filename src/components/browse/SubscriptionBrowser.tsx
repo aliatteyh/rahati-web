@@ -118,8 +118,20 @@ export function SubscriptionBrowser({
       return picked;
     };
 
-    Promise.all(
-      ordered.map(async (pkg) => {
+    // One at a time, not six at once.
+    //
+    // Every tier used to be priced in parallel, so opening this page fired six
+    // concurrent requests at a shared host that allows only a handful. The
+    // first few answered and the rest queued until the proxy gave up with a
+    // 502 — and because the section only renders priced tiers, a single
+    // timeout emptied the whole thing. The customer saw a subscription page
+    // with no subscriptions on it.
+    //
+    // Sequential is slower to finish and far likelier to finish at all. Each
+    // tier is shown the moment its own price arrives.
+    const priceEachInTurn = async () => {
+      for (const pkg of ordered) {
+        if (cancelled) return;
         try {
           const res = await fetch("/api/service-package/quote", {
             method: "POST",
@@ -137,17 +149,16 @@ export function SubscriptionBrowser({
               addOns: [],
             }),
           });
-          if (!res.ok) return [pkg.id, { valid: false }] as const;
-          return [pkg.id, (await res.json()) as Quote] as const;
+          const quote = res.ok ? ((await res.json()) as Quote) : { valid: false };
+          if (!cancelled) setQuotes((prev) => ({ ...prev, [pkg.id]: quote }));
         } catch {
-          return [pkg.id, { valid: false }] as const;
+          if (!cancelled) setQuotes((prev) => ({ ...prev, [pkg.id]: { valid: false } }));
         }
-      })
-    ).then((entries) => {
-      if (cancelled) return;
-      setQuotes(Object.fromEntries(entries));
-      setLoading(false);
-    });
+      }
+      if (!cancelled) setLoading(false);
+    };
+
+    void priceEachInTurn();
 
     return () => {
       cancelled = true;
