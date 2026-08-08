@@ -172,6 +172,8 @@ export function BookingWizard({
   const [submitError, setSubmitError] = useState("");
   /** An abandoned booking is still holding the cart; offer to replace it. */
   const [cartConflict, setCartConflict] = useState(false);
+  /** The service on the unfinished booking this one would replace. */
+  const [replacing, setReplacing] = useState("");
 
   /**
    * The serviceman who came last time, if there was one.
@@ -550,6 +552,7 @@ export function BookingWizard({
       } else {
         setSubmitError(data.message || dict.cartFailed);
         setCartConflict(Boolean(data.conflict));
+        setReplacing(typeof data.replacing === "string" ? data.replacing : "");
       }
     } catch {
       setSubmitError(dict.cartFailed);
@@ -1601,7 +1604,11 @@ export function BookingWizard({
                         terms of the booking they abandoned and offer the button
                         that fixes it. */}
                     <p className="text-sm text-accent-dark">
-                      {cartConflict ? dict.cartConflict : submitError}
+                      {cartConflict
+                        ? replacing
+                          ? dict.cartConflictNamed.replace("{service}", replacing)
+                          : dict.cartConflict
+                        : submitError}
                     </p>
                     {cartConflict && (
                       <button

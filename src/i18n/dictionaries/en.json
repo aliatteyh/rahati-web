@@ -419,7 +419,8 @@
     "yourUsualPro": "Your usual professional",
     "noRatingYet": "No ratings yet",
     "visitsBefore": "{n} visits to you",
-    "usualProNote": "We'll send them again if they're free on the day you choose."
+    "usualProNote": "We'll send them again if they're free on the day you choose.",
+    "cartConflictNamed": "You have an unfinished booking for {service}. Continuing here will replace it."
   },
   "checkout": {
     "title": "Checkout",

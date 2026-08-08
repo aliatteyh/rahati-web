@@ -49,18 +49,22 @@ export async function POST(request: Request) {
   // and a check that breaks when the customer switches to Arabic is no check.
   // cart/list nests its rows under content.cart.data, not content.data, so it
   // is read directly rather than through the list helper.
-  const cart = await authGet<{ cart?: { data?: { sub_category_id?: string }[] } }>(
-    "/api/v1/customer/cart/list?limit=50&offset=1",
-    locale,
-    {}
-  );
+  const cart = await authGet<{
+    cart?: { data?: { sub_category_id?: string; service?: { name?: string } }[] };
+  }>("/api/v1/customer/cart/list?limit=50&offset=1", locale, {});
+
   const lines = cart.cart?.data ?? [];
-  const blocking = lines.some(
-    (line) => line.sub_category_id && line.sub_category_id !== payload.sub_category_id
-  );
+
+  // Any leftover line blocks now, not just one from another sub-category:
+  // three attempts at the same service used to stack up and be billed
+  // together. Its service is named so the customer is told what they are
+  // about to lose rather than that "the cart" is in the way — they have
+  // never seen a cart.
+  const blocking = lines.length > 0;
+  const replacing = lines[0]?.service?.name ?? "";
 
   return NextResponse.json(
-    { ok, conflict: blocking, message: apiErrorMessage(json) },
+    { ok, conflict: blocking, replacing, message: apiErrorMessage(json) },
     { status: 200 }
   );
 }
