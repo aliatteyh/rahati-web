@@ -477,6 +477,21 @@ export function BookingWizard({
     setSubmitError("");
     setCartConflict(false);
     try {
+      // A package is bought on its own, so it starts from an empty cart.
+      //
+      // Nothing ever cleared the cart, and every abandoned attempt left a line
+      // in it. Checkout then priced all of them across all the visits: a
+      // four-visit subscription quoted at AED 1,459 was billed at AED 4,328,
+      // because three forgotten lines came along for the ride. The server
+      // refuses a mixed cart at booking time; this stops one forming.
+      if (isPackageMode && packageId) {
+        await fetch("/api/cart/clear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ locale }),
+        }).catch(() => {});
+      }
+
       const res = await fetch("/api/cart/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

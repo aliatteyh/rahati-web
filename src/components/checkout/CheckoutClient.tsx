@@ -168,11 +168,22 @@ export function CheckoutClient({
     // VAT is charged on the service fee only, once per booking.
     vat += (num(serviceFee) * num(vatPercent)) / 100;
 
+    // A cart line is priced for one visit. On a repeat booking the lines are
+    // delivered once per date, so the figures above describe a single visit
+    // while the total below covers them all — a subtotal smaller than the
+    // total it sits above reads as an error even when the total is right.
+    const visits = Math.max(1, dates.length);
+
     return {
-      serviceAmount, profDiscount, material, addon, discount, coupon, vat,
-      grand: serverTotal > 0 ? serverTotal : items + num(serviceFee) + vat,
+      serviceAmount: serviceAmount * visits,
+      profDiscount: profDiscount * visits,
+      material: material * visits,
+      addon: addon * visits,
+      discount: discount * visits,
+      coupon, vat,
+      grand: serverTotal > 0 ? serverTotal : items * visits + num(serviceFee) + vat,
     };
-  }, [cart, serviceFee, vatPercent, serverTotal]);
+  }, [cart, serviceFee, vatPercent, serverTotal, dates]);
 
   async function saveAddress() {
     if (!newLoc) return;
