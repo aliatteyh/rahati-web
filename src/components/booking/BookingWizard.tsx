@@ -520,7 +520,7 @@ export function BookingWizard({
           // mattered. Six packages on production offered upfront payment that
           // no customer could ever choose.
           package_payment_mode: isPackageMode
-            ? (prepaidAvailable && prepaid ? "prepaid" : "pay_per_visit")
+            ? (prepaidAvailable && (prepaid || !perVisitAvailable) ? "prepaid" : "pay_per_visit")
             : null,
           locale,
         }),
@@ -548,7 +548,7 @@ export function BookingWizard({
               // Checkout has to know which of the two it is, not merely
               // whether it is prepaid: a package billed per visit must not
               // offer a card, and an ordinary recurring booking still may.
-              (prepaidAvailable && prepaid ? "&pay=prepaid" : "&pay=per_visit")
+              (prepaidAvailable && (prepaid || !perVisitAvailable) ? "&pay=prepaid" : "&pay=per_visit")
           );
           return;
         }
@@ -684,6 +684,8 @@ export function BookingWizard({
   const selectedPackage = servicePackages.find((p) => p.id === packageId) ?? null;
   /** Only offered when the admin allowed it on this package. */
   const prepaidAvailable = Number(selectedPackage?.allow_prepaid ?? 0) === 1;
+  /** A package may be sold upfront-only; then there is nothing to choose. */
+  const perVisitAvailable = Number(selectedPackage?.allow_pay_per_visit ?? 1) === 1;
 
   // A package sells a band of weekdays; outside it the server refuses, so the
   // picker must not let the customer build a selection that cannot be bought.
@@ -1683,9 +1685,15 @@ export function BookingWizard({
                   price the customer has to work out for themselves. */}
               {isPackageMode && prepaidAvailable && packageQuote?.valid && (
                 <div className="mt-4 rounded-2xl border border-border p-4">
-                  <p className="mb-3 text-sm font-semibold text-ink">{dict.howToPay}</p>
+                  <p className="mb-3 text-sm font-semibold text-ink">
+                    {perVisitAvailable ? dict.howToPay : dict.paidUpfrontOnly}
+                  </p>
 
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className={`grid gap-2 ${perVisitAvailable ? "sm:grid-cols-2" : ""}`}>
+                    {/* Hidden rather than disabled when the package is sold
+                        upfront-only: an option that cannot be taken is noise
+                        the customer has to reason about. */}
+                    {perVisitAvailable && (
                     <button
                       type="button"
                       onClick={() => setPrepaid(false)}
@@ -1698,6 +1706,7 @@ export function BookingWizard({
                         {money(packageQuote.net_visit_price)} · {dict.perVisit}
                       </span>
                     </button>
+                    )}
 
                     <button
                       type="button"

@@ -425,7 +425,8 @@
     "payPerVisit": "Pay per visit",
     "payUpfront": "Pay upfront",
     "wholePackage": "the whole package",
-    "prepaidRefundNote": "If you cancel, the unused balance is returned as wallet credit — it does not go back to your card."
+    "prepaidRefundNote": "If you cancel, the unused balance is returned as wallet credit — it does not go back to your card.",
+    "paidUpfrontOnly": "This package is paid for in full when you book it."
   },
   "checkout": {
     "title": "Checkout",
