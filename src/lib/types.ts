@@ -120,8 +120,17 @@ export interface AddOn {
   image_full_path?: string | null;
 }
 
+/** A social account as the admin panel stores it. */
+export interface SocialMediaLink {
+  id?: string;
+  media?: string;
+  link?: string;
+  status?: number | string;
+}
+
 export interface BusinessConfig {
   business_name?: string;
+  social_media?: SocialMediaLink[];
   logo_full_path?: string | null;
   currency_symbol?: string;
   currency_code?: string;

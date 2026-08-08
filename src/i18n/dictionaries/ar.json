@@ -480,7 +480,8 @@
     "subscribing": "جارٍ الاشتراك…",
     "subscribed": "شكراً لاشتراكك!",
     "alreadySubscribed": "هذا البريد مشترك مسبقاً.",
-    "subscribeError": "حدث خطأ. حاول مرة أخرى."
+    "subscribeError": "حدث خطأ. حاول مرة أخرى.",
+    "followUs": "تابعنا"
   },
   "common": {
     "loading": "جارٍ التحميل…",

@@ -3,6 +3,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { BusinessConfig } from "@/lib/types";
 import { NewsletterForm } from "./NewsletterForm";
+import { SocialLinks } from "./SocialLinks";
 
 export function SiteFooter({
   locale,
@@ -66,6 +67,12 @@ export function SiteFooter({
           {config.business_address && (
             <p className="mt-1">{config.business_address}</p>
           )}
+
+          {/* Beside the address and phone, because they answer the same
+              question: is this a real business I can find? */}
+          <div className="mt-5">
+            <SocialLinks links={config.social_media} label={dict.footer.followUs} />
+          </div>
         </div>
       </div>
 

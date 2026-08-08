@@ -480,7 +480,8 @@
     "subscribing": "Subscribing…",
     "subscribed": "Thanks for subscribing!",
     "alreadySubscribed": "This email is already subscribed.",
-    "subscribeError": "Something went wrong. Please try again."
+    "subscribeError": "Something went wrong. Please try again.",
+    "followUs": "Follow us"
   },
   "common": {
     "loading": "Loading…",
