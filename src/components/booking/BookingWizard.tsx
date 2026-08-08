@@ -545,7 +545,10 @@ export function BookingWizard({
           );
           router.push(
             `/${locale}/checkout?service_type=repeat&dates=${dates}&instructions=${instr}` +
-              (prepaidAvailable && prepaid ? "&pay=prepaid" : "")
+              // Checkout has to know which of the two it is, not merely
+              // whether it is prepaid: a package billed per visit must not
+              // offer a card, and an ordinary recurring booking still may.
+              (prepaidAvailable && prepaid ? "&pay=prepaid" : "&pay=per_visit")
           );
           return;
         }

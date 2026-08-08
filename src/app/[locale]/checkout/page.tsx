@@ -104,6 +104,14 @@ export default async function CheckoutPage({
   // payment and receive something else.
   const prepaid = pay === "prepaid";
 
+  // The mirror of the rule above. "Pay per visit" means the money is collected
+  // as each visit happens — but the payment intent is built from the booking
+  // total and knows nothing about packages, so paying by card took the entire
+  // package on the spot: AED 585 charged where AED 142 was agreed. Until each
+  // visit can be charged on completion, the only method that honours the
+  // promise is cash after service.
+  const perVisitPackage = pay === "per_visit";
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <CheckoutClient
@@ -115,9 +123,9 @@ export default async function CheckoutPage({
         currency={currencyLabel(config, locale)}
         cart={cart}
         addresses={addresses}
-        gateways={gateways.map((g) => ({ key: g.gateway ?? "", title: g.gateway_title ?? g.gateway ?? "" }))}
+        gateways={perVisitPackage ? [] : gateways.map((g) => ({ key: g.gateway ?? "", title: g.gateway_title ?? g.gateway ?? "" }))}
         cashAllowed={!prepaid && settings.cash_after_service !== 0}
-        offlineMethods={offline.map((m) => ({
+        offlineMethods={(perVisitPackage ? [] : offline).map((m) => ({
           id: String(m.id ?? ""),
           name: m.method_name ?? "",
           info: (m.payment_information ?? []).map((i) => ({
