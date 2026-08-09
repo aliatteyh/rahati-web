@@ -988,7 +988,7 @@ export function BookingWizard({
           <h1 className="text-2xl font-bold text-ink">
             {step === 1 && serviceName}
             {step === 2 && dict.addonsTitle}
-            {step === 3 && dict.dateTimeTitle}
+            {step === 3 && (isPackageMode ? dict.daysAndTimeTitle : dict.dateTimeTitle)}
           </h1>
         </div>
       </div>
@@ -1699,6 +1699,16 @@ export function BookingWizard({
                     label={dict.period}
                     value={`${packageQuote.first_visit.slice(0, 10)} → ${packageQuote.last_visit.slice(0, 10)}`}
                   />
+
+                  {/* The summary shows a finished schedule from step one — the
+                      frequency, the visit count, the exact dates — while the
+                      customer has not picked a single day. Read on its own it
+                      says the days were decided for them, and the step that
+                      lets them choose is two clicks away with nothing pointing
+                      to it. Say where it is. */}
+                  {step < 3 && (
+                    <p className="mt-2 text-xs text-muted">{dict.daysChosenLater}</p>
+                  )}
                 </>
               )}
 
