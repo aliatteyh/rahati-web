@@ -1412,21 +1412,22 @@ export function BookingWizard({
                                       disabled={off}
                                       title={off ? dict.providerOffDay : full ? dict.swapsOldestDay : undefined}
                                       onClick={() => {
-                                        // Plain toggle, with no cap on the tap.
-                                        //
-                                        // Blocking at the quota hid the days a
-                                        // customer wanted; swapping the oldest
-                                        // one out was worse, because asking for
-                                        // Sat/Mon/Thu silently produced
-                                        // Mon/Wed/Thu. Let them select and
-                                        // deselect freely and say how many are
-                                        // still needed — the count is checked
-                                        // before the step can be left.
-                                        setPackageWeekdayList((prev) =>
-                                          prev.includes(iso)
-                                            ? prev.filter((d) => d !== iso)
-                                            : [...prev, iso]
-                                        );
+                                        setPackageWeekdayList((prev) => {
+                                          // Tapping a chosen day removes it.
+                                          if (prev.includes(iso)) return prev.filter((d) => d !== iso);
+                                          if (prev.length < packageMaxDays) return [...prev, iso];
+
+                                          // Full: the newest choice gives way,
+                                          // not the oldest. A two-day package
+                                          // showing Sat + Mon, tapped on Thu,
+                                          // becomes Sat + Thu — the earlier
+                                          // picks hold and the last slot is the
+                                          // one being tried out, which is how
+                                          // someone works through the options.
+                                          // Dropping the oldest instead answered
+                                          // a question nobody asked.
+                                          return [...prev.slice(0, -1), iso];
+                                        });
                                       }}
                                       className={`rounded-full border px-3 py-1.5 text-sm transition ${
                                         off
@@ -1460,11 +1461,7 @@ export function BookingWizard({
                                   )}
                                 </p>
                               )}
-                              {packageWeekdays.size > packageMaxDays && (
-                                <p className="mt-1 text-xs font-semibold text-danger">
-                                  {dict.packageAboveMax.replace("{max}", String(packageMaxDays))}
-                                </p>
-                              )}
+
 
                               {/* Names the saving and the reason that earned it, so a
                                   moving total reads as a reward rather than a number
