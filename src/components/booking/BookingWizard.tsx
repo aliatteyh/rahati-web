@@ -213,7 +213,23 @@ export function BookingWizard({
   );
   // Package mode: which package, and which weekdays the customer commits to.
   const [packageId, setPackageId] = useState<string | null>(presetPackageId);
-  const [packageWeekdays, setPackageWeekdays] = useState<Set<number>>(new Set());
+  /**
+   * Chosen weekdays, oldest first.
+   *
+   * A Set lost the order, so once the quota was full every other day went grey
+   * and the customer had to work out that a day must be removed before another
+   * can be added. Nothing said so: three suggested days looked like three
+   * imposed ones, and the picker looked broken. Keeping the order lets a new
+   * pick push out the earliest, which is what tapping an available day is
+   * expected to do.
+   */
+  const [packageWeekdayList, setPackageWeekdayList] = useState<number[]>([]);
+  const packageWeekdays = useMemo(() => new Set(packageWeekdayList), [packageWeekdayList]);
+  const setPackageWeekdays = (next: Set<number>) =>
+    setPackageWeekdayList((prev) => [
+      ...prev.filter((d) => next.has(d)),
+      ...[...next].filter((d) => !prev.includes(d)),
+    ]);
   const [packageQuote, setPackageQuote] = useState<PackageQuote | null>(null);
   const [packageLoading, setPackageLoading] = useState(false);
   // The weekdays (0=Sun..6=Sat) a "multiple times a week" booking runs on,
@@ -262,7 +278,7 @@ export function BookingWizard({
         setBookingMode(d.bookingMode as BookingMode);
       }
       if (typeof d.packageId === "string") setPackageId(d.packageId);
-      if (Array.isArray(d.packageWeekdays)) setPackageWeekdays(new Set(d.packageWeekdays as number[]));
+      if (Array.isArray(d.packageWeekdays)) setPackageWeekdayList(d.packageWeekdays as number[]);
       if (typeof d.weeks === "number") setWeeks(d.weeks);
       if (typeof d.step === "number") setStep(d.step);
     } catch {
@@ -1357,7 +1373,7 @@ export function BookingWizard({
                                 </p>
                                 {packageWeekdays.size >= packageMaxDays && (
                                   <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-dark">
-                                    ⚠ {dict.maxDaysReached}
+                                    {dict.swapsOldestDay}
                                   </span>
                                 )}
                               </div>
@@ -1372,22 +1388,26 @@ export function BookingWizard({
                                     <button
                                       key={iso}
                                       type="button"
-                                      disabled={off || full}
-                                      title={off ? dict.providerOffDay : full ? dict.maxDaysReached : undefined}
+                                      // Only a provider's closed day is truly
+                                      // unavailable. A full quota is not a
+                                      // reason to refuse the tap — it is a
+                                      // reason to make room for it.
+                                      disabled={off}
+                                      title={off ? dict.providerOffDay : full ? dict.swapsOldestDay : undefined}
                                       onClick={() => {
-                                        const next = new Set(packageWeekdays);
-                                        if (next.has(iso)) next.delete(iso);
-                                        else if (next.size < packageMaxDays) next.add(iso);
-                                        setPackageWeekdays(next);
+                                        setPackageWeekdayList((prev) => {
+                                          if (prev.includes(iso)) return prev.filter((d) => d !== iso);
+                                          if (prev.length < packageMaxDays) return [...prev, iso];
+                                          // Full: drop the day chosen longest ago.
+                                          return [...prev.slice(1), iso];
+                                        });
                                       }}
                                       className={`rounded-full border px-3 py-1.5 text-sm transition ${
                                         off
                                           ? "cursor-not-allowed border-border bg-surface-soft text-muted/50 line-through"
                                           : on
                                             ? "border-primary bg-primary text-white"
-                                            : full
-                                              ? "cursor-not-allowed border-border bg-surface text-muted/40"
-                                              : "border-border text-muted hover:border-primary"
+                                            : "border-border text-muted hover:border-primary"
                                       }`}
                                     >
                                       {isoWeekdayName(iso)}

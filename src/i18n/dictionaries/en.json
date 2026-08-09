@@ -426,7 +426,8 @@
     "payUpfront": "Pay upfront",
     "wholePackage": "the whole package",
     "prepaidRefundNote": "If you cancel, the unused balance is returned as wallet credit — it does not go back to your card.",
-    "paidUpfrontOnly": "This package is paid for in full when you book it."
+    "paidUpfrontOnly": "This package is paid for in full when you book it.",
+    "swapsOldestDay": "Tap another day to swap the earliest one"
   },
   "checkout": {
     "title": "Checkout",
