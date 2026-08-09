@@ -481,20 +481,22 @@ export function BookingWizard({
     setSubmitError("");
     setCartConflict(false);
     try {
-      // A package is bought on its own, so it starts from an empty cart.
+      // Every booking starts from an empty cart, not just a package.
       //
-      // Nothing ever cleared the cart, and every abandoned attempt left a line
-      // in it. Checkout then priced all of them across all the visits: a
-      // four-visit subscription quoted at AED 1,459 was billed at AED 4,328,
-      // because three forgotten lines came along for the ride. The server
-      // refuses a mixed cart at booking time; this stops one forming.
-      if (isPackageMode && packageId) {
-        await fetch("/api/cart/clear", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ locale }),
-        }).catch(() => {});
-      }
+      // There is no cart in this interface — no icon, no page, nothing to
+      // empty — so "clear your cart first" is an instruction nobody can
+      // follow. Leaving a line behind was worse still: abandoned attempts
+      // piled up and were priced together, turning a AED 1,459 subscription
+      // into AED 4,328.
+      //
+      // Starting a new booking replaces the unfinished one, silently and
+      // always. The alternative was warning the customer about work they
+      // could not see, which reads as the site refusing to take the booking.
+      await fetch("/api/cart/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale }),
+      }).catch(() => {});
 
       const res = await fetch("/api/cart/add", {
         method: "POST",
