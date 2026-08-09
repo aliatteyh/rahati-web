@@ -1248,8 +1248,14 @@ export function BookingWizard({
             <div className="space-y-8">
               {/* Take the service: once / multiple times.
                   Hidden when the frequency came from the subscription browser —
-                  the choice is already made, and the package panel below shows
-                  what it was. */}
+                  the choice is already made.
+
+                  Only these buttons are hidden. The wrapper used to enclose the
+                  package panel as well, so arriving from a package card took the
+                  weekday picker off the screen entirely: the customer was asked
+                  for a start date and a time, saw no way to say which days they
+                  wanted, and concluded the days had been decided for them. The
+                  chips were in the page the whole time, invisible. */}
               <div className={presetPackageId ? "hidden" : undefined}>
                 <p className="mb-3 font-semibold text-ink">{dict.takeService}</p>
                 {/* Named for what the customer is buying, not for the mechanism
@@ -1293,6 +1299,7 @@ export function BookingWizard({
                     );
                   })}
                 </div>
+              </div>
 
                 {isPackageMode && modePackages.length > 0 && (
                   <div className="mt-4 space-y-4 rounded-xl border border-border bg-surface-soft p-4">
@@ -1569,7 +1576,6 @@ export function BookingWizard({
                     <p className="text-xs text-muted">{dict.offDaysNote}</p>
                   </div>
                 )}
-              </div>
 
               {/* Date */}
               {(() => {
