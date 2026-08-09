@@ -354,7 +354,20 @@ export function BookingWizard({
   const isPackageMode = bookingMode === "package" || bookingMode === "weekly";
   const weeklyPackages = servicePackages.filter((p) => p.max_days_per_week <= 1);
   const multiDayPackages = servicePackages.filter((p) => p.max_days_per_week > 1);
-  const modePackages = bookingMode === "weekly" ? weeklyPackages : multiDayPackages;
+  const allModePackages = bookingMode === "weekly" ? weeklyPackages : multiDayPackages;
+
+  /**
+   * The plans to show on the date step.
+   *
+   * Someone who arrived by tapping "twice a week" on the browse page has already
+   * chosen; laying the whole ladder out again invites them to re-decide a thing
+   * they decided, and buries the weekday picker under five cards they do not
+   * need. Only their own plan is shown — with its price and its days, so it is
+   * confirmation rather than a second question.
+   */
+  const modePackages = presetPackageId
+    ? allModePackages.filter((p) => p.id === presetPackageId)
+    : allModePackages;
 
   const money = (n: number) =>
     `${currency} ${n.toLocaleString(locale === "ar" ? "ar" : "en")}`;
