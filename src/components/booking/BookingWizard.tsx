@@ -1371,11 +1371,21 @@ export function BookingWizard({
                                       for the customer rather than by them. */}
                                   <span className="ms-2 font-normal text-muted">{dict.daysSuggested}</span>
                                 </p>
-                                {packageWeekdays.size >= packageMaxDays && (
-                                  <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-dark">
-                                    {dict.swapsOldestDay}
-                                  </span>
-                                )}
+                                {/* A running count, because the customer is
+                                    filling a quota and needs to know where they
+                                    are in it — not to be told after the fact
+                                    that they overshot. */}
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                    packageWeekdays.size === packageMaxDays
+                                      ? "bg-primary-light text-primary-dark"
+                                      : "bg-accent/15 text-accent-dark"
+                                  }`}
+                                >
+                                  {dict.daysChosenCount
+                                    .replace("{chosen}", String(packageWeekdays.size))
+                                    .replace("{total}", String(packageMaxDays))}
+                                </span>
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {WEEKDAY_ORDER.map((iso) => {
@@ -1395,12 +1405,21 @@ export function BookingWizard({
                                       disabled={off}
                                       title={off ? dict.providerOffDay : full ? dict.swapsOldestDay : undefined}
                                       onClick={() => {
-                                        setPackageWeekdayList((prev) => {
-                                          if (prev.includes(iso)) return prev.filter((d) => d !== iso);
-                                          if (prev.length < packageMaxDays) return [...prev, iso];
-                                          // Full: drop the day chosen longest ago.
-                                          return [...prev.slice(1), iso];
-                                        });
+                                        // Plain toggle, with no cap on the tap.
+                                        //
+                                        // Blocking at the quota hid the days a
+                                        // customer wanted; swapping the oldest
+                                        // one out was worse, because asking for
+                                        // Sat/Mon/Thu silently produced
+                                        // Mon/Wed/Thu. Let them select and
+                                        // deselect freely and say how many are
+                                        // still needed — the count is checked
+                                        // before the step can be left.
+                                        setPackageWeekdayList((prev) =>
+                                          prev.includes(iso)
+                                            ? prev.filter((d) => d !== iso)
+                                            : [...prev, iso]
+                                        );
                                       }}
                                       className={`rounded-full border px-3 py-1.5 text-sm transition ${
                                         off
@@ -1432,6 +1451,11 @@ export function BookingWizard({
                                     "{min}",
                                     String(packageMinDays * VISITS_PER_WEEKDAY_PER_MONTH)
                                   )}
+                                </p>
+                              )}
+                              {packageWeekdays.size > packageMaxDays && (
+                                <p className="mt-1 text-xs font-semibold text-danger">
+                                  {dict.packageAboveMax.replace("{max}", String(packageMaxDays))}
                                 </p>
                               )}
 

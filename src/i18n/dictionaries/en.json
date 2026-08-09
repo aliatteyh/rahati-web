@@ -362,7 +362,7 @@
     "packageRange": "This package is {min}–{max} services a month.",
     "packageExactly": "This package is {min} services a month.",
     "packageBelowMin": "Pick more days — this package starts at {min} services a month.",
-    "packageAboveMax": "Too many days — this package is up to {max} services a month.",
+    "packageAboveMax": "This package covers {max} days a week — remove one.",
     "packageNoProvider": "No team covers your area for this package yet. Try a single visit, or change your location.",
     "packageNoTier": "This package is not sold for that number of days. Pick another combination.",
     "visits": "Total visits",
@@ -429,7 +429,8 @@
     "paidUpfrontOnly": "This package is paid for in full when you book it.",
     "swapsOldestDay": "Tap another day to swap the earliest one",
     "daysChosenLater": "You choose the weekdays in the date step — these are only a suggestion.",
-    "daysAndTimeTitle": "Days & time"
+    "daysAndTimeTitle": "Days & time",
+    "daysChosenCount": "{chosen} of {total} days chosen"
   },
   "checkout": {
     "title": "Checkout",
