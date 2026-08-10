@@ -45,9 +45,31 @@ interface StatusHistory {
   user?: Person;
 }
 
+/**
+ * One visit of a recurring booking or a package.
+ *
+ * The backend has always sent these — `repeats`, ordered, with the parent's
+ * counts alongside — and this page ignored every one of them. A customer who
+ * bought twelve visits saw a single date and no way to tell which were done.
+ */
+interface Repeat {
+  id?: string;
+  readable_id?: string;
+  service_schedule?: string;
+  booking_status?: string;
+  visit_number?: number | null;
+  is_package_prepaid?: number | null;
+  total_booking_amount?: number | string;
+}
+
 interface Booking {
   id?: string;
   readable_id?: string | number;
+  is_repeated?: number;
+  repeats?: Repeat[];
+  totalCount?: number;
+  completedCount?: number;
+  canceledCount?: number;
   booking_status?: string;
   service_schedule?: string;
   created_at?: string;
@@ -176,9 +198,80 @@ export default async function BookingDetailPage({
     providerReply: a.providerReply,
   };
 
+  const visits = b.repeats ?? [];
+  // The first visit still to happen — the one the customer actually wants to
+  // know about when they open this page.
+  const nextVisitId =
+    visits.find((v) => v.booking_status === "ongoing")?.readable_id ??
+    visits.find((v) => v.booking_status === "accepted")?.readable_id ??
+    visits.find((v) => v.booking_status === "pending")?.readable_id;
+  const doneCount = b.completedCount ?? visits.filter((v) => v.booking_status === "completed").length;
+
+  const visitDate = (s?: string) => {
+    if (!s) return "—";
+    const d = new Date(s.replace(" ", "T"));
+    if (Number.isNaN(d.getTime())) return s.slice(0, 16).replace("T", " ");
+    return new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d);
+  };
+
   /* ---------------- Booking Details tab ---------------- */
   const detailsTab = (
     <div className="space-y-5">
+      {/* Visit schedule — a package is a series of appointments, and the
+          series is the thing the customer bought. */}
+      {visits.length > 0 && (
+        <section className="rounded-2xl border border-border bg-surface p-4">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-ink">{a.visitSchedule}</h2>
+            <span className="text-xs text-muted">
+              {(a.visitsSummary ?? "")
+                .replace("{done}", String(doneCount))
+                .replace("{total}", String(b.totalCount ?? visits.length))}
+            </span>
+          </div>
+
+          <ol className="space-y-2">
+            {visits.map((v, i) => {
+              const isNext = v.readable_id && v.readable_id === nextVisitId;
+              return (
+                <li
+                  key={v.id ?? v.readable_id ?? i}
+                  className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 ${
+                    isNext ? "border-primary bg-primary-light/40" : "border-border"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink">
+                      {a.visit} {v.visit_number ?? i + 1} · {visitDate(v.service_schedule)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {isNext ? `${a.nextVisit} · ` : ""}
+                      {v.readable_id ?? ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {Number(v.is_package_prepaid) === 1 && (
+                      <span className="rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-medium text-primary-dark">
+                        {a.visitPrepaid}
+                      </span>
+                    )}
+                    <span className="text-xs font-semibold text-primary">
+                      {statusLabel(v.booking_status)}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      )}
+
       {/* Booking summary */}
       <section className="rounded-2xl border border-border bg-surface p-4">
         <h2 className="mb-3 text-sm font-semibold text-ink">{a.bookingSummary}</h2>

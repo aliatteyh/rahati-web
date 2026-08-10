@@ -215,7 +215,13 @@
     "status_canceled": "Booking canceled",
     "packages": "My packages",
     "rebooking": "Adding…",
-    "rebookFailed": "Couldn't rebook. Please try again."
+    "rebookFailed": "Couldn't rebook. Please try again.",
+    "visitSchedule": "Visit schedule",
+    "visitsSummary": "{done} of {total} visits completed",
+    "visit": "Visit",
+    "nextVisit": "Next visit",
+    "visitPrepaid": "Prepaid",
+    "noVisits": "No visits scheduled yet."
   },
   "hero": {
     "badge": "Trusted home services",

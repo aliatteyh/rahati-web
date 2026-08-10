@@ -215,7 +215,13 @@
     "status_canceled": "أُلغي الحجز",
     "packages": "باقاتي",
     "rebooking": "جارٍ الإضافة…",
-    "rebookFailed": "تعذّر إعادة الحجز. حاول مرة أخرى."
+    "rebookFailed": "تعذّر إعادة الحجز. حاول مرة أخرى.",
+    "visitSchedule": "مواعيد الزيارات",
+    "visitsSummary": "اكتملت {done} من {total} زيارة",
+    "visit": "زيارة",
+    "nextVisit": "الزيارة القادمة",
+    "visitPrepaid": "مدفوعة مسبقًا",
+    "noVisits": "لا توجد زيارات مجدولة بعد."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
