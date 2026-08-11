@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import type { CartQuote } from "@/lib/api";
 import { LocationPicker, type ResolvedLocation } from "@/components/location/LocationPicker";
 import { StripeCardForm } from "@/components/checkout/StripeCardForm";
 import { formatNumber } from "@/lib/currency";
+import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 
 type Dict = Record<string, string>;
 
@@ -64,6 +65,7 @@ export function CheckoutClient({
   locationDict,
   addressDict,
   currency,
+  currencyCode,
   cart,
   addresses,
   gateways,
@@ -84,6 +86,7 @@ export function CheckoutClient({
   authDict: Dict;
   addressDict: Dict;
   currency: string;
+  currencyCode: string;
   cart: CartItem[];
   addresses: Address[];
   gateways: Gateway[];
@@ -178,6 +181,16 @@ export function CheckoutClient({
       grand: serverTotal > 0 ? serverTotal : items + num(serviceFee) + vat,
     };
   }, [cart, serviceFee, vatPercent, serverTotal, dates]);
+
+  // Announced once, when there is a real amount to pay. Firing on mount would
+  // report a checkout worth nothing while the quote is still loading, and
+  // firing on every recalculation would report several.
+  const checkoutReported = useRef(false);
+  useEffect(() => {
+    if (checkoutReported.current || totals.grand <= 0) return;
+    checkoutReported.current = true;
+    trackBeginCheckout(totals.grand, currencyCode);
+  }, [totals.grand, currencyCode]);
 
   async function saveAddress() {
     if (!newLoc) return;
@@ -282,6 +295,29 @@ export function CheckoutClient({
 
           if (!attached.ok) setAttachFailed(true);
         }
+
+        // Reported here, where the server has confirmed the booking — not on
+        // the confirmation screen appearing. A customer who refreshes that
+        // screen would otherwise be counted as a second sale, and Google Ads
+        // would bid on revenue that never existed.
+        const placedIds = data.booking?.booking_id;
+        trackPurchase({
+          transactionId: String(
+            (Array.isArray(placedIds) ? placedIds[0] : placedIds) ??
+              data.booking?.readable_id ??
+              ""
+          ),
+          value: totals.grand,
+          currency: currencyCode,
+          bookingType: isRepeat ? "package" : "single",
+          paymentMethod: offlineChosen ? "offline_payment" : method,
+          items: cart.map((c) => ({
+            name: c.service?.name,
+            quantity: Number(c.quantity ?? 1),
+            price: num(c.total_cost),
+          })),
+        });
+
         setDone(true);
       } else {
         setError(data.message || dict.failed);
@@ -462,7 +498,22 @@ export function CheckoutClient({
                         locale={locale}
                         dict={dict}
                         intentBody={intentBody}
-                        onPaid={() => setDone(true)}
+                        onPaid={() => {
+                          // Stripe's own confirmation is the receipt here, and
+                          // it fires once per settled payment.
+                          trackPurchase({
+                            value: totals.grand,
+                            currency: currencyCode,
+                            bookingType: isRepeat ? "package" : "single",
+                            paymentMethod: "stripe",
+                            items: cart.map((c) => ({
+                              name: c.service?.name,
+                              quantity: Number(c.quantity ?? 1),
+                              price: num(c.total_cost),
+                            })),
+                          });
+                          setDone(true);
+                        }}
                       />
                     </div>
                   )}

@@ -119,6 +119,8 @@ export default async function CheckoutPage({
         authDict={dict.auth as unknown as Record<string, string>}
         addressDict={dict.auth as unknown as Record<string, string>}
         currency={currencyLabel(config, locale)}
+        // The ISO code, not the symbol: Google Ads reads "AED", not "د.إ.".
+        currencyCode={String(config.currency_code ?? "AED")}
         cart={cart}
         addresses={addresses}
         gateways={perVisitPackage ? [] : gateways.map((g) => ({ key: g.gateway ?? "", title: g.gateway_title ?? g.gateway ?? "" }))}

@@ -12,6 +12,7 @@ import type {
 } from "@/lib/api";
 import type { DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
 import { formatNumber } from "@/lib/currency";
+import { trackAddToCart } from "@/lib/analytics";
 import { intlLocale } from "@/lib/intl";
 
 type Dict = Record<string, string>;
@@ -31,6 +32,7 @@ export interface BookingWizardProps {
   locale: Locale;
   dict: Dict;
   currency: string;
+  currencyCode: string;
   /** Global VAT rate. It applies to the service fee only — service prices are
    *  quoted to the customer inclusive of tax. */
   vatPercent: number;
@@ -139,6 +141,7 @@ export function BookingWizard({
   locale,
   dict,
   currency,
+  currencyCode,
   vatPercent,
   serviceFee,
   materialCharge,
@@ -564,6 +567,11 @@ export function BookingWizard({
         return;
       }
       if (data.ok) {
+        // The first real signal of intent, and the one remarketing audiences
+        // are built from — reported where the server accepted the line, not
+        // when the button was pressed.
+        trackAddToCart(serviceName, grandTotal, currencyCode);
+
         // The cart now holds the order, so the draft has done its job.
         if (typeof window !== "undefined") window.sessionStorage.removeItem(draftKey);
         const instr = encodeURIComponent(instructions);

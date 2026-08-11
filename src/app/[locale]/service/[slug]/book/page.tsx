@@ -99,6 +99,8 @@ export default async function BookPage({
       locale={locale}
       dict={dict.booking as unknown as Record<string, string>}
       currency={currency}
+      // ISO code for the ad platforms, which do not read "د.إ.".
+      currencyCode={String(config.currency_code ?? "AED")}
       vatPercent={toNumber(config.vat_percentage)}
       serviceFee={toNumber(config.additional_charge_fee_amount)}
       materialCharge={toNumber(config.material_charge)}
