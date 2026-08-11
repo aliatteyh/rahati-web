@@ -12,12 +12,21 @@ import Script from "next/script";
  * through GTM counts every visitor twice — the reports do not break, they just
  * quietly read double, which is worse. Use the container for advertising tags
  * only, or remove the direct id first.
- *
- * Renders nothing at all until `NEXT_PUBLIC_GTM_ID` is set, so shipping this
- * ahead of the container costs a visitor nothing.
  */
+
+/**
+ * Rahati's own container.
+ *
+ * A GTM id is public — readable in the source of every site that uses one — so
+ * it sits here rather than only in the hosting dashboard, and the site keeps
+ * working without anyone having to remember a deploy-time variable. An
+ * environment variable still wins where one is set, so a staging deployment can
+ * point at a different container.
+ */
+const DEFAULT_CONTAINER = "GTM-KL9VBCFS";
+
 export function GoogleTagManager() {
-  const id = process.env.NEXT_PUBLIC_GTM_ID;
+  const id = process.env.NEXT_PUBLIC_GTM_ID || DEFAULT_CONTAINER;
   if (!id) return null;
 
   return (
