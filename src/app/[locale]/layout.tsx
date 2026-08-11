@@ -11,6 +11,7 @@ import { SITE_URL, absoluteUrl, alternatesFor, ogLocale } from "@/lib/seo";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Analytics } from "@/components/seo/Analytics";
+import { GoogleTagManager } from "@/components/seo/GoogleTagManager";
 
 // Only the weights the site actually sets.
 //
@@ -101,6 +102,8 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={localeDirection[typedLocale]} className={tajawal.variable}>
       <body className="min-h-screen bg-surface text-ink">
+        {/* First inside <body>, where Google's own snippet expects it. */}
+        <GoogleTagManager />
         <SiteHeader locale={typedLocale} dict={dict} config={config} isLoggedIn={loggedIn} />
         <main>{children}</main>
         <SiteFooter locale={typedLocale} dict={dict} config={config} />
