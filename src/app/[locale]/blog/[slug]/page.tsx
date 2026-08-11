@@ -7,6 +7,7 @@ import { getBlogPost } from "@/lib/api";
 import { absoluteUrl, alternatesFor } from "@/lib/seo";
 import { Thumb } from "@/components/Thumb";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { intlLocale } from "@/lib/intl";
 
 type Params = Promise<{ locale: string; slug: string }>;
 
@@ -51,7 +52,7 @@ export default async function BlogPost({ params }: { params: Params }) {
 
   const dateOf = (iso?: string | null) =>
     iso
-      ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(
+      ? new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "long", year: "numeric" }).format(
           new Date(iso)
         )
       : null;

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Locale } from "@/i18n/config";
 import type { ServiceRating, ServiceReview } from "@/lib/types";
+import { intlLocale } from "@/lib/intl";
 
 type Dict = Record<string, string>;
 
@@ -58,8 +59,8 @@ export function ReviewsSection({
     );
   }, [reviews, detailed]);
 
-  const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
-  const df = new Intl.DateTimeFormat(locale, { year: "numeric", month: "short" });
+  const nf = new Intl.NumberFormat(intlLocale(locale));
+  const df = new Intl.DateTimeFormat(intlLocale(locale), { year: "numeric", month: "short" });
 
   return (
     <div className="mt-12">

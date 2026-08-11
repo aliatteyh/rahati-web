@@ -64,6 +64,7 @@ function toBrowseServices(services: Service[]): BrowseService[] {
       image: s.cover_image_full_path ?? s.thumbnail_full_path ?? s.image_full_path ?? null,
       shortDescription: s.short_description ?? null,
       isFeatured: Boolean(s.is_featured),
+      badgeText: s.badge_text ?? null,
       variants,
       minPrice,
       avgRating: s.avg_rating,
@@ -170,6 +171,7 @@ export default async function SubcategoryPage({ params }: { params: Params }) {
             durations={durations}
             packages={packages}
             workingWeeks={workingWeeks}
+            categoryName={name}
           />
         ) : (
           <SubcategoryBrowser

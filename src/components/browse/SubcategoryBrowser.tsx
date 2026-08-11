@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { Locale } from "@/i18n/config";
 import { ServiceCard } from "@/components/ServiceCard";
 import type { Service } from "@/lib/types";
+import { formatNumber } from "@/lib/currency";
 
 type Dict = Record<string, string>;
 
@@ -18,6 +19,8 @@ export interface BrowseService {
   image?: string | null;
   shortDescription?: string | null;
   isFeatured?: boolean;
+  /** Per-service badge wording set in the admin panel. */
+  badgeText?: string | null;
   variants: BrowseVariant[];
   minPrice: number;
   avgRating?: number;
@@ -67,7 +70,7 @@ export function SubcategoryBrowser({
   }
 
   const money = (n: number) =>
-    `${currency} ${n.toLocaleString(locale === "ar" ? "ar" : "en")}`;
+    `${currency} ${formatNumber(n, locale)}`;
 
   return (
     <div>
@@ -140,7 +143,7 @@ export function SubcategoryBrowser({
                   priceLabel={money(priceFor(s))}
                   durationMinutes={minutes}
                   minutesLabel={dict.min}
-                  featuredLabel={s.isFeatured ? dict.featured : undefined}
+                  featuredLabel={s.isFeatured ? s.badgeText || dict.featured : undefined}
                   favouriteLabel={dict.favourite}
                   locale={locale}
                 />

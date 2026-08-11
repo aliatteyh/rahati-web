@@ -239,7 +239,11 @@
     "popular": "الخدمات الأكثر طلبًا",
     "popularSub": "الأكثر حجزًا من العملاء بالقرب منك",
     "howItWorks": "كيف نعمل",
-    "seeAll": "عرض الكل"
+    "seeAll": "عرض الكل",
+    "whyUs": "لماذا تختارنا؟",
+    "whyUsSub": "ما تحصل عليه مع كل حجز",
+    "testimonials": "آراء عملائنا",
+    "testimonialsSub": "مراجعات كتبها عملاء بعد إتمام الخدمة"
   },
   "steps": {
     "s1Title": "اختر الخدمة",
@@ -285,7 +289,16 @@
     "perVisit": "للزيارة",
     "youSave": "توفّر",
     "unavailableHere": "غير متاحة في منطقتك",
-    "favourite": "احفظ في المفضّلة"
+    "favourite": "احفظ في المفضّلة",
+    "bestSeller": "الأكثر مبيعاً",
+    "packageVisits": "عدد الزيارات",
+    "packageValidity": "الصلاحية",
+    "packageOriginal": "السعر الأصلي",
+    "packageDays": "{count} يوم",
+    "visitsEach": "{count} زيارة · {hours} لكل زيارة",
+    "savePill": "وفّر {amount} ({percent}%)",
+    "choosePackage": "اختر الباقة",
+    "subscriberCount": "{count} مشترك"
   },
   "booking": {
     "step": "الخطوة",
@@ -500,7 +513,13 @@
     "subscribed": "شكراً لاشتراكك!",
     "alreadySubscribed": "هذا البريد مشترك مسبقاً.",
     "subscribeError": "حدث خطأ. حاول مرة أخرى.",
-    "followUs": "تابعنا"
+    "followUs": "تابعنا",
+    "policies": "السياسات",
+    "aboutUs": "من نحن",
+    "terms": "الشروط والأحكام",
+    "privacy": "سياسة الخصوصية",
+    "cancellation": "سياسة الإلغاء",
+    "refund": "سياسة الاسترداد"
   },
   "common": {
     "loading": "جارٍ التحميل…",

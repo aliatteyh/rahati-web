@@ -20,6 +20,8 @@ import { SearchBox } from "@/components/search/SearchBox";
 import { CampaignCarousel } from "@/components/home/CampaignCarousel";
 import { AdvertisementRail } from "@/components/home/AdvertisementRail";
 import { CategoryStrip } from "@/components/home/CategoryStrip";
+import { HomeHighlights } from "@/components/home/HomeHighlights";
+import { Testimonials } from "@/components/home/Testimonials";
 import { ProviderRail } from "@/components/home/ProviderRail";
 import { ServiceCard } from "@/components/ServiceCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -261,6 +263,13 @@ export default async function HomePage({
         </section>
       )}
 
+      {/* Why choose us — the owner's own words, from the admin panel. */}
+      <HomeHighlights
+        items={config.home_highlights ?? []}
+        title={dict.sections.whyUs}
+        subtitle={dict.sections.whyUsSub}
+      />
+
       {/* How it works */}
       <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-16">
         <SectionHeader title={dict.sections.howItWorks} />
@@ -277,8 +286,18 @@ export default async function HomePage({
         </div>
       </section>
 
+      {/* What customers wrote — real reviews only, so the section simply is
+          not there until there are some. */}
+      <Testimonials
+        items={config.home_testimonials ?? []}
+        title={dict.sections.testimonials}
+        subtitle={dict.sections.testimonialsSub}
+      />
+
       {/* CTA */}
-      <section className="mx-auto max-w-6xl px-4 pb-20">
+      {/* Its own breathing room above: the section before it ends with a
+         card edge, and without this the call to action looked stuck to it. */}
+      <section className="mx-auto max-w-6xl px-4 pb-20 pt-16">
         <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary-dark px-8 py-14 text-center">
           <h2 className="text-3xl font-bold text-white">{dict.cta.title}</h2>
           <p className="mx-auto mt-3 max-w-xl text-white/85">{dict.cta.text}</p>

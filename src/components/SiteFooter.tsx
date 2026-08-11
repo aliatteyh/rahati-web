@@ -4,6 +4,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import type { BusinessConfig } from "@/lib/types";
 import { NewsletterForm } from "./NewsletterForm";
 import { SocialLinks } from "./SocialLinks";
+import { uploadedImage } from "@/lib/branding";
 
 export function SiteFooter({
   locale,
@@ -17,15 +18,33 @@ export function SiteFooter({
   const base = `/${locale}`;
   const brand = config.business_name || dict.brand;
   const year = new Date().getFullYear();
+  const logo = uploadedImage(config.logo_full_path);
+
+  // The policy pages are served by the admin panel and their URLs come back
+  // with the rest of the configuration, so the footer never hardcodes a path
+  // that a rename would break. Anything the API leaves out simply is not
+  // listed — an empty policy link is worse than a missing one.
+  const policies = [
+    { href: config.about_us, label: dict.footer.aboutUs },
+    { href: config.terms_and_conditions, label: dict.footer.terms },
+    { href: config.privacy_policy, label: dict.footer.privacy },
+    { href: config.cancellation_policy, label: dict.footer.cancellation },
+    { href: config.refund_policy, label: dict.footer.refund },
+  ].filter((p): p is { href: string; label: string } => Boolean(p.href));
 
   return (
     <footer className="mt-20 border-t border-border bg-surface-soft">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 md:grid-cols-3">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-lg font-bold text-white">
-              {brand.charAt(0)}
-            </span>
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logo} alt={brand} className="h-9 w-auto max-w-[10rem] object-contain" />
+            ) : (
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-lg font-bold text-white">
+                {brand.charAt(0)}
+              </span>
+            )}
             <span className="text-lg font-bold text-ink">{brand}</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-muted">{dict.footer.tagline}</p>
@@ -61,6 +80,28 @@ export function SiteFooter({
           </ul>
         </div>
 
+        {policies.length > 0 && (
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-ink">{dict.footer.policies}</h3>
+            <ul className="space-y-2 text-sm text-muted">
+              {policies.map((p) => (
+                <li key={p.href}>
+                  {/* These pages live on the admin panel's domain, so they are
+                      plain anchors: Link would try to route them internally. */}
+                  <a
+                    href={p.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-primary"
+                  >
+                    {p.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="text-sm text-muted">
           {config.business_email && <p>{config.business_email}</p>}
           {config.business_phone && <p className="mt-1">{config.business_phone}</p>}
@@ -77,7 +118,11 @@ export function SiteFooter({
       </div>
 
       <div className="border-t border-border py-5 text-center text-sm text-muted">
-        © {year} {brand}. {dict.footer.rights}
+        {/* The line itself is written in Business Settings → Footer text, so it
+            can name the legal entity, or a holding company, or say nothing at
+            all. Only the year is ours to compute; the wording is the owner's,
+            and the built-in sentence is what shows if they have written none. */}
+        © {year} {config.footer_text?.trim() || `${brand}. ${dict.footer.rights}`}
       </div>
     </footer>
   );

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getProviderDetails } from "@/lib/api";
+import { intlLocale } from "@/lib/intl";
 
 type Params = Promise<{ locale: string; id: string }>;
 
@@ -50,7 +51,7 @@ export default async function ProviderPage({ params }: { params: Params }) {
   const offDays = (provider.weekends ?? []).map((d) => String(d).toLowerCase());
   const workingDays = WEEKDAY_ORDER.filter((d) => !offDays.includes(d));
   const dayName = (key: string) =>
-    new Intl.DateTimeFormat(locale, { weekday: "long" }).format(
+    new Intl.DateTimeFormat(intlLocale(locale), { weekday: "long" }).format(
       // 2024-06-01 is a Saturday; step forward to the wanted weekday.
       new Date(2024, 5, 1 + WEEKDAY_ORDER.indexOf(key))
     );

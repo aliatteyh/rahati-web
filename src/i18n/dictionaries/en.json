@@ -239,7 +239,11 @@
     "popular": "Popular services",
     "popularSub": "Most booked by customers near you",
     "howItWorks": "How it works",
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "whyUs": "Why choose us?",
+    "whyUsSub": "What you get with every booking",
+    "testimonials": "What our customers say",
+    "testimonialsSub": "Reviews written after a completed booking"
   },
   "steps": {
     "s1Title": "Choose a service",
@@ -285,7 +289,16 @@
     "perVisit": "per visit",
     "youSave": "You save",
     "unavailableHere": "Not available in your area",
-    "favourite": "Save to favourites"
+    "favourite": "Save to favourites",
+    "bestSeller": "Best seller",
+    "packageVisits": "Visits",
+    "packageValidity": "Validity",
+    "packageOriginal": "Original price",
+    "packageDays": "{count} days",
+    "visitsEach": "{count} visits · {hours} each",
+    "savePill": "Save {amount} ({percent}%)",
+    "choosePackage": "Choose",
+    "subscriberCount": "{count} subscribed"
   },
   "booking": {
     "step": "Step",
@@ -500,7 +513,13 @@
     "subscribed": "Thanks for subscribing!",
     "alreadySubscribed": "This email is already subscribed.",
     "subscribeError": "Something went wrong. Please try again.",
-    "followUs": "Follow us"
+    "followUs": "Follow us",
+    "policies": "Policies",
+    "aboutUs": "About us",
+    "terms": "Terms and conditions",
+    "privacy": "Privacy policy",
+    "cancellation": "Cancellation policy",
+    "refund": "Refund policy"
   },
   "common": {
     "loading": "Loading…",

@@ -3,6 +3,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { BusinessConfig } from "@/lib/types";
 import { getZoneInfo } from "@/lib/zone";
+import { uploadedImage } from "@/lib/branding";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { AuthButtons } from "./auth/AuthButtons";
 import { AccountMenu } from "./auth/AccountMenu";
@@ -23,6 +24,7 @@ export async function SiteHeader({
 }) {
   const base = `/${locale}`;
   const brand = config.business_name || dict.brand;
+  const logo = uploadedImage(config.logo_full_path);
   const zone = await getZoneInfo();
 
   const nav = [
@@ -38,9 +40,22 @@ export async function SiteHeader({
     <header className="sticky top-0 z-50 border-b border-border bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
         <Link href={base} className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-lg font-bold text-white">
-            {brand.charAt(0)}
-          </span>
+          {/* The uploaded logo when there is one, the brand's initial when there
+              is not — so the header is never a broken image or the admin
+              panel's grey "upload a file" placeholder. Height is fixed and
+              width follows, because a logo is whatever shape its owner drew. */}
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logo}
+              alt={brand}
+              className="h-9 w-auto max-w-[10rem] object-contain"
+            />
+          ) : (
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-lg font-bold text-white">
+              {brand.charAt(0)}
+            </span>
+          )}
           <span className="text-lg font-bold text-ink">{brand}</span>
         </Link>
 

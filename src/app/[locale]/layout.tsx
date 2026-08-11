@@ -5,15 +5,25 @@ import "../globals.css";
 import { isLocale, locales, localeDirection, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig } from "@/lib/api";
+import { uploadedImage } from "@/lib/branding";
 import { isLoggedIn } from "@/lib/session";
 import { SITE_URL, absoluteUrl, alternatesFor, ogLocale } from "@/lib/seo";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Analytics } from "@/components/seo/Analytics";
 
+// Only the weights the site actually sets.
+//
+// 300 was loaded and never used — nothing in the project asks for `font-light`
+// — so every visitor downloaded two files, Arabic and Latin, for a weight that
+// renders nowhere, and the browser said so: "preloaded but not used".
+//
+// `font-semibold` (600) is used heavily and is not in this list because Tajawal
+// does not publish a 600; the browser interpolates it from 500 and 700, which
+// is what it was already doing.
 const tajawal = Tajawal({
   subsets: ["arabic", "latin"],
-  weight: ["300", "400", "500", "700"],
+  weight: ["400", "500", "700"],
   variable: "--font-tajawal",
   display: "swap",
 });
@@ -33,7 +43,15 @@ export async function generateMetadata({
   const config = await getConfig(locale);
   const brand = config.business_name || dict.brand;
   const description = dict.hero.subtitle;
-  const image = config.logo_full_path || undefined;
+  const image = uploadedImage(config.logo_full_path) ?? undefined;
+  // The tab icon follows the admin panel, with a file in `public/` behind it.
+  //
+  // The file used to live at `src/app/favicon.ico`, which Next turns into a
+  // route and advertises itself — and browsers ask for `/favicon.ico` by
+  // convention before reading any <link> tag, so the built-in file answered
+  // first and the uploaded icon never appeared. Moved to `public/`, it is only
+  // ever served when this points at it.
+  const favicon = uploadedImage(config.favicon_full_path) ?? "/favicon.ico";
   const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 
   return {
@@ -43,6 +61,7 @@ export async function generateMetadata({
     applicationName: brand,
     alternates: alternatesFor(locale, ""),
     robots: { index: true, follow: true },
+    icons: { icon: favicon, shortcut: favicon, apple: favicon },
     openGraph: {
       title: brand,
       description,

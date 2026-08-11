@@ -8,6 +8,7 @@ import { Thumb } from "@/components/Thumb";
 import { CancelBookingButton } from "@/components/account/CancelBookingButton";
 import { ServiceReview, type ExistingReview } from "@/components/account/ServiceReview";
 import { BookingDetailTabs } from "@/components/account/BookingDetailTabs";
+import { intlLocale } from "@/lib/intl";
 
 interface ReviewRow {
   review_rating?: number;
@@ -211,7 +212,7 @@ export default async function BookingDetailPage({
     if (!s) return "—";
     const d = new Date(s.replace(" ", "T"));
     if (Number.isNaN(d.getTime())) return s.slice(0, 16).replace("T", " ");
-    return new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", {
+    return new Intl.DateTimeFormat(intlLocale(locale), {
       weekday: "short",
       day: "numeric",
       month: "short",

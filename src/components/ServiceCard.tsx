@@ -42,6 +42,7 @@ export function ServiceCard({
   locale?: string;
 }) {
   const rating = Number(service.avg_rating ?? 0);
+  const ratingCount = Number(service.rating_count ?? 0);
 
   const inner = (
     <>
@@ -83,6 +84,13 @@ export function ServiceCard({
           <span className="absolute bottom-3 start-3 inline-flex items-center gap-1 rounded-full bg-surface/95 px-2.5 py-1 text-sm font-bold text-ink shadow-sm backdrop-blur">
             {rating.toFixed(1)}
             <span className="text-accent">★</span>
+            {/* How many people that score is made of. A bare 5.0 says nothing —
+                it is one review as easily as two hundred — and the count is the
+                difference between a number worth trusting and a number worth
+                ignoring. Shown only when there is one to show. */}
+            {ratingCount > 0 && (
+              <span className="font-medium text-muted">({ratingCount})</span>
+            )}
           </span>
         )}
       </div>

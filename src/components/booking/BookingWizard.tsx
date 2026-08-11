@@ -11,6 +11,8 @@ import type {
   ServicePackage,
 } from "@/lib/api";
 import type { DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
+import { formatNumber } from "@/lib/currency";
+import { intlLocale } from "@/lib/intl";
 
 type Dict = Record<string, string>;
 
@@ -174,9 +176,6 @@ export function BookingWizard({
   const [cartConflict, setCartConflict] = useState(false);
   /** The service on the unfinished booking this one would replace. */
   const [replacing, setReplacing] = useState("");
-  /** Pay the package upfront, or per visit as each one happens. */
-  const [prepaid, setPrepaid] = useState(false);
-
   /**
    * The serviceman who came last time, if there was one.
    *
@@ -370,7 +369,7 @@ export function BookingWizard({
     : allModePackages;
 
   const money = (n: number) =>
-    `${currency} ${n.toLocaleString(locale === "ar" ? "ar" : "en")}`;
+    `${currency} ${formatNumber(n, locale)}`;
 
   function fmtDuration(minutes: number): string {
     if (minutes < 60) return `${minutes} ${dict.min}`;
@@ -380,8 +379,8 @@ export function BookingWizard({
 
   const days = useMemo(() => {
     const list: { date: Date; weekday: string; day: string }[] = [];
-    const wd = new Intl.DateTimeFormat(locale, { weekday: "short" });
-    const dn = new Intl.DateTimeFormat(locale, { day: "numeric" });
+    const wd = new Intl.DateTimeFormat(intlLocale(locale), { weekday: "short" });
+    const dn = new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric" });
     for (let i = 0; i < 30; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
@@ -392,7 +391,7 @@ export function BookingWizard({
 
   // Localized short weekday names indexed 0=Sun..6=Sat, for the Weekly picker.
   const weekdayNames = useMemo(() => {
-    const fmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
+    const fmt = new Intl.DateTimeFormat(intlLocale(locale), { weekday: "short" });
     // 2024-06-02 is a Sunday; add 0..6 to walk Sun..Sat.
     return Array.from({ length: 7 }, (_, i) =>
       fmt.format(new Date(2024, 5, 2 + i))
@@ -551,7 +550,7 @@ export function BookingWizard({
           // mattered. Six packages on production offered upfront payment that
           // no customer could ever choose.
           package_payment_mode: isPackageMode
-            ? (prepaidAvailable && (prepaid || !perVisitAvailable) ? "prepaid" : "pay_per_visit")
+            ? (prepaidAvailable ? "prepaid" : "pay_per_visit")
             : null,
           locale,
         }),
@@ -579,7 +578,7 @@ export function BookingWizard({
               // Checkout has to know which of the two it is, not merely
               // whether it is prepaid: a package billed per visit must not
               // offer a card, and an ordinary recurring booking still may.
-              (prepaidAvailable && (prepaid || !perVisitAvailable) ? "&pay=prepaid" : "&pay=per_visit")
+              (prepaidAvailable ? "&pay=prepaid" : "&pay=per_visit")
           );
           return;
         }
@@ -716,7 +715,6 @@ export function BookingWizard({
   /** Only offered when the admin allowed it on this package. */
   const prepaidAvailable = Number(selectedPackage?.allow_prepaid ?? 0) === 1;
   /** A package may be sold upfront-only; then there is nothing to choose. */
-  const perVisitAvailable = Number(selectedPackage?.allow_pay_per_visit ?? 1) === 1;
 
   // A package sells a band of weekdays; outside it the server refuses, so the
   // picker must not let the customer build a selection that cannot be bought.
@@ -818,7 +816,7 @@ export function BookingWizard({
   function isoWeekdayName(iso: number): string {
     // 2026-08-03 is a Monday, so adding (iso-1) days lands on the wanted weekday.
     const d = new Date(2026, 7, 2 + iso);
-    return new Intl.DateTimeFormat(locale, { weekday: "short" }).format(d);
+    return new Intl.DateTimeFormat(intlLocale(locale), { weekday: "short" }).format(d);
   }
 
   // Package pricing comes from its own endpoint, which also decides how many
@@ -963,7 +961,7 @@ export function BookingWizard({
 
   const selectedDate = days[dateIndex]?.date;
   const dateLabel = selectedDate
-    ? new Intl.DateTimeFormat(locale, {
+    ? new Intl.DateTimeFormat(intlLocale(locale), {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -1752,58 +1750,16 @@ export function BookingWizard({
                 </>
               )}
 
-              {/* Offered only where the admin allowed it, and with both amounts
-                  on screen — "pay upfront" means nothing next to a per-visit
-                  price the customer has to work out for themselves. */}
-              {isPackageMode && prepaidAvailable && packageQuote?.valid && (
-                <div className="mt-4 rounded-2xl border border-border p-4">
-                  <p className="mb-3 text-sm font-semibold text-ink">
-                    {perVisitAvailable ? dict.howToPay : dict.paidUpfrontOnly}
-                  </p>
-
-                  <div className={`grid gap-2 ${perVisitAvailable ? "sm:grid-cols-2" : ""}`}>
-                    {/* Hidden rather than disabled when the package is sold
-                        upfront-only: an option that cannot be taken is noise
-                        the customer has to reason about. */}
-                    {perVisitAvailable && (
-                    <button
-                      type="button"
-                      onClick={() => setPrepaid(false)}
-                      className={`rounded-xl border p-3 text-start text-sm transition ${
-                        !prepaid ? "border-primary bg-primary/5" : "border-border"
-                      }`}
-                    >
-                      <span className="block font-semibold text-ink">{dict.payPerVisit}</span>
-                      <span className="block text-muted">
-                        {money(packageQuote.net_visit_price)} · {dict.perVisit}
-                      </span>
-                    </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => setPrepaid(true)}
-                      className={`rounded-xl border p-3 text-start text-sm transition ${
-                        prepaid ? "border-primary bg-primary/5" : "border-border"
-                      }`}
-                    >
-                      <span className="block font-semibold text-ink">{dict.payUpfront}</span>
-                      <span className="block text-muted">
-                        {money(packageQuote.grand_total)} · {dict.wholePackage}
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Said before paying, not discovered at cancellation: this
-                      system credits a wallet and has no way to reverse a card
-                      charge. */}
-                  {/* Shown whenever the purchase will be prepaid — including a
-                      package sold upfront-only, where nobody clicks anything
-                      and the warning would otherwise never appear at all. */}
-                  {(prepaid || !perVisitAvailable) && (
-                    <p className="mt-3 text-xs text-muted">{dict.prepaidRefundNote}</p>
-                  )}
-                </div>
+              {/* The choice is gone; a package is paid for when it is bought.
+                  Offering "pay per visit" was offering something the system
+                  cannot do — no completed visit can charge a saved card, so
+                  that branch only ever meant "settle in cash at the door",
+                  which is not what the words said. What remains is the one
+                  thing the customer still has to be told before paying. */}
+              {isPackageMode && packageQuote?.valid && (
+                <p className="mt-4 rounded-2xl border border-border p-4 text-xs text-muted">
+                  {dict.prepaidRefundNote}
+                </p>
               )}
               <Row label={dict.duration} value={fmtDuration(variant.durationMinutes)} />
               <Row label={dict.professionals} value={String(professionals)} />

@@ -651,6 +651,15 @@ export interface ServicePackage {
   id: string;
   name: string;
   badge_text: string | null;
+  /** Set by the admin: this is the card with the ring and the ribbon. */
+  is_featured?: number;
+  /** Set by the admin: show the struck-through price and the green pill. */
+  show_saving_badge?: number;
+  /** How many people have bought this package. Never a stand-in figure. */
+  subscriber_count?: number;
+  /** The sub-category's own review score, or null when nobody has rated it. */
+  avg_rating?: number | null;
+  rating_count?: number;
   short_description: string | null;
   validity_months: number;
   min_days_per_week: number;

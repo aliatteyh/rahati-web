@@ -5,6 +5,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getBlogCategories, getBlogPosts } from "@/lib/api";
 import { alternatesFor } from "@/lib/seo";
 import { Thumb } from "@/components/Thumb";
+import { intlLocale } from "@/lib/intl";
 
 type Params = Promise<{ locale: string }>;
 type Search = Promise<{ category?: string }>;
@@ -44,7 +45,7 @@ export default async function BlogIndex({
 
   const dateOf = (iso?: string | null) =>
     iso
-      ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(
+      ? new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "long", year: "numeric" }).format(
           new Date(iso)
         )
       : null;

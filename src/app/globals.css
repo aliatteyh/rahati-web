@@ -51,3 +51,48 @@ body {
     background: #fff;
   }
 }
+
+/* Testimonial marquee.
+
+   One continuous line rather than paged slides: there is no "next" to press
+   and nothing to fall out of step with, and the row reads as a wall of
+   opinion instead of a control the reader has to operate. The track holds the
+   list twice and travels exactly half its width, so the seam never shows.
+
+   It never stops. Pausing on hover made the row look broken to anyone whose
+   cursor happened to rest over it, and on a touch screen a tap could leave it
+   frozen with no way to tell why. The one exception is a reader whose system
+   asks for less motion, which is their setting and not ours to override. */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  animation: marquee-x var(--marquee-duration, 40s) linear infinite;
+  will-change: transform;
+}
+
+/* RTL needs the opposite sign, not a reversed clock.
+   In a right-to-left row the track's right edge sits against the viewport's
+   right edge and the rest of the cards hang off to the LEFT. Sliding by -50%
+   therefore drags the content further left and uncovers empty space on the
+   right — which is the row "disappearing" for half of every cycle. Reversing
+   the animation only changed which half was blank. Moving +50% pulls the
+   off-screen cards into view instead, and lands on a frame identical to the
+   first, so the loop is seamless in both directions. */
+@keyframes marquee-x-rtl {
+  from { transform: translateX(0); }
+  to   { transform: translateX(50%); }
+}
+
+[dir="rtl"] .marquee-track {
+  animation-name: marquee-x-rtl;
+  animation-direction: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}

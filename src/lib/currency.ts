@@ -1,5 +1,6 @@
 import type { Locale } from "@/i18n/config";
 import type { BusinessConfig } from "@/lib/types";
+import { intlLocale } from "./intl";
 
 /**
  * The currency label to show, in the language the customer is reading.
@@ -20,7 +21,7 @@ export function currencyLabel(
 
   if (code) {
     try {
-      const part = new Intl.NumberFormat(locale, { style: "currency", currency: code })
+      const part = new Intl.NumberFormat(intlLocale(locale), { style: "currency", currency: code })
         .formatToParts(0)
         .find((p) => p.type === "currency");
 
@@ -42,6 +43,24 @@ export function currencyLabel(
  * Lives here rather than in `api.ts` so client components can use it: `api.ts`
  * reads cookies, which cannot cross into the browser bundle.
  */
+
+/**
+ * A number, formatted the same way on the server and in the browser.
+ *
+ * `toLocaleString("ar")` is not one answer but two: Node renders 70 and the
+ * browser renders ٧٠, so every price on an Arabic page arrived as a hydration
+ * mismatch and React threw the tree away and re-rendered it. Pinning both the
+ * locale and the numbering system removes the disagreement — and Latin digits
+ * are what UAE storefronts price in anyway, Arabic page or not.
+ */
+export function formatNumber(
+  value: number,
+  locale: string,
+  options?: Intl.NumberFormatOptions
+): string {
+  return value.toLocaleString(intlLocale(locale), options);
+}
+
 export function formatPrice(
   value: number | string | undefined | null,
   currency: string
@@ -50,5 +69,7 @@ export function formatPrice(
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (Number.isNaN(num)) return null;
   const rounded = Number.isInteger(num) ? num : Math.round(num * 100) / 100;
-  return `${currency} ${rounded.toLocaleString()}`;
+  // Fixed locale for the same reason formatNumber pins one: the runtime
+  // default differs between Node and the browser.
+  return `${currency} ${rounded.toLocaleString("en-US")}`;
 }

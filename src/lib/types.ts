@@ -9,6 +9,8 @@ export interface Category {
 }
 
 export interface Service {
+  /** The word on the featured badge; empty falls back to "Featured". */
+  badge_text?: string | null;
   id: string;
   name: string;
   slug?: string;
@@ -130,8 +132,22 @@ export interface SocialMediaLink {
 
 export interface BusinessConfig {
   business_name?: string;
+  /** The "why choose us" row, edited in the admin panel. */
+  home_highlights?: { icon?: string | null; title?: string | null; description?: string | null }[];
+  /** Real reviews shown on the home page; `source` allows Google later. */
+  home_testimonials?: { source?: string | null; rating?: number | null; comment?: string | null; author?: string | null; service?: string | null }[];
   social_media?: SocialMediaLink[];
   logo_full_path?: string | null;
+  /** The copyright line, written in Business Settings. */
+  footer_text?: string | null;
+  /** Policy pages, served by the admin panel. */
+  about_us?: string | null;
+  privacy_policy?: string | null;
+  terms_and_conditions?: string | null;
+  cancellation_policy?: string | null;
+  refund_policy?: string | null;
+  /** The tab icon, uploaded in Business Settings. */
+  favicon_full_path?: string | null;
   currency_symbol?: string;
   currency_code?: string;
   business_email?: string;

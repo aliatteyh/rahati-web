@@ -6,6 +6,7 @@ import type { Locale } from "@/i18n/config";
 import type { CartQuote } from "@/lib/api";
 import { LocationPicker, type ResolvedLocation } from "@/components/location/LocationPicker";
 import { StripeCardForm } from "@/components/checkout/StripeCardForm";
+import { formatNumber } from "@/lib/currency";
 
 type Dict = Record<string, string>;
 
@@ -110,7 +111,7 @@ export function CheckoutClient({
       return [];
     }
   })();
-  const money = (n: number) => `${currency} ${n.toLocaleString(locale === "ar" ? "ar" : "en")}`;
+  const money = (n: number) => `${currency} ${formatNumber(n, locale)}`;
 
   const [addressList, setAddressList] = useState(addresses);
   const [addressId, setAddressId] = useState<number | undefined>(addresses[0]?.id);
