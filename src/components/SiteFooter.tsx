@@ -25,12 +25,12 @@ export function SiteFooter({
   // that a rename would break. Anything the API leaves out simply is not
   // listed — an empty policy link is worse than a missing one.
   const policies = [
-    { href: config.about_us, label: dict.footer.aboutUs },
-    { href: config.terms_and_conditions, label: dict.footer.terms },
-    { href: config.privacy_policy, label: dict.footer.privacy },
-    { href: config.cancellation_policy, label: dict.footer.cancellation },
-    { href: config.refund_policy, label: dict.footer.refund },
-  ].filter((p): p is { href: string; label: string } => Boolean(p.href));
+    { href: `${base}/about-us`, label: dict.footer.aboutUs },
+    { href: `${base}/terms-and-conditions`, label: dict.footer.terms },
+    { href: `${base}/privacy-policy`, label: dict.footer.privacy },
+    { href: `${base}/cancellation-policy`, label: dict.footer.cancellation },
+    { href: `${base}/refund-policy`, label: dict.footer.refund },
+  ];
 
   return (
     <footer className="mt-20 border-t border-border bg-surface-soft">
@@ -86,16 +86,9 @@ export function SiteFooter({
             <ul className="space-y-2 text-sm text-muted">
               {policies.map((p) => (
                 <li key={p.href}>
-                  {/* These pages live on the admin panel's domain, so they are
-                      plain anchors: Link would try to route them internally. */}
-                  <a
-                    href={p.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-primary"
-                  >
+                  <Link href={p.href} className="hover:text-primary">
                     {p.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -1022,3 +1022,18 @@ export async function fetchCartQuote(
     grand_total: Number(content.grand_total ?? 0),
   };
 }
+
+/**
+ * The HTML of one policy page, written in the admin panel.
+ *
+ * Whitelisted on the server, so a bad key returns nothing rather than reading
+ * an arbitrary business setting.
+ */
+export async function getPolicyPage(key: string, locale: Locale): Promise<string> {
+  const page = await apiGet<{ content?: string } | null>(
+    `/api/v1/customer/config/policy/${encodeURIComponent(key)}`,
+    locale,
+    null
+  );
+  return page?.content ?? "";
+}

@@ -96,3 +96,35 @@ body {
     animation: none;
   }
 }
+
+/* Policy pages.
+
+   The body of these is HTML written in the admin panel's editor, so it arrives
+   with its own headings, tables and lists and no classes of ours. Styling it
+   here keeps the legal text readable without asking whoever writes it to think
+   about markup. */
+.policy :where(h2) { font-size: 1.5rem; font-weight: 700; margin: 0 0 1rem; }
+.policy :where(h3) { font-size: 1.15rem; font-weight: 700; margin: 2rem 0 .75rem; }
+.policy :where(h4) { font-size: 1rem; font-weight: 700; margin: 1.5rem 0 .5rem; }
+.policy :where(p, ul, ol, table) { margin: 0 0 1rem; line-height: 1.85; }
+.policy :where(ul, ol) { padding-inline-start: 1.25rem; }
+.policy :where(li) { margin: .35rem 0; }
+.policy :where(a) { color: var(--color-primary); text-decoration: underline; }
+.policy :where(hr) { margin: 2rem 0; border: 0; border-top: 1px solid var(--color-border); }
+.policy :where(blockquote) {
+  margin: 0 0 1rem;
+  padding: .75rem 1rem;
+  border-inline-start: 3px solid var(--color-primary);
+  background: var(--color-surface-soft);
+}
+/* Wide tables scroll inside their own box rather than the page. */
+.policy :where(table) { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+.policy :where(th, td) {
+  border: 1px solid var(--color-border);
+  padding: .5rem .625rem;
+  text-align: start;
+  vertical-align: top;
+  min-width: 8rem;
+}
+.policy :where(th) { background: var(--color-surface-soft); font-weight: 600; }
+.policy > div > :first-child { margin-top: 0; }
