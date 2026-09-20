@@ -2068,7 +2068,14 @@ export function BookingWizard({
               <Row
                 label={dict.frequency}
                 value={
-                  bookingMode === "single"
+                  // A subscription is not a single visit, whatever the legacy
+                  // mode still says underneath: name the plan the customer is
+                  // actually buying, and how many visits it comes to.
+                  isSubscriptionFlow
+                    ? `${planDaysPerWeek} ${dict.daysPerWeek} · ${planMonths} ${planMonths === 1 ? dict.month : dict.months}${
+                        recurringValid ? ` (${buildDates().length})` : ""
+                      }`
+                    : bookingMode === "single" || isFlowDriven
                     ? dict.singleVisit
                     : isPackageMode && packageId
                       ? // Name the plan the customer chose, not the generic mode:
@@ -2115,8 +2122,17 @@ export function BookingWizard({
                 </p>
               )}
               <Row label={dict.duration} value={fmtDuration(variant.durationMinutes)} />
-              <Row label={dict.professionals} value={String(professionals)} />
-              <Row label={dict.material} value={materials ? dict.yes : dict.no} />
+              {/* A unit brings the crew its price includes, so showing the
+                  screen's unused "1" contradicts the card the customer just
+                  read. Same for its materials, which are in the price. */}
+              <Row
+                label={dict.professionals}
+                value={String(isUnitFlow ? variant.cleanersCount ?? professionals : professionals)}
+              />
+              <Row
+                label={dict.material}
+                value={isUnitFlow || materials ? dict.yes : dict.no}
+              />
               {timeSlot && (
                 <Row label={dict.date} value={`${dateLabel}, ${timeSlot}`} />
               )}
