@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternatesFor } from "@/lib/seo";
-import { getCategories, withBookableServices } from "@/lib/api";
-import { CategoryCard } from "@/components/CategoryCard";
+import { getHomeSections } from "@/lib/api";
+import { SectionCard } from "@/components/SectionCard";
 import { SectionHeader } from "@/components/SectionHeader";
 
 export async function generateMetadata({
@@ -33,9 +33,8 @@ export default async function ServicesPage({
   const { locale: raw } = await params;
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
-  // Same rule as the home page: a category with no service behind it is a door
-  // onto an empty room, and "see all" must not lead to more of those.
-  const categories = await withBookableServices(await getCategories(locale), locale);
+  // The same list the home screen and the app show, in the panel's order.
+  const sections = await getHomeSections(locale);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-14">
@@ -44,10 +43,10 @@ export default async function ServicesPage({
         subtitle={dict.sections.categoriesSub}
       />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {categories.map((category) => (
-          <CategoryCard
-            key={category.id}
-            category={category}
+        {sections.map((section) => (
+          <SectionCard
+            key={section.id}
+            section={section}
             locale={locale}
             label={dict.category.book}
           />

@@ -10,7 +10,7 @@ import type {
   PackageQuote,
   ServicePackage,
 } from "@/lib/api";
-import type { DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
+import type { AvailableDay, DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
 import { formatNumber } from "@/lib/currency";
 import { trackAddToCart } from "@/lib/analytics";
 import { intlLocale } from "@/lib/intl";
@@ -21,12 +21,22 @@ export interface WizardVariant {
   key: string;
   price: number;
   durationMinutes: number;
+  /** What the panel calls it — a unit's name ("2 Bedrooms"), not its hours. */
+  label?: string | null;
+  /** For a service booked by unit: the cleaners its fixed price includes. */
+  cleanersCount?: number | null;
 }
 export interface WizardAddOn {
   id: string;
   name: string;
   price: number;
   image?: string | null;
+  /** A line per bullet on the card. */
+  description?: string | null;
+  /** Minutes it adds to the visit. */
+  durationMinutes?: number;
+  rating?: number;
+  ratingCount?: number;
 }
 export interface BookingWizardProps {
   locale: Locale;
@@ -69,6 +79,16 @@ export interface BookingWizardProps {
   presetVariantKey?: string | null;
   /** Providers who can take this booking; empty leaves the server to assign. */
   bookableProviders?: BookableProvider[];
+  /**
+   * How this sub-category is booked, as the panel sets it: `single`,
+   * `subscription`, `unit` or `addons`. Null keeps the old screen, where the
+   * customer chose between a visit, a weekly repeat and a package.
+   */
+  bookingFlow?: string | null;
+  /** Subscription lengths the panel offers, in months. */
+  subscriptionMonths?: number[];
+  /** How long an add-ons-only visit must be, in minutes. */
+  addonsMinMinutes?: number;
 }
 
 /** Saturday first, matching how the admin panel lists the week. */
@@ -168,6 +188,9 @@ export function BookingWizard({
   presetPackageId = null,
   presetVariantKey = null,
   bookableProviders = [],
+  bookingFlow = null,
+  subscriptionMonths = [1],
+  addonsMinMinutes = 60,
 }: BookingWizardProps) {
   const safeVariants: WizardVariant[] =
     variants.length > 0 ? variants : [{ key: "default", price: 0, durationMinutes: 60 }];
@@ -237,6 +260,15 @@ export function BookingWizard({
   // The weekdays (0=Sun..6=Sat) a "multiple times a week" booking runs on,
   // repeated over `weeks` weeks from the chosen start date.
   const [weekdays, setWeekdays] = useState<Set<number>>(new Set());
+
+  // A subscription: how many days a week, which days, and for how many months.
+  const [planDaysPerWeek, setPlanDaysPerWeek] = useState(1);
+  const [planWeekdays, setPlanWeekdays] = useState<number[]>([]);
+  const [planMonths, setPlanMonths] = useState(subscriptionMonths[0] ?? 1);
+
+  // The days and times the server will accept, once it has been asked.
+  const [availableDays, setAvailableDays] = useState<AvailableDay[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [weeks, setWeeks] = useState(2);
 
   /**
@@ -343,8 +375,17 @@ export function BookingWizard({
 
   const variant = safeVariants[variantIndex];
 
+  // How this sub-category is booked. Anything but null replaces the old
+  // visit/weekly/package choice: the panel has already decided, and offering
+  // the customer a mode the server will refuse is worse than not asking.
+  const isSingleFlow = bookingFlow === "single";
+  const isSubscriptionFlow = bookingFlow === "subscription";
+  const isUnitFlow = bookingFlow === "unit";
+  const isAddonsFlow = bookingFlow === "addons";
+  const isFlowDriven = isSingleFlow || isSubscriptionFlow || isUnitFlow || isAddonsFlow;
+
   /** Every mode except a single visit and a package produces its own date list. */
-  const isRecurring = bookingMode === "weekly" || bookingMode === "biweekly";
+  const isRecurring = isSubscriptionFlow || (!isFlowDriven && (bookingMode === "weekly" || bookingMode === "biweekly"));
 
   /**
    * Both package modes, split so a package is offered in exactly one place.
@@ -353,7 +394,7 @@ export function BookingWizard({
    * the rest. Listing every plan under both meant the same package, at the same
    * price, met the customer twice — which reads as two different offers.
    */
-  const isPackageMode = bookingMode === "package" || bookingMode === "weekly";
+  const isPackageMode = !isFlowDriven && (bookingMode === "package" || bookingMode === "weekly");
   const weeklyPackages = servicePackages.filter((p) => p.max_days_per_week <= 1);
   const multiDayPackages = servicePackages.filter((p) => p.max_days_per_week > 1);
   const allModePackages = bookingMode === "weekly" ? weeklyPackages : multiDayPackages;
@@ -374,23 +415,46 @@ export function BookingWizard({
   const money = (n: number) =>
     `${currency} ${formatNumber(n, locale)}`;
 
-  function fmtDuration(minutes: number): string {
-    if (minutes < 60) return `${minutes} ${dict.min}`;
-    if (minutes % 60 === 0) return `${minutes / 60} ${dict.hours}`;
-    return `${Math.floor(minutes / 60)} ${dict.hours} ${minutes % 60} ${dict.min}`;
+  /** Tapping a day past the chosen count drops the oldest, never refuses. */
+  function togglePlanWeekday(iso: number) {
+    setPlanWeekdays((current) => {
+      if (current.includes(iso)) return current.filter((d) => d !== iso);
+      const next = [...current, iso];
+      return next.length > planDaysPerWeek ? next.slice(next.length - planDaysPerWeek) : next;
+    });
   }
 
+  /** Minutes of add-ons chosen — what an add-ons-only visit is measured by. */
+  const addOnMinutes = addOns
+    .filter((a) => selectedAddOns.has(a.id))
+    .reduce((total, a) => total + (a.durationMinutes ?? 0), 0);
+  const missingAddOnMinutes = Math.max(0, addonsMinMinutes - addOnMinutes);
+
+  function fmtDuration(minutes: number): string {
+    // "1 hours" reads as a bug on a card the customer is judging the service
+    // by, and add-ons put one-hour durations on the screen constantly.
+    const hourWord = (h: number) => (h === 1 ? dict.hour ?? dict.hours : dict.hours);
+    if (minutes < 60) return `${minutes} ${dict.min}`;
+    if (minutes % 60 === 0) return `${minutes / 60} ${hourWord(minutes / 60)}`;
+    return `${Math.floor(minutes / 60)} ${hourWord(Math.floor(minutes / 60))} ${minutes % 60} ${dict.min}`;
+  }
+
+  // The days the server says are bookable, once it has been asked; until then
+  // (and for the old screen) the next thirty days.
   const days = useMemo(() => {
-    const list: { date: Date; weekday: string; day: string }[] = [];
     const wd = new Intl.DateTimeFormat(intlLocale(locale), { weekday: "short" });
     const dn = new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric" });
-    for (let i = 0; i < 30; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      list.push({ date: d, weekday: wd.format(d), day: dn.format(d) });
-    }
-    return list;
-  }, [locale]);
+
+    const source = isFlowDriven && availableDays.length > 0
+      ? availableDays.map((d) => new Date(`${d.date}T00:00:00`))
+      : Array.from({ length: 30 }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          return d;
+        });
+
+    return source.map((date) => ({ date, weekday: wd.format(date), day: dn.format(date) }));
+  }, [locale, isFlowDriven, availableDays]);
 
   // Localized short weekday names indexed 0=Sun..6=Sat, for the Weekly picker.
   const weekdayNames = useMemo(() => {
@@ -423,11 +487,24 @@ export function BookingWizard({
     const slots: string[] = [];
     // The visit has to end by closing time, not merely begin before it.
     const span = Math.max(30, variant.durationMinutes || 30);
+
+    // What the server offered for the chosen day: only times a cleaner is
+    // actually free for, which no amount of arithmetic here could know.
+    if (isFlowDriven) {
+      const day = availableDays[dateIndex];
+      if (!day) return [];
+      return day.slots.map((start) => {
+        const [h, m] = start.split(":").map(Number);
+        const from = h * 60 + m;
+        return `${fmt(from)}-${fmt(from + span)}`;
+      });
+    }
+
     for (let s = startMin; s + span <= endMin; s += 30) {
       slots.push(`${fmt(s)}-${fmt(s + span)}`);
     }
     return slots;
-  }, [workStart, workEnd, variant.durationMinutes]);
+  }, [workStart, workEnd, variant.durationMinutes, isFlowDriven, availableDays, dateIndex]);
 
   const addOnsTotal = useMemo(
     () =>
@@ -436,6 +513,66 @@ export function BookingWizard({
         .reduce((sum, a) => sum + a.price, 0),
     [addOns, selectedAddOns]
   );
+
+  // The days and times the server will accept for what is being built.
+  //
+  // Asked again whenever something that changes the answer changes — the
+  // length, the cleaners, the add-ons, and for a subscription the weekdays,
+  // since one team has to work all of them.
+  const slotsKey = isFlowDriven
+    ? [
+        serviceId,
+        variant.key,
+        professionals,
+        materials ? 1 : 0,
+        [...selectedAddOns].sort().join(","),
+        isSubscriptionFlow ? [...planWeekdays].sort().join(",") : "",
+      ].join("|")
+    : "";
+
+  useEffect(() => {
+    if (!isFlowDriven) return;
+
+    let alive = true;
+    setSlotsLoading(true);
+
+    const weekdayNamesIso = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+    fetch("/api/booking/slots", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        locale,
+        serviceId,
+        variantKey: variant.key,
+        professionalCount: isUnitFlow || isAddonsFlow ? 1 : professionals,
+        needMaterials: isUnitFlow || isAddonsFlow ? false : materials,
+        addOns: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+        weekdays: isSubscriptionFlow
+          ? planWeekdays.map((iso) => weekdayNamesIso[iso - 1]).filter(Boolean)
+          : [],
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!alive) return;
+        const list: AvailableDay[] = Array.isArray(data?.days) ? data.days : [];
+        setAvailableDays(list);
+        setDateIndex((i) => (i < list.length ? i : 0));
+        setTimeSlot(null);
+      })
+      .catch(() => {
+        if (alive) setAvailableDays([]);
+      })
+      .finally(() => {
+        if (alive) setSlotsLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotsKey]);
 
   // Build a "YYYY-MM-DD HH:mm:00" schedule string for a given date + time slot.
   function scheduleFor(d: Date): string {
@@ -464,6 +601,19 @@ export function BookingWizard({
         out.push({ date: scheduleFor(d) });
       }
       return out;
+    }
+
+    // A subscription: every chosen weekday, every week, for the months bought.
+    if (isSubscriptionFlow) {
+      const start = days[dateIndex]?.date ?? new Date();
+      const out: { date: string }[] = [];
+      for (let offset = 0; offset < 28 * planMonths; offset++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + offset);
+        const iso = d.getDay() === 0 ? 7 : d.getDay();
+        if (planWeekdays.includes(iso)) out.push({ date: scheduleFor(d) });
+      }
+      return out.length > 0 ? out : [{ date: buildSchedule() }];
     }
 
     // Single visit and package modes do not generate a list here.
@@ -538,9 +688,15 @@ export function BookingWizard({
           sub_category_id: subCategoryId,
           variant_key: variant.key,
           quantity: 1,
-          professional_count: professionals,
-          need_materials: materials ? 1 : 0,
-          add_ons: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+          // A unit is one fixed, all-inclusive price: its crew and its
+          // materials come from the panel, and it takes no add-ons. Sending
+          // the screen's defaults would have the server multiply a price the
+          // panel meant as final.
+          professional_count: isUnitFlow || isAddonsFlow ? 1 : professionals,
+          need_materials: isUnitFlow ? 0 : materials ? 1 : 0,
+          add_ons: isUnitFlow
+            ? []
+            : [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
           // Carried on the cart line so checkout creates a package purchase and
           // applies the package discount instead of the commitment tier.
           // Only when the customer actually chose; otherwise the server picks.
@@ -981,8 +1137,22 @@ export function BookingWizard({
   // it resolves to any dates at all.
   // Weekly and fortnightly both take their day from the date picked below, so
   // there is nothing left that could be half-answered.
-  const recurringValid = true;
-  const canProceed = step < 3 || (timeSlot !== null && recurringValid);
+  const recurringValid = !isSubscriptionFlow || planWeekdays.length === planDaysPerWeek;
+
+  // Which questions this service asks, in order. A unit is one question; add-ons
+  // on their own are one; everything else keeps the three it had.
+  const stepKinds: ("details" | "addons" | "when")[] = isUnitFlow
+    ? ["details", "when"]
+    : isAddonsFlow
+      ? ["addons", "when"]
+      : ["details", "addons", "when"];
+  const stepKind = stepKinds[step - 1] ?? "when";
+  const lastStep = stepKinds.length;
+
+  const canProceed =
+    stepKind === "addons" && isAddonsFlow
+      ? missingAddOnMinutes === 0
+      : step < lastStep || (timeSlot !== null && recurringValid);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -1002,12 +1172,12 @@ export function BookingWizard({
         )}
         <div>
           <p className="text-sm text-muted">
-            {dict.step} {step} {dict.of} 4
+            {dict.step} {step} {dict.of} {lastStep + 1}
           </p>
           <h1 className="text-2xl font-bold text-ink">
-            {step === 1 && serviceName}
-            {step === 2 && dict.addonsTitle}
-            {step === 3 && (isPackageMode ? dict.daysAndTimeTitle : dict.dateTimeTitle)}
+            {stepKind === "details" && serviceName}
+            {stepKind === "addons" && dict.addonsTitle}
+            {stepKind === "when" && (isPackageMode || isSubscriptionFlow ? dict.daysAndTimeTitle : dict.dateTimeTitle)}
           </h1>
         </div>
       </div>
@@ -1017,7 +1187,7 @@ export function BookingWizard({
         {/* min-w-0 lets the grid track shrink so the horizontal day scroller
             scrolls internally instead of forcing the whole page wide. */}
         <div className="min-w-0 rounded-2xl border border-border bg-surface p-6">
-          {step === 1 && (
+          {stepKind === "details" && (
             <div className="space-y-8">
               {/* Coupon */}
               <div className="rounded-xl border border-border bg-surface-soft p-4">
@@ -1063,28 +1233,56 @@ export function BookingWizard({
                 </div>
               ) : (
               <div>
-                <p className="mb-3 font-semibold text-ink">{dict.hoursQuestion}</p>
-                <div className="flex flex-wrap gap-3">
+                <p className="mb-3 font-semibold text-ink">
+                  {isUnitFlow ? dict.unitQuestion : dict.hoursQuestion}
+                </p>
+                <div className={isUnitFlow ? "space-y-2" : "flex flex-wrap gap-3"}>
                   {safeVariants.map((v, i) => (
                     <button
                       key={v.key}
                       type="button"
                       onClick={() => setVariantIndex(i)}
-                      className={`rounded-full border px-5 py-2 text-sm font-medium transition ${
-                        i === variantIndex
-                          ? "border-primary bg-primary-light text-primary-dark"
-                          : "border-border text-muted hover:border-primary"
-                      }`}
+                      className={
+                        isUnitFlow
+                          ? `flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-start transition ${
+                              i === variantIndex
+                                ? "border-primary bg-primary-light"
+                                : "border-border hover:border-primary"
+                            }`
+                          : `rounded-full border px-5 py-2 text-sm font-medium transition ${
+                              i === variantIndex
+                                ? "border-primary bg-primary-light text-primary-dark"
+                                : "border-border text-muted hover:border-primary"
+                            }`
+                      }
                     >
-                      {fmtDuration(v.durationMinutes)}
+                      {isUnitFlow ? (
+                        <>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-ink">
+                              {v.label ?? v.key}
+                            </span>
+                            {/* Its hours, its cleaners and that the materials are
+                                in the price — the panel's numbers, not ours. */}
+                            <span className="block text-xs text-muted">
+                              {fmtDuration(v.durationMinutes)}
+                              {v.cleanersCount ? ` · ${v.cleanersCount} ${dict.cleaners}` : ""}
+                              {` · ${dict.materialsIncluded}`}
+                            </span>
+                          </span>
+                          <span className="shrink-0 font-bold text-primary">{money(v.price)}</span>
+                        </>
+                      ) : (
+                        fmtDuration(v.durationMinutes)
+                      )}
                     </button>
                   ))}
                 </div>
               </div>
               )}
 
-              {/* Professionals */}
-              <div>
+              {/* Professionals — a unit's crew is the panel's, not a choice. */}
+              <div className={isUnitFlow ? "hidden" : undefined}>
                 <p className="mb-3 font-semibold text-ink">{dict.professionalsQuestion}</p>
                 <div className="flex gap-3">
                   {[1, 2, 3, 4].map((n) => (
@@ -1151,8 +1349,8 @@ export function BookingWizard({
                   ("any available") left the booking with nobody on it. The
                   server assigns a qualified team at booking time instead. */}
 
-              {/* Materials */}
-              <div>
+              {/* Materials — included in a unit's fixed price. */}
+              <div className={isUnitFlow ? "hidden" : undefined}>
                 <p className="mb-3 font-semibold text-ink">{dict.materialsQuestion}</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {([false, true] as const).map((wants) => {
@@ -1212,50 +1410,107 @@ export function BookingWizard({
             </div>
           )}
 
-          {step === 2 && (
+          {stepKind === "addons" && (
             <div>
               <p className="mb-5 font-semibold text-ink">{dict.addonsSub}</p>
+
+              {/* An add-ons-only visit is sold by time, so it has a floor. Said
+                  here, as the customer picks, rather than at the button. */}
+              {isAddonsFlow && (
+                <p
+                  className={`mb-4 rounded-xl px-3 py-2 text-sm ${
+                    missingAddOnMinutes > 0
+                      ? "bg-amber-50 text-amber-800"
+                      : "bg-primary-light text-primary-dark"
+                  }`}
+                >
+                  {missingAddOnMinutes > 0
+                    ? `${dict.addonsMinimum} ${fmtDuration(addonsMinMinutes)} · ${dict.addonsRemaining} ${fmtDuration(missingAddOnMinutes)}`
+                    : `${dict.total} ${fmtDuration(addOnMinutes)}`}
+                </p>
+              )}
+
               {addOns.length === 0 ? (
                 <p className="text-muted">—</p>
               ) : (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {addOns.map((a) => {
                     const active = selectedAddOns.has(a.id);
+                    // Its bullets, one per line, as the panel wrote them.
+                    const bullets = (a.description ?? "")
+                      .split(/\r?\n/)
+                      .map((line) => line.trim())
+                      .filter(Boolean)
+                      .slice(0, 3);
                     return (
-                      <button
+                      <div
                         key={a.id}
-                        type="button"
-                        onClick={() => toggleAddOn(a.id)}
-                        className={`flex flex-col rounded-2xl border p-3 text-start transition ${
-                          active ? "border-primary bg-primary-light" : "border-border hover:border-primary"
+                        className={`flex gap-3 rounded-2xl border p-3 transition ${
+                          active ? "border-primary bg-primary-light" : "border-border"
                         }`}
                       >
-                        {/* The API sends image_full_path as null when nothing was
-                            uploaded, so the card degrades to text rather than
-                            showing a broken frame. */}
-                        {a.image && (
-                          <img
-                            src={a.image}
-                            alt=""
-                            className="mb-2 aspect-square w-full rounded-xl object-cover"
-                          />
-                        )}
-                        <span className="flex items-start justify-between gap-2">
-                          <span className="text-sm font-semibold text-ink">{a.name}</span>
-                          <span
-                            className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-lg ${
-                              active ? "bg-primary text-white" : "bg-primary/10 text-primary"
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-ink">{a.name}</p>
+
+                          {/* What it costs and what it adds to the visit — the
+                              second half is the part the customer is choosing
+                              when the booking is nothing but add-ons. */}
+                          <p className="mt-1 text-sm">
+                            {a.price > 0 && (
+                              <span className="font-bold text-primary">{money(a.price)}</span>
+                            )}
+                            {a.durationMinutes ? (
+                              <span className="text-muted">
+                                {a.price > 0 ? " · " : ""}
+                                {fmtDuration(a.durationMinutes)}
+                              </span>
+                            ) : null}
+                          </p>
+
+                          {(a.rating ?? 0) > 0 && (
+                            <p className="mt-1 text-xs text-muted">
+                              <span className="text-amber-500">★</span>{" "}
+                              {formatNumber(Number(a.rating ?? 0), locale)}
+                              {a.ratingCount ? ` (${formatNumber(a.ratingCount, locale)})` : ""}
+                            </p>
+                          )}
+
+                          {bullets.length > 0 && (
+                            <ul className="mt-2 space-y-0.5 text-xs text-muted">
+                              {bullets.map((line, k) => (
+                                <li key={k} className="flex gap-1.5">
+                                  <span className="text-primary">•</span>
+                                  <span className="min-w-0">{line}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+
+                        <div className="flex w-24 shrink-0 flex-col gap-2">
+                          {/* The API sends image_full_path as null when nothing
+                              was uploaded, so the card degrades to text rather
+                              than showing a broken frame. */}
+                          {a.image && (
+                            <img
+                              src={a.image}
+                              alt=""
+                              className="aspect-square w-full rounded-xl object-cover"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => toggleAddOn(a.id)}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                              active
+                                ? "border-primary bg-primary text-white"
+                                : "border-primary text-primary hover:bg-primary-light"
                             }`}
                           >
-                            {active ? "✓" : "+"}
-                          </span>
-                        </span>
-                        {a.price > 0 && (
-                          <span className="mt-2 text-sm font-bold text-primary">
-                            {money(a.price)}
-                          </span>
-                        )}
-                      </button>
+                            {active ? dict.added : dict.add}
+                          </button>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -1263,7 +1518,7 @@ export function BookingWizard({
             </div>
           )}
 
-          {step === 3 && (
+          {stepKind === "when" && (
             <div className="space-y-8">
               {/* Take the service: once / multiple times.
                   Hidden when the frequency came from the subscription browser —
@@ -1275,7 +1530,7 @@ export function BookingWizard({
                   for a start date and a time, saw no way to say which days they
                   wanted, and concluded the days had been decided for them. The
                   chips were in the page the whole time, invisible. */}
-              <div className={presetPackageId ? "hidden" : undefined}>
+              <div className={presetPackageId || isFlowDriven ? "hidden" : undefined}>
                 <p className="mb-3 font-semibold text-ink">{dict.takeService}</p>
                 {/* Named for what the customer is buying, not for the mechanism
                     that produces the dates. The package option only appears where
@@ -1320,7 +1575,7 @@ export function BookingWizard({
                 </div>
               </div>
 
-                {isPackageMode && modePackages.length > 0 && (
+                {!isFlowDriven && isPackageMode && modePackages.length > 0 && (
                   <div className="mt-4 space-y-4 rounded-xl border border-border bg-surface-soft p-4">
                     {/* Choose the plan */}
                     <div className="space-y-2">
@@ -1559,7 +1814,7 @@ export function BookingWizard({
 
                 {/* Fallback: with no one-day package on sale, "once a week" is
                     still bookable free-form rather than showing an empty tab. */}
-                {isRecurring && !(bookingMode === "weekly" && weeklyPackages.length > 0) && (
+                {!isFlowDriven && isRecurring && !(bookingMode === "weekly" && weeklyPackages.length > 0) && (
                   <div className="mt-4 space-y-3 rounded-xl border border-border bg-surface-soft p-4">
                     {/* Weekly and fortnightly take their day from the date picked
                         below, so there is nothing further to ask here. */}
@@ -1592,6 +1847,93 @@ export function BookingWizard({
                     <p className="text-xs text-muted">{dict.offDaysNote}</p>
                   </div>
                 )}
+
+              {/* A subscription: how many days a week, which days, how long. */}
+              {isSubscriptionFlow && (
+                <div className="space-y-4 rounded-xl border border-border bg-surface-soft p-4">
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-ink">{dict.daysPerWeekQuestion}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from({ length: maxDaysPerWeek }, (_, i) => i + 1).map((count) => (
+                        <button
+                          key={count}
+                          type="button"
+                          onClick={() => {
+                            setPlanDaysPerWeek(count);
+                            setPlanWeekdays((current) =>
+                              current.length > count ? current.slice(current.length - count) : current
+                            );
+                          }}
+                          className={`h-10 w-10 rounded-full border text-sm font-semibold transition ${
+                            planDaysPerWeek === count
+                              ? "border-primary bg-primary text-white"
+                              : "border-border text-muted hover:border-primary"
+                          }`}
+                        >
+                          {count}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-ink">{dict.whichDays}</p>
+                      <span className="text-xs text-muted">
+                        {planWeekdays.length} / {planDaysPerWeek}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[6, 7, 1, 2, 3, 4, 5].map((iso) => {
+                        const picked = planWeekdays.includes(iso);
+                        const off = activeOffDays.includes(iso) || !selectableWeekdays.includes(iso);
+                        return (
+                          <button
+                            key={iso}
+                            type="button"
+                            disabled={off}
+                            title={off ? dict.providerOffDay : undefined}
+                            onClick={() => togglePlanWeekday(iso)}
+                            className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                              off
+                                ? "cursor-not-allowed border-border text-muted/40 line-through"
+                                : picked
+                                  ? "border-primary bg-primary text-white"
+                                  : "border-border text-muted hover:border-primary"
+                            }`}
+                          >
+                            {weekdayNames[iso === 7 ? 0 : iso]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {subscriptionMonths.length > 1 && (
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-ink">{dict.planLengthQuestion}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {subscriptionMonths.map((months) => (
+                          <button
+                            key={months}
+                            type="button"
+                            onClick={() => setPlanMonths(months)}
+                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                              planMonths === months
+                                ? "border-primary bg-primary text-white"
+                                : "border-border text-muted hover:border-primary"
+                            }`}
+                          >
+                            {months} {months === 1 ? dict.month : dict.months}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted">{dict.offDaysNote}</p>
+                </div>
+              )}
 
               {/* Date */}
               {(() => {
@@ -1636,6 +1978,9 @@ export function BookingWizard({
               {/* Time */}
               <div>
                 <p className="mb-3 font-semibold text-ink">{dict.timeQuestion}</p>
+                {isFlowDriven && !slotsLoading && timeSlots.length === 0 && (
+                  <p className="mb-3 text-sm text-muted">{dict.noTimesAvailable}</p>
+                )}
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {timeSlots.map((slot) => (
                     <button
@@ -1663,7 +2008,7 @@ export function BookingWizard({
 
           {/* Nav */}
           <div className="mt-8">
-            {step < 3 ? (
+            {step < lastStep ? (
               <button
                 type="button"
                 onClick={() => setStep((s) => s + 1)}

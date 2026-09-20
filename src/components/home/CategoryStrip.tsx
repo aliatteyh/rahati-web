@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
-import type { Category } from "@/lib/types";
+import type { HomeSection } from "@/lib/types";
+import { sectionHref } from "@/lib/sections";
 import { Thumb } from "@/components/Thumb";
 
 /**
@@ -17,82 +18,48 @@ import { Thumb } from "@/components/Thumb";
  * and locks into seven equal columns once there is room. Same single line
  * either way.
  *
- * The last tile is "see all". It sits inside the row instead of in the heading
- * because that is where someone is looking when the eight on offer are not what
- * they wanted.
+ * The tiles are the panel's sections, in the panel's order, and all of them are
+ * shown: there are a handful, not a catalogue, and hiding one behind a "see
+ * all" tile would hide a quarter of what the business sells.
  */
 export function CategoryStrip({
-  categories,
+  sections,
   locale,
-  seeAllLabel,
 }: {
-  categories: Category[];
+  sections: HomeSection[];
   locale: Locale;
-  seeAllLabel: string;
 }) {
-  // Six, not eight.
-  //
-  // The tiles had to grow by a third and the row still has to be one row, so
-  // something had to give: nine columns across the same width cannot each be
-  // 30% wider. Six categories and the "see all" tile fit seven columns, which
-  // is exactly the width increase asked for — and the two that drop off are one
-  // click away behind a tile that exists for precisely that.
-  const shown = categories.slice(0, 6);
-  if (shown.length === 0) return null;
+  if (sections.length === 0) return null;
 
   return (
     <div
       className="
         flex snap-x gap-3 overflow-x-auto pb-2
         [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
-        md:grid md:grid-cols-7 md:gap-5 md:overflow-visible md:pb-0
+        md:grid md:grid-cols-4 md:gap-5 md:overflow-visible md:pb-0
       "
     >
-      {shown.map((category) => (
+      {sections.map((section) => (
         <Link
-          key={category.id}
-          href={`/${locale}/category/${category.slug}`}
+          key={section.id}
+          href={sectionHref(section, locale)}
           className="group w-[6.5rem] shrink-0 snap-start text-center sm:w-[7.75rem] md:w-auto"
         >
           <div className="aspect-square w-full overflow-hidden rounded-2xl border border-border bg-surface transition group-hover:border-primary group-hover:shadow-md">
             <Thumb
-              src={category.image_full_path}
-              alt={category.name}
+              src={section.image_full_path}
+              alt={section.name}
               rounded="rounded-none"
             />
           </div>
           {/* Two lines maximum, so one long name cannot make the row taller than
               the rest of it. */}
           <span className="mt-2.5 line-clamp-2 block text-sm font-semibold leading-tight text-ink group-hover:text-primary sm:text-base">
-            {category.name}
+            {section.name}
           </span>
         </Link>
       ))}
 
-      <Link
-        href={`/${locale}/services`}
-        className="group w-[6.5rem] shrink-0 snap-start text-center sm:w-[7.75rem] md:w-auto"
-        aria-label={seeAllLabel}
-      >
-        <div className="grid aspect-square w-full place-items-center rounded-2xl border border-dashed border-border bg-surface-soft text-muted transition group-hover:border-primary group-hover:text-primary">
-          <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {/* A grid of dots — "more of these", rather than an arrow, which
-                would read as "next" inside a row that does not advance. */}
-            <circle cx="6" cy="6" r="1.6" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="6" r="1.6" fill="currentColor" stroke="none" />
-            <circle cx="18" cy="6" r="1.6" fill="currentColor" stroke="none" />
-            <circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
-            <circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none" />
-            <circle cx="6" cy="18" r="1.6" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="18" r="1.6" fill="currentColor" stroke="none" />
-            <circle cx="18" cy="18" r="1.6" fill="currentColor" stroke="none" />
-          </svg>
-        </div>
-        <span className="mt-2.5 line-clamp-2 block text-sm font-semibold leading-tight text-muted group-hover:text-primary sm:text-base">
-          {seeAllLabel}
-        </span>
-      </Link>
     </div>
   );
 }

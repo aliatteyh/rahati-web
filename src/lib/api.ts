@@ -6,7 +6,9 @@ import type {
   AddOn,
   Banner,
   BusinessConfig,
+  AvailableDay,
   Category,
+  HomeSection,
   Service,
   ServiceRating,
   ServiceReview,
@@ -15,8 +17,16 @@ import type {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
 
-/** Revalidate remote data every 5 minutes (ISR) — fresh enough, great for SEO. */
-const REVALIDATE_SECONDS = 300;
+/**
+ * Revalidate remote data every minute (ISR).
+ *
+ * Five minutes was fine while the panel only held prices. It is not fine now
+ * that the panel decides which sections exist, in what order, and how each one
+ * is booked: an admin who renames a section and reloads the site has to be
+ * shown the rename, not told to wait. Still cached, still good for SEO — times
+ * and availability are asked for fresh on every request regardless.
+ */
+const REVALIDATE_SECONDS = 60;
 
 async function apiGet<T>(
   path: string,
@@ -70,6 +80,22 @@ export function getConfig(locale: Locale): Promise<BusinessConfig> {
 export function getBanners(locale: Locale, limit = 10): Promise<Banner[]> {
   return apiGetList<Banner>(
     `/api/v1/customer/banner?limit=${limit}&offset=1`,
+    locale
+  );
+}
+
+/**
+ * The home screen's sections, in the panel's order.
+ *
+ * The site used to show main categories and pick its own order — featured
+ * first, six at most, empties filtered out — while the app showed the ten
+ * newest services. Neither matched the panel. Both now read this list: the
+ * active sub-categories that have a service, ordered by the panel's Sort order,
+ * each with its booking type.
+ */
+export function getHomeSections(locale: Locale): Promise<HomeSection[]> {
+  return apiGetList<HomeSection>(
+    "/api/v1/customer/category/home-sections",
     locale
   );
 }
@@ -277,6 +303,45 @@ export function getServiceDetail(
     locale,
     undefined
   );
+}
+
+/**
+ * The days and times the server will actually accept for this service.
+ *
+ * The site used to draw every half hour between the team's opening and closing
+ * and call them available, which said nothing about whether a cleaner was free
+ * — the customer picked one, paid, and the booking was refused or landed on
+ * nobody. The server answers for this length, this many cleaners and these
+ * add-ons, and leaves full times out.
+ */
+export async function fetchAvailableSlots(
+  input: {
+    serviceId: string;
+    variantKey: string;
+    professionalCount?: number;
+    needMaterials?: boolean;
+    addOns?: { id: string; quantity: number }[];
+    weekdays?: string[];
+  },
+  locale: Locale
+): Promise<AvailableDay[]> {
+  const query = new URLSearchParams({
+    service_id: input.serviceId,
+    variant_key: input.variantKey,
+    professional_count: String(input.professionalCount ?? 1),
+    need_materials: input.needMaterials ? "1" : "0",
+  });
+  if (input.addOns?.length) query.set("add_ons", JSON.stringify(input.addOns));
+  if (input.weekdays?.length) query.set("weekdays", input.weekdays.join(","));
+
+  const content = await apiGet<{ days?: AvailableDay[] } | null>(
+    `/api/v1/customer/booking/available-slots?${query.toString()}`,
+    locale,
+    null,
+    { cache: "no-store" }
+  );
+
+  return content?.days ?? [];
 }
 
 export function getServiceAddOns(

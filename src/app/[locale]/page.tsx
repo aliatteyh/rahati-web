@@ -5,10 +5,8 @@ import {
   getAdvertisements,
   getBanners,
   getCampaigns,
-  getFeaturedCategories,
-  withBookableServices,
+  getHomeSections,
   getNearbyProviders,
-  getCategories,
   getConfig,
   getPopularServices,
   formatPrice,
@@ -39,24 +37,17 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [categories, popular, config, banners, campaigns, featured, ads, providers] = await Promise.all([
-    getCategories(locale),
+  const [sections, popular, config, banners, campaigns, ads, providers] = await Promise.all([
+    getHomeSections(locale),
     getPopularServices(locale, 8),
     getConfig(locale),
     getBanners(locale),
     getCampaigns(locale),
-    getFeaturedCategories(locale),
     getAdvertisements(locale),
     getNearbyProviders(locale),
   ]);
   const currency = currencyLabel(config, locale);
 
-  // Featured lead, the rest follow, and anything with no service behind it is
-  // left out rather than offered and then apologised for.
-  const bookableCategories = await withBookableServices(
-    [...featured, ...categories.filter((c) => !featured.some((f) => f.id === c.id))],
-    locale
-  );
 
   const steps = [
     { title: dict.steps.s1Title, text: dict.steps.s1Text },
@@ -159,24 +150,15 @@ export default async function HomePage({
       </section>
 
       {/* Categories */}
-      {bookableCategories.length > 0 && (
+      {sections.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-16">
-          {/* No "see all" in the heading — it is the ninth tile in the row,
-              where someone looks once the eight on offer are not what they
-              wanted. */}
           <SectionHeader
             title={dict.sections.categories}
             subtitle={dict.sections.categoriesSub}
           />
-          {/* Featured first, then the rest — `is_featured` is an editorial
-              choice the admin makes and the site was throwing away. Categories
-              with nothing to book are dropped: the strip is a set of doors, and
-              none of them should open onto an empty room. */}
-          <CategoryStrip
-            categories={bookableCategories}
-            locale={locale}
-            seeAllLabel={dict.sections.seeAll}
-          />
+          {/* The panel's sections, in the panel's order — the same list the
+              app shows, so the two cannot disagree about what is on offer. */}
+          <CategoryStrip sections={sections} locale={locale} />
         </section>
       )}
 

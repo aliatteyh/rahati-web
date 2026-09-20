@@ -8,6 +8,24 @@ export interface Category {
   services_count?: number;
 }
 
+/**
+ * One section of the home screen: a sub-category customers book, as the panel
+ * orders them. The app reads the same list, so the two cannot drift apart.
+ */
+export interface HomeSection {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  image_full_path?: string | null;
+  /** `single`, `subscription`, `unit` or `addons`. */
+  booking_flow?: string | null;
+  sort_order?: number;
+  services_count?: number;
+  /** The one service in the section, when it holds only one. */
+  service_slug?: string | null;
+}
+
 export interface Service {
   /** The word on the featured badge; empty falls back to "Featured". */
   badge_text?: string | null;
@@ -35,6 +53,12 @@ export interface Service {
     campaign_discount?: DiscountLike[];
   } | null;
   variations?: ServiceVariation[];
+  /** How this sub-category is booked: `single`, `subscription`, `unit`, `addons`. */
+  booking_flow?: string | null;
+  /** Subscription lengths the panel sells, in months. */
+  subscription_months?: number[];
+  /** How long an add-ons-only visit must be, in minutes. */
+  addons_min_minutes?: number;
   faqs?: ServiceFaq[];
   tax?: number | string;
   service_discount?: DiscountLike[];
@@ -73,10 +97,13 @@ export interface RepeatTier {
 }
 
 export interface ServiceVariation {
+  /** What the panel calls it — a unit's name, where the service is sold by unit. */
   variant?: string;
   variant_key?: string;
   price?: number | string;
   duration_minutes?: number;
+  /** Cleaners the unit's fixed price already includes. */
+  cleaners_count?: number | null;
 }
 
 export interface ServiceFaq {
@@ -120,6 +147,19 @@ export interface AddOn {
   name: string;
   price?: number | string;
   image_full_path?: string | null;
+  /** A line per bullet on the card, in the customer's language. */
+  description?: string | null;
+  /** Minutes it adds to the visit. */
+  duration_minutes?: number;
+  /** The add-on's own rating, or the cleaners' until it has one. */
+  rating?: number;
+  rating_count?: number;
+}
+
+/** A day the customer can book, with the start times still free on it. */
+export interface AvailableDay {
+  date: string;
+  slots: string[];
 }
 
 /** A social account as the admin panel stores it. */

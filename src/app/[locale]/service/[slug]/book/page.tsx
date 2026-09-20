@@ -67,6 +67,9 @@ export default async function BookPage({
     key: v.variant_key || v.variant || "variant",
     price: toNumber(v.price),
     durationMinutes: v.duration_minutes ?? 60,
+    // A unit is picked by its name, and carries its own crew.
+    label: v.variant ?? null,
+    cleanersCount: v.cleaners_count ?? null,
   }));
   if (variants.length === 0) {
     variants.push({
@@ -92,6 +95,10 @@ export default async function BookPage({
     name: a.name,
     price: toNumber(a.price),
     image: a.image_full_path,
+    description: a.description ?? null,
+    durationMinutes: a.duration_minutes ?? 0,
+    rating: a.rating ?? 0,
+    ratingCount: a.rating_count ?? 0,
   }));
 
   return (
@@ -130,6 +137,11 @@ export default async function BookPage({
       maxDaysPerWeek={availability.max_days_per_week}
       providerId={service.service_availability?.provider_id ?? null}
       bookableProviders={bookableProviders}
+      // The panel decides which questions this service asks; the site no longer
+      // offers a mode the server would refuse.
+      bookingFlow={service.booking_flow ?? null}
+      subscriptionMonths={service.subscription_months ?? [1]}
+      addonsMinMinutes={service.addons_min_minutes ?? 60}
     />
   );
 }
