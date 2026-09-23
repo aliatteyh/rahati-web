@@ -2014,13 +2014,22 @@ export function BookingWizard({
           {/* Nav */}
           <div className="mt-8">
             {step < lastStep ? (
-              <button
-                type="button"
-                onClick={() => setStep((s) => s + 1)}
-                className="w-full rounded-full bg-accent px-6 py-3 font-semibold text-white transition hover:bg-accent-dark"
-              >
-                {dict.next}
-              </button>
+              <>
+                <button
+                  type="button"
+                  disabled={!canProceed}
+                  onClick={() => setStep((s) => s + 1)}
+                  className="w-full rounded-full bg-accent px-6 py-3 font-semibold text-white transition hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {dict.next}
+                </button>
+                {/* Why the button will not move, said where the button is. */}
+                {!canProceed && isSubscriptionFlow && stepKind === "details" && (
+                  <p className="mt-2 text-center text-xs text-muted">
+                    {dict.whichDays} {planWeekdays.length} / {planDaysPerWeek}
+                  </p>
+                )}
+              </>
             ) : (
               <>
                 <button
