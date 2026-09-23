@@ -819,6 +819,30 @@ export function BookingWizard({
         )
       : 0;
   const localCommitmentDiscount = (taxableBase * occurrenceCount * commitmentPercent) / 100;
+
+  /**
+   * What a plan would cost, for a choice the customer has not made yet.
+   *
+   * The commitment discount was only ever visible at the end, in the payment
+   * summary, once every choice was already made. Priced on the cards, the same
+   * arithmetic answers the question the customer is actually asking — is two
+   * visits a week worth it? — at the moment they are asking it.
+   */
+  function planPrice(daysPerWeek: number, months: number) {
+    // Four weeks to a month, which is how buildDates() lays the visits out.
+    const visits = Math.max(1, daysPerWeek * 4 * months);
+
+    const percent = repeatDiscountTiers.reduce(
+      (acc, t) =>
+        visits >= Number(t.min_services) ? Math.max(acc, Number(t.discount_percent) || 0) : acc,
+      0
+    );
+
+    const gross = taxableBase * visits;
+    const total = gross * (1 - percent / 100);
+
+    return { visits, percent, gross, total, perVisit: total / visits };
+  }
   // Shown instantly while the server quote is in flight; the server's number
   // replaces it as soon as it arrives, and is what the customer is charged.
   const localTotal = Math.max(
@@ -1278,7 +1302,15 @@ export function BookingWizard({
                           <span className="shrink-0 font-bold text-primary">{money(v.price)}</span>
                         </>
                       ) : (
-                        fmtDuration(v.durationMinutes)
+                        <>
+                          {fmtDuration(v.durationMinutes)}
+                          {/* What this length costs, on the card that offers
+                              it: comparing two options should not require
+                              choosing one and watching the total move. */}
+                          <span className="mt-0.5 block text-xs font-normal opacity-80">
+                            {money(v.price)}
+                          </span>
+                        </>
                       )}
                     </button>
                   ))}
@@ -1291,26 +1323,36 @@ export function BookingWizard({
                 <div className="space-y-4 rounded-xl border border-border bg-surface-soft p-4">
                   <div>
                     <p className="mb-2 text-sm font-semibold text-ink">{dict.daysPerWeekQuestion}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.from({ length: maxDaysPerWeek }, (_, i) => i + 1).map((count) => (
-                        <button
-                          key={count}
-                          type="button"
-                          onClick={() => {
-                            setPlanDaysPerWeek(count);
-                            setPlanWeekdays((current) =>
-                              current.length > count ? current.slice(current.length - count) : current
-                            );
-                          }}
-                          className={`h-10 w-10 rounded-full border text-sm font-semibold transition ${
-                            planDaysPerWeek === count
-                              ? "border-primary bg-primary text-white"
-                              : "border-border text-muted hover:border-primary"
-                          }`}
-                        >
-                          {count}
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {Array.from({ length: maxDaysPerWeek }, (_, i) => i + 1).map((count) => {
+                        const plan = planPrice(count, planMonths);
+                        return (
+                          <button
+                            key={count}
+                            type="button"
+                            onClick={() => {
+                              setPlanDaysPerWeek(count);
+                              setPlanWeekdays((current) =>
+                                current.length > count ? current.slice(current.length - count) : current
+                              );
+                            }}
+                            className={`rounded-xl border px-3 py-2 text-start transition ${
+                              planDaysPerWeek === count
+                                ? "border-primary bg-primary-light"
+                                : "border-border hover:border-primary"
+                            }`}
+                          >
+                            <span className="block text-sm font-semibold text-ink">
+                              {count} {count === 1 ? dict.visitAWeek : dict.visitsAWeek}
+                            </span>
+                            {/* The price of one visit under this plan: the
+                                figure that makes more visits worth choosing. */}
+                            <span className="block text-xs text-muted">
+                              {money(plan.perVisit)} {dict.perVisit}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1351,20 +1393,40 @@ export function BookingWizard({
                     <div>
                       <p className="mb-2 text-sm font-semibold text-ink">{dict.planLengthQuestion}</p>
                       <div className="flex flex-wrap gap-2">
-                        {subscriptionMonths.map((months) => (
-                          <button
-                            key={months}
-                            type="button"
-                            onClick={() => setPlanMonths(months)}
-                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                              planMonths === months
-                                ? "border-primary bg-primary text-white"
-                                : "border-border text-muted hover:border-primary"
-                            }`}
-                          >
-                            {months} {months === 1 ? dict.month : dict.months}
-                          </button>
-                        ))}
+                        {subscriptionMonths.map((months) => {
+                          const plan = planPrice(planDaysPerWeek, months);
+                          return (
+                            <button
+                              key={months}
+                              type="button"
+                              onClick={() => setPlanMonths(months)}
+                              className={`rounded-xl border px-3 py-2 text-start transition ${
+                                planMonths === months
+                                  ? "border-primary bg-primary-light"
+                                  : "border-border hover:border-primary"
+                              }`}
+                            >
+                              <span className="block text-sm font-semibold text-ink">
+                                {months} {months === 1 ? dict.month : dict.months}
+                              </span>
+                              <span className="block text-sm font-bold text-primary">
+                                {money(plan.total)}
+                                {/* The price before the commitment came off,
+                                    struck through — a discount nobody sees is
+                                    a discount nobody values. */}
+                                {plan.percent > 0 && (
+                                  <span className="ms-1 text-xs font-normal text-muted line-through">
+                                    {money(plan.gross)}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="block text-xs text-muted">
+                                {money(plan.perVisit)} {dict.perVisit}
+                                {plan.percent > 0 ? ` · ${plan.percent}% ${dict.off}` : ""}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
