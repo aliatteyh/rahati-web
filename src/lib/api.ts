@@ -895,6 +895,9 @@ export interface QuoteInput {
   variantKey: string;
   quantity: number;
   professionalCount: number;
+  /** The two halves of a plan, so the server rewards each on its own. */
+  planDaysPerWeek?: number;
+  planMonths?: number;
   needMaterials: boolean;
   addOns: { id: string; quantity: number }[];
 }
@@ -927,6 +930,8 @@ export async function fetchBookingQuote(
         variant_key: input.variantKey,
         quantity: input.quantity,
         professional_count: input.professionalCount,
+        plan_days_per_week: input.planDaysPerWeek ?? null,
+        plan_months: input.planMonths ?? null,
         need_materials: input.needMaterials ? 1 : 0,
         add_ons: input.addOns,
       }),

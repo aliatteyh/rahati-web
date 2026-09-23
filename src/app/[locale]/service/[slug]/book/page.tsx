@@ -70,6 +70,7 @@ export default async function BookPage({
     // A unit is picked by its name, and carries its own crew.
     label: v.variant ?? null,
     cleanersCount: v.cleaners_count ?? null,
+    materialCharge: v.material_charge != null ? toNumber(v.material_charge) : null,
   }));
   if (variants.length === 0) {
     variants.push({
@@ -130,6 +131,14 @@ export default async function BookPage({
       repeatDiscountTiers={
         (config as unknown as { repeat_discount_tiers?: { min_services: number; discount_percent: number }[] })
           .repeat_discount_tiers ?? []
+      }
+      planDayTiers={
+        (config as unknown as { plan_days_discount_tiers?: { days: number; discount_percent: number }[] })
+          .plan_days_discount_tiers ?? []
+      }
+      planMonthTiers={
+        (config as unknown as { plan_month_bonus_tiers?: { months: number; bonus_percent: number }[] })
+          .plan_month_bonus_tiers ?? []
       }
       servicePackages={servicePackages}
       selectableWeekdays={availability.selectable_weekdays}

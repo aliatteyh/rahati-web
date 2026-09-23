@@ -25,6 +25,8 @@ export interface WizardVariant {
   label?: string | null;
   /** For a service booked by unit: the cleaners its fixed price includes. */
   cleanersCount?: number | null;
+  /** What materials cost for a visit of this length, when the panel says. */
+  materialCharge?: number | null;
 }
 export interface WizardAddOn {
   id: string;
@@ -89,6 +91,10 @@ export interface BookingWizardProps {
   subscriptionMonths?: number[];
   /** How long an add-ons-only visit must be, in minutes. */
   addonsMinMinutes?: number;
+  /** The discount for that many visits a week, as the panel sets it. */
+  planDayTiers?: { days: number; discount_percent: number }[];
+  /** And the bonus on top for committing to that many months. */
+  planMonthTiers?: { months: number; bonus_percent: number }[];
 }
 
 /** Saturday first, matching how the admin panel lists the week. */
@@ -191,6 +197,8 @@ export function BookingWizard({
   bookingFlow = null,
   subscriptionMonths = [1],
   addonsMinMinutes = 60,
+  planDayTiers = [],
+  planMonthTiers = [],
 }: BookingWizardProps) {
   const safeVariants: WizardVariant[] =
     variants.length > 0 ? variants : [{ key: "default", price: 0, durationMinutes: 60 }];
@@ -701,6 +709,8 @@ export function BookingWizard({
           // applies the package discount instead of the commitment tier.
           // Only when the customer actually chose; otherwise the server picks.
           provider_id: chosenProviderId,
+          plan_days_per_week: isSubscriptionFlow ? planDaysPerWeek : null,
+          plan_months: isSubscriptionFlow ? planMonths : null,
           service_package_id: isPackageMode ? packageId : null,
           package_days_per_week:
             isPackageMode ? packageQuote?.days_per_week ?? null : null,
@@ -788,7 +798,13 @@ export function BookingWizard({
   // the visit however many people arrive.
   // Kept whether or not materials are selected, so the two options can be
   // priced side by side — the customer compares totals, not a rate.
-  const materialCost = Math.round(materialCharge * (variant.durationMinutes / 60) * 100) / 100;
+  // The panel may price the materials for this length of visit outright;
+  // otherwise the hourly rate still answers. Consumption does not follow a
+  // straight line, and the flat price is what the server will charge.
+  const materialCost =
+    variant.materialCharge != null
+      ? variant.materialCharge
+      : Math.round(materialCharge * (variant.durationMinutes / 60) * 100) / 100;
   const materialsFee = materials ? materialCost : 0;
   const itemsSubtotal = serviceAmount + materialsFee + addOnsTotal;
 
@@ -832,16 +848,47 @@ export function BookingWizard({
     // Four weeks to a month, which is how buildDates() lays the visits out.
     const visits = Math.max(1, daysPerWeek * 4 * months);
 
-    const percent = repeatDiscountTiers.reduce(
-      (acc, t) =>
-        visits >= Number(t.min_services) ? Math.max(acc, Number(t.discount_percent) || 0) : acc,
-      0
-    );
+    // Two ladders where the panel has them: how often the cleaner comes, and
+    // how long the plan runs. Without them, the older visits ladder — which
+    // could not tell a long plan from a busy month.
+    const percent = planDayTiers.length
+      ? Math.min(
+          100,
+          planDayTiers.reduce(
+            (acc, t) => (daysPerWeek >= Number(t.days) ? Math.max(acc, Number(t.discount_percent) || 0) : acc),
+            0
+          ) +
+            planMonthTiers.reduce(
+              (acc, t) => (months >= Number(t.months) ? Math.max(acc, Number(t.bonus_percent) || 0) : acc),
+              0
+            )
+        )
+      : repeatDiscountTiers.reduce(
+          (acc, t) =>
+            visits >= Number(t.min_services) ? Math.max(acc, Number(t.discount_percent) || 0) : acc,
+          0
+        );
 
+    // Materials are bought in, not marked up, so the discount leaves them
+    // alone — the same rule the server prices by.
+    const discountable = Math.max(0, taxableBase - materialsFee);
     const gross = taxableBase * visits;
-    const total = gross * (1 - percent / 100);
+    const total = gross - (discountable * visits * percent) / 100;
 
     return { visits, percent, gross, total, perVisit: total / visits };
+  }
+
+  /** The cheapest a visit of this length can be: the deepest plan on offer. */
+  function fromPrice(unitPrice: number) {
+    const deepest = planDayTiers.length
+      ? Math.min(
+          100,
+          planDayTiers.reduce((acc, t) => Math.max(acc, Number(t.discount_percent) || 0), 0) +
+            planMonthTiers.reduce((acc, t) => Math.max(acc, Number(t.bonus_percent) || 0), 0)
+        )
+      : 0;
+
+    return unitPrice * (1 - deepest / 100);
   }
   // Shown instantly while the server quote is in flight; the server's number
   // replaces it as soon as it arrives, and is what the customer is charged.
@@ -864,6 +911,9 @@ export function BookingWizard({
     m: materials,
     a: [...selectedAddOns].sort(),
     d: quoteDates,
+    // Part of the price now, so a change to either has to re-quote.
+    w: planDaysPerWeek,
+    mo: planMonths,
   });
 
   useEffect(() => {
@@ -883,6 +933,10 @@ export function BookingWizard({
             needMaterials: materials,
             addOns: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
             dates: quoteDates,
+            // The plan's two halves, so the server prices the commitment the
+            // same way the cards above it do.
+            planDaysPerWeek: isSubscriptionFlow ? planDaysPerWeek : undefined,
+            planMonths: isSubscriptionFlow ? planMonths : undefined,
           }),
         });
         if (!res.ok) return;
@@ -1306,9 +1360,13 @@ export function BookingWizard({
                           {fmtDuration(v.durationMinutes)}
                           {/* What this length costs, on the card that offers
                               it: comparing two options should not require
-                              choosing one and watching the total move. */}
+                              choosing one and watching the total move. On a
+                              plan the cheapest reachable price leads, because
+                              that is the one the customer is shopping for. */}
                           <span className="mt-0.5 block text-xs font-normal opacity-80">
-                            {money(v.price)}
+                            {isSubscriptionFlow
+                              ? `${dict.fromPrice} ${money(fromPrice(v.price))}`
+                              : money(v.price)}
                           </span>
                         </>
                       )}

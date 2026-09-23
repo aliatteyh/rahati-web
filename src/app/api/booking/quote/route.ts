@@ -21,6 +21,8 @@ export async function POST(request: Request) {
       variantKey,
       quantity: Number(body.quantity ?? 1),
       professionalCount: Number(body.professionalCount ?? 1),
+      planDaysPerWeek: body.planDaysPerWeek ? Number(body.planDaysPerWeek) : undefined,
+      planMonths: body.planMonths ? Number(body.planMonths) : undefined,
       needMaterials: Boolean(body.needMaterials),
       addOns: Array.isArray(body.addOns)
         ? body.addOns.map((a: { id: string; quantity?: number }) => ({

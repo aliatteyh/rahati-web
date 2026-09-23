@@ -310,6 +310,7 @@
     "configureTitle": "Configure your service",
     "hoursQuestion": "How long do you need your professional to stay?",
     "professionalsQuestion": "How many professionals do you need?",
+    "fromPrice": "from",
     "visitAWeek": "visit a week",
     "visitsAWeek": "visits a week",
     "perVisit": "each visit",

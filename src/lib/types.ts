@@ -104,6 +104,8 @@ export interface ServiceVariation {
   duration_minutes?: number;
   /** Cleaners the unit's fixed price already includes. */
   cleaners_count?: number | null;
+  /** What materials cost for a visit of this length, flat, per visit. */
+  material_charge?: number | null;
 }
 
 export interface ServiceFaq {
