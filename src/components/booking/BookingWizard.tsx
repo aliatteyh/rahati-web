@@ -1152,7 +1152,12 @@ export function BookingWizard({
   const canProceed =
     stepKind === "addons" && isAddonsFlow
       ? missingAddOnMinutes === 0
-      : step < lastStep || (timeSlot !== null && recurringValid);
+      : // A plan's days are chosen on the first step now, so the first step is
+        // where an unfinished plan has to stop: reaching the calendar with no
+        // weekdays picked would build a schedule of nothing.
+        stepKind === "details" && isSubscriptionFlow
+        ? recurringValid
+        : step < lastStep || (timeSlot !== null && recurringValid);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -1279,6 +1284,93 @@ export function BookingWizard({
                   ))}
                 </div>
               </div>
+              )}
+
+              {/* A subscription: how many days a week, which days, how long. */}
+              {isSubscriptionFlow && (
+                <div className="space-y-4 rounded-xl border border-border bg-surface-soft p-4">
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-ink">{dict.daysPerWeekQuestion}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from({ length: maxDaysPerWeek }, (_, i) => i + 1).map((count) => (
+                        <button
+                          key={count}
+                          type="button"
+                          onClick={() => {
+                            setPlanDaysPerWeek(count);
+                            setPlanWeekdays((current) =>
+                              current.length > count ? current.slice(current.length - count) : current
+                            );
+                          }}
+                          className={`h-10 w-10 rounded-full border text-sm font-semibold transition ${
+                            planDaysPerWeek === count
+                              ? "border-primary bg-primary text-white"
+                              : "border-border text-muted hover:border-primary"
+                          }`}
+                        >
+                          {count}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-ink">{dict.whichDays}</p>
+                      <span className="text-xs text-muted">
+                        {planWeekdays.length} / {planDaysPerWeek}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[6, 7, 1, 2, 3, 4, 5].map((iso) => {
+                        const picked = planWeekdays.includes(iso);
+                        const off = activeOffDays.includes(iso) || !selectableWeekdays.includes(iso);
+                        return (
+                          <button
+                            key={iso}
+                            type="button"
+                            disabled={off}
+                            title={off ? dict.providerOffDay : undefined}
+                            onClick={() => togglePlanWeekday(iso)}
+                            className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                              off
+                                ? "cursor-not-allowed border-border text-muted/40 line-through"
+                                : picked
+                                  ? "border-primary bg-primary text-white"
+                                  : "border-border text-muted hover:border-primary"
+                            }`}
+                          >
+                            {weekdayNames[iso === 7 ? 0 : iso]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {subscriptionMonths.length > 1 && (
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-ink">{dict.planLengthQuestion}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {subscriptionMonths.map((months) => (
+                          <button
+                            key={months}
+                            type="button"
+                            onClick={() => setPlanMonths(months)}
+                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                              planMonths === months
+                                ? "border-primary bg-primary text-white"
+                                : "border-border text-muted hover:border-primary"
+                            }`}
+                          >
+                            {months} {months === 1 ? dict.month : dict.months}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted">{dict.offDaysNote}</p>
+                </div>
               )}
 
               {/* Professionals — a unit's crew is the panel's, not a choice. */}
@@ -1847,93 +1939,6 @@ export function BookingWizard({
                     <p className="text-xs text-muted">{dict.offDaysNote}</p>
                   </div>
                 )}
-
-              {/* A subscription: how many days a week, which days, how long. */}
-              {isSubscriptionFlow && (
-                <div className="space-y-4 rounded-xl border border-border bg-surface-soft p-4">
-                  <div>
-                    <p className="mb-2 text-sm font-semibold text-ink">{dict.daysPerWeekQuestion}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.from({ length: maxDaysPerWeek }, (_, i) => i + 1).map((count) => (
-                        <button
-                          key={count}
-                          type="button"
-                          onClick={() => {
-                            setPlanDaysPerWeek(count);
-                            setPlanWeekdays((current) =>
-                              current.length > count ? current.slice(current.length - count) : current
-                            );
-                          }}
-                          className={`h-10 w-10 rounded-full border text-sm font-semibold transition ${
-                            planDaysPerWeek === count
-                              ? "border-primary bg-primary text-white"
-                              : "border-border text-muted hover:border-primary"
-                          }`}
-                        >
-                          {count}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-ink">{dict.whichDays}</p>
-                      <span className="text-xs text-muted">
-                        {planWeekdays.length} / {planDaysPerWeek}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {[6, 7, 1, 2, 3, 4, 5].map((iso) => {
-                        const picked = planWeekdays.includes(iso);
-                        const off = activeOffDays.includes(iso) || !selectableWeekdays.includes(iso);
-                        return (
-                          <button
-                            key={iso}
-                            type="button"
-                            disabled={off}
-                            title={off ? dict.providerOffDay : undefined}
-                            onClick={() => togglePlanWeekday(iso)}
-                            className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                              off
-                                ? "cursor-not-allowed border-border text-muted/40 line-through"
-                                : picked
-                                  ? "border-primary bg-primary text-white"
-                                  : "border-border text-muted hover:border-primary"
-                            }`}
-                          >
-                            {weekdayNames[iso === 7 ? 0 : iso]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {subscriptionMonths.length > 1 && (
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-ink">{dict.planLengthQuestion}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {subscriptionMonths.map((months) => (
-                          <button
-                            key={months}
-                            type="button"
-                            onClick={() => setPlanMonths(months)}
-                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                              planMonths === months
-                                ? "border-primary bg-primary text-white"
-                                : "border-border text-muted hover:border-primary"
-                            }`}
-                          >
-                            {months} {months === 1 ? dict.month : dict.months}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <p className="text-xs text-muted">{dict.offDaysNote}</p>
-                </div>
-              )}
 
               {/* Date */}
               {(() => {
