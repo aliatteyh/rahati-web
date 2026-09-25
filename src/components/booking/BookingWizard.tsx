@@ -423,6 +423,19 @@ export function BookingWizard({
   const money = (n: number) =>
     `${currency} ${formatNumber(n, locale)}`;
 
+  /**
+   * A price, always to two decimals.
+   *
+   * The plan cards read "AED 58.8" beside the app's "AED 58.80", and a struck
+   * price sat flush against the price beside it — "AED 235.2AED 280" — which
+   * is not a price at all until you have worked out where one number ends.
+   */
+  const priceExact = (n: number) =>
+    `${currency} ${formatNumber(n, locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
   /** Tapping a day past the chosen count drops the oldest, never refuses. */
   function togglePlanWeekday(iso: number) {
     setPlanWeekdays((current) => {
@@ -1406,7 +1419,7 @@ export function BookingWizard({
                             {/* The price of one visit under this plan: the
                                 figure that makes more visits worth choosing. */}
                             <span className="block text-xs text-muted">
-                              {money(plan.perVisit)} {dict.perVisit}
+                              {priceExact(plan.perVisit)} {dict.perVisit}
                             </span>
                           </button>
                         );
@@ -1446,48 +1459,6 @@ export function BookingWizard({
                       })}
                     </div>
                   </div>
-
-                  {subscriptionMonths.length > 1 && (
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-ink">{dict.planLengthQuestion}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {subscriptionMonths.map((months) => {
-                          const plan = planPrice(planDaysPerWeek, months);
-                          return (
-                            <button
-                              key={months}
-                              type="button"
-                              onClick={() => setPlanMonths(months)}
-                              className={`rounded-xl border px-3 py-2 text-start transition ${
-                                planMonths === months
-                                  ? "border-primary bg-primary-light"
-                                  : "border-border hover:border-primary"
-                              }`}
-                            >
-                              <span className="block text-sm font-semibold text-ink">
-                                {months} {months === 1 ? dict.month : dict.months}
-                              </span>
-                              <span className="block text-sm font-bold text-primary">
-                                {money(plan.total)}
-                                {/* The price before the commitment came off,
-                                    struck through — a discount nobody sees is
-                                    a discount nobody values. */}
-                                {plan.percent > 0 && (
-                                  <span className="ms-1 text-xs font-normal text-muted line-through">
-                                    {money(plan.gross)}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="block text-xs text-muted">
-                                {money(plan.perVisit)} {dict.perVisit}
-                                {plan.percent > 0 ? ` · ${plan.percent}% ${dict.off}` : ""}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
 
                   <p className="text-xs text-muted">{dict.offDaysNote}</p>
                 </div>
@@ -1605,6 +1576,57 @@ export function BookingWizard({
                   </p>
                 )}
               </div>
+
+              {/* How long the plan runs.
+                  Asked after the materials, not before: the cards price a
+                  whole plan, and a plan priced without the materials the
+                  customer is about to add shows a total they will never be
+                  charged. The app asks in this order for the same reason. */}
+              {isSubscriptionFlow && subscriptionMonths.length > 1 && (
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-ink">{dict.planLengthQuestion}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {subscriptionMonths.map((months) => {
+                          const plan = planPrice(planDaysPerWeek, months);
+                          return (
+                            <button
+                              key={months}
+                              type="button"
+                              onClick={() => setPlanMonths(months)}
+                              className={`rounded-xl border px-3 py-2 text-start transition ${
+                                planMonths === months
+                                  ? "border-primary bg-primary-light"
+                                  : "border-border hover:border-primary"
+                              }`}
+                            >
+                              <span className="block text-sm font-semibold text-ink">
+                                {months} {months === 1 ? dict.month : dict.months}
+                              </span>
+                              <span className="block text-sm font-bold text-primary">
+                                {priceExact(plan.total)}
+                                {/* The price before the commitment came off,
+                                    struck through — a discount nobody sees is
+                                    a discount nobody values. */}
+                                {plan.percent > 0 && (
+                                  <span className="ms-2 text-xs font-normal text-muted line-through">
+                                    {priceExact(plan.gross)}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="block text-xs text-muted">
+                                {plan.visits} {dict.visits} · {priceExact(plan.perVisit)} {dict.perVisit}
+                              </span>
+                              {plan.percent > 0 && (
+                                <span className="mt-0.5 block text-xs font-semibold text-primary">
+                                  {plan.percent}% {dict.off}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
               {/* Instructions */}
               <div>
