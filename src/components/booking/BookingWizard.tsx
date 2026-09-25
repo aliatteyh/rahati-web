@@ -1633,6 +1633,24 @@ export function BookingWizard({
                                   {plan.percent}% {dict.off}
                                 </span>
                               )}
+                              {/* What the plan actually is, in plain facts.
+                                  A price and a percentage say what it costs;
+                                  these say what arrives — and the cleaner
+                                  being the same one every week is the reason
+                                  to commit, which no discount replaces. */}
+                              <span className="mt-2 block space-y-0.5 text-xs text-muted">
+                                <span className="block">
+                                  • {plan.visits} {dict.visits} · {planDaysPerWeek}{" "}
+                                  {planDaysPerWeek === 1 ? dict.visitAWeek : dict.visitsAWeek}
+                                </span>
+                                <span className="block">
+                                  • {fmtDuration(variant.durationMinutes)} {dict.perVisit}
+                                </span>
+                                <span className="block">• {dict.sameCleaner}</span>
+                                <span className="block">
+                                  • {materials ? dict.materialsYes : dict.materialsNo}
+                                </span>
+                              </span>
                             </button>
                           );
                         })}
