@@ -901,7 +901,10 @@ export function BookingWizard({
         )
       : 0;
 
-    return unitPrice * (1 - deepest / 100);
+    // Rounded down to a whole dirham: the fils on a starting price are noise
+    // — "From AED 46" is read, "From AED 46.20" is puzzled over — and rounding
+    // down keeps the promise reachable rather than a few fils short of it.
+    return Math.floor(unitPrice * (1 - deepest / 100));
   }
   // Shown instantly while the server quote is in flight; the server's number
   // replaces it as soon as it arrives, and is what the customer is charged.
