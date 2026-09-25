@@ -882,11 +882,11 @@ export function BookingWizard({
           0
         );
 
-    // Materials are bought in, not marked up, so the discount leaves them
-    // alone — the same rule the server prices by.
-    const discountable = Math.max(0, taxableBase - materialsFee);
+    // Materials are inside the discount, like everything else on the visit:
+    // a saving that shrank when the customer added them read as a discount
+    // withdrawn. The server prices it the same way.
     const gross = taxableBase * visits;
-    const total = gross - (discountable * visits * percent) / 100;
+    const total = gross * (1 - percent / 100);
 
     return { visits, percent, gross, total, perVisit: total / visits };
   }
@@ -1374,13 +1374,18 @@ export function BookingWizard({
                           {/* What this length costs, on the card that offers
                               it: comparing two options should not require
                               choosing one and watching the total move. On a
-                              plan the cheapest reachable price leads, because
-                              that is the one the customer is shopping for. */}
+                              plan the cheapest reachable price leads, marked
+                              as a starting price — it is what the customer is
+                              shopping for, and it is honest only while the
+                              deepest plan really does reach it. */}
                           <span className="mt-0.5 block text-xs font-normal opacity-80">
-                            {isSubscriptionFlow
-                              ? `${dict.fromPrice} ${money(fromPrice(v.price))}`
-                              : money(v.price)}
+                            {priceExact(isSubscriptionFlow ? fromPrice(v.price) : v.price)}
                           </span>
+                          {isSubscriptionFlow && (
+                            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              {dict.fromPrice}
+                            </span>
+                          )}
                         </>
                       )}
                     </button>
