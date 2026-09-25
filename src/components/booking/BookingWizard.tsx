@@ -1389,6 +1389,55 @@ export function BookingWizard({
               </div>
               )}
 
+              {/* Materials — included in a unit's fixed price. */}
+              <div className={isUnitFlow ? "hidden" : undefined}>
+                <p className="mb-3 font-semibold text-ink">{dict.materialsQuestion}</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {([false, true] as const).map((wants) => {
+                    const selected = wants === materials;
+                    const price = wants ? priceWithMaterials : priceWithoutMaterials;
+                    return (
+                      <button
+                        key={String(wants)}
+                        type="button"
+                        onClick={() => setMaterials(wants)}
+                        className={`rounded-xl border p-4 text-start transition ${
+                          selected
+                            ? "border-primary bg-primary-light"
+                            : "border-border bg-surface hover:border-primary"
+                        }`}
+                      >
+                        <span
+                          className={`block text-sm font-medium ${
+                            selected ? "text-primary-dark" : "text-ink"
+                          }`}
+                        >
+                          {wants ? dict.materialsYes : dict.materialsNo}
+                        </span>
+                        {/* What this choice adds, not what the booking then
+                            costs: "+AED 0" beside "+AED 18" is one comparison,
+                            where two totals are a subtraction the customer has
+                            to do in their head. */}
+                        <span className="mt-1 block text-lg font-bold text-ink">
+                          + {priceExact(wants ? materialCost : 0)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Say the rate out loud: a per-hour charge is a surprise on the
+                    invoice unless the customer sees how it was reached. */}
+                {materials && materialsFee > 0 && (
+                  <p className="mt-2 text-xs text-muted">
+                    {dict.materialsRateNote
+                      .replace("{rate}", money(materialCharge))
+                      .replace("{hours}", String(variant.durationMinutes / 60))
+                      .replace("{total}", money(materialsFee))}
+                  </p>
+                )}
+              </div>
+
               {/* A subscription: how many days a week, which days, how long. */}
               {isSubscriptionFlow && (
                 <div className="space-y-4 rounded-xl border border-border bg-surface-soft p-4">
@@ -1531,51 +1580,6 @@ export function BookingWizard({
                   a choice that was never theirs, and the default they picked
                   ("any available") left the booking with nobody on it. The
                   server assigns a qualified team at booking time instead. */}
-
-              {/* Materials — included in a unit's fixed price. */}
-              <div className={isUnitFlow ? "hidden" : undefined}>
-                <p className="mb-3 font-semibold text-ink">{dict.materialsQuestion}</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {([false, true] as const).map((wants) => {
-                    const selected = wants === materials;
-                    const price = wants ? priceWithMaterials : priceWithoutMaterials;
-                    return (
-                      <button
-                        key={String(wants)}
-                        type="button"
-                        onClick={() => setMaterials(wants)}
-                        className={`rounded-xl border p-4 text-start transition ${
-                          selected
-                            ? "border-primary bg-primary-light"
-                            : "border-border bg-surface hover:border-primary"
-                        }`}
-                      >
-                        <span
-                          className={`block text-sm font-medium ${
-                            selected ? "text-primary-dark" : "text-ink"
-                          }`}
-                        >
-                          {wants ? dict.materialsYes : dict.materialsNo}
-                        </span>
-                        <span className="mt-1 block text-lg font-bold text-ink">
-                          {money(price)}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Say the rate out loud: a per-hour charge is a surprise on the
-                    invoice unless the customer sees how it was reached. */}
-                {materials && materialsFee > 0 && (
-                  <p className="mt-2 text-xs text-muted">
-                    {dict.materialsRateNote
-                      .replace("{rate}", money(materialCharge))
-                      .replace("{hours}", String(variant.durationMinutes / 60))
-                      .replace("{total}", money(materialsFee))}
-                  </p>
-                )}
-              </div>
 
               {/* How long the plan runs.
                   Asked after the materials, not before: the cards price a
