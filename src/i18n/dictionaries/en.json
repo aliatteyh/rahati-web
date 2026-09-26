@@ -590,5 +590,20 @@
     "all": "All",
     "empty": "No articles published yet.",
     "readNext": "Read next"
+  },
+  "offers": {
+    "offersEyebrow": "Limited-time offers",
+    "offersTitle": "Save more this season",
+    "offersHint": "Enter the code at checkout, or tap “Use offer” to apply it automatically.",
+    "useOffer": "Use offer",
+    "endsIn": "Offer ends in",
+    "endingSoon": "Ending soon",
+    "noThanks": "No thanks",
+    "close": "Close",
+    "bookNow": "Book now",
+    "days": "days",
+    "hours": "hrs",
+    "minutes": "min",
+    "seconds": "sec"
   }
 }

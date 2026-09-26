@@ -10,6 +10,9 @@ import { isLoggedIn } from "@/lib/session";
 import { SITE_URL, absoluteUrl, alternatesFor, ogLocale } from "@/lib/seo";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { PromoBar } from "@/components/offers/PromoBar";
+import { OfferPopup } from "@/components/offers/OfferPopup";
+import { getOffers } from "@/lib/api";
 import { Analytics } from "@/components/seo/Analytics";
 import { GoogleTagManager } from "@/components/seo/GoogleTagManager";
 
@@ -94,9 +97,10 @@ export default async function LocaleLayout({
 
   const typedLocale = locale as Locale;
   const dict = getDictionary(typedLocale);
-  const [config, loggedIn] = await Promise.all([
+  const [config, loggedIn, offers] = await Promise.all([
     getConfig(typedLocale),
     isLoggedIn(),
+    getOffers(typedLocale),
   ]);
 
   return (
@@ -104,9 +108,25 @@ export default async function LocaleLayout({
       <body className="min-h-screen bg-surface text-ink">
         {/* First inside <body>, where Google's own snippet expects it. */}
         <GoogleTagManager />
+        {/* Above the header, so it reads as an announcement about the site
+            rather than as part of the navigation. */}
+        <PromoBar
+          offers={offers.bar}
+          serverTime={offers.server_time}
+          locale={typedLocale}
+          dict={dict.offers}
+        />
         <SiteHeader locale={typedLocale} dict={dict} config={config} isLoggedIn={loggedIn} />
         <main>{children}</main>
         <SiteFooter locale={typedLocale} dict={dict} config={config} />
+        {/* In the layout rather than on the home page: a visitor who arrives
+            on a service page from a search result is just as new. */}
+        <OfferPopup
+          offer={offers.popup}
+          serverTime={offers.server_time}
+          locale={typedLocale}
+          dict={dict.offers}
+        />
         <Analytics />
       </body>
     </html>

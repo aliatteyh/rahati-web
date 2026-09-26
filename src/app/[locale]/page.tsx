@@ -2,6 +2,7 @@ import Link from "next/link";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import {
+  getOffers,
   getAdvertisements,
   getBanners,
   getCampaigns,
@@ -16,6 +17,7 @@ import {
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { SearchBox } from "@/components/search/SearchBox";
 import { CampaignCarousel } from "@/components/home/CampaignCarousel";
+import { OffersSection } from "@/components/offers/OffersSection";
 import { AdvertisementRail } from "@/components/home/AdvertisementRail";
 import { CategoryStrip } from "@/components/home/CategoryStrip";
 import { HomeHighlights } from "@/components/home/HomeHighlights";
@@ -37,7 +39,7 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [sections, popular, config, banners, campaigns, ads, providers] = await Promise.all([
+  const [sections, popular, config, banners, campaigns, ads, providers, offers] = await Promise.all([
     getHomeSections(locale),
     getPopularServices(locale, 8),
     getConfig(locale),
@@ -45,6 +47,7 @@ export default async function HomePage({
     getCampaigns(locale),
     getAdvertisements(locale),
     getNearbyProviders(locale),
+    getOffers(locale),
   ]);
   const currency = currencyLabel(config, locale);
 
@@ -230,6 +233,17 @@ export default async function HomePage({
 
       {/* Campaigns — the discount already applies at checkout; without this the
           customer only met a running promotion by opening one of its services. */}
+      {/* The announced offers, between the hero and everything else: a
+          limited-time offer that appears below the fold has already lost most
+          of the urgency it was written with. */}
+      <OffersSection
+        featured={offers.featured}
+        cards={offers.cards}
+        serverTime={offers.server_time}
+        locale={locale}
+        dict={dict.offers}
+      />
+
       {campaigns.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-16">
           <SectionHeader

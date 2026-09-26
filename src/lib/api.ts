@@ -1034,6 +1034,60 @@ export function serviceFromDuration(service: {
   return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
 }
 
+/** One announced offer, as the four placements need it. */
+export type Offer = {
+  id: string;
+  code: string;
+  tag: string;
+  big_number: string | null;
+  headline: string;
+  description: string;
+  discount_amount: number;
+  discount_amount_type: "percent" | "amount";
+  ends_at: string | null;
+  service_id: string | null;
+  service_slug: string | null;
+  min_hours: number;
+  weekdays: string[] | null;
+  new_customers_only: boolean;
+  image: string | null;
+};
+
+export type Offers = {
+  /**
+   * The server's own clock, sent so a countdown never trusts the device's.
+   * A machine an hour out would otherwise show a live offer as finished.
+   */
+  server_time: string;
+  bar: Offer[];
+  featured: Offer | null;
+  cards: Offer[];
+  popup: Offer | null;
+};
+
+const NO_OFFERS: Offers = {
+  server_time: new Date().toISOString(),
+  bar: [],
+  featured: null,
+  cards: [],
+  popup: null,
+};
+
+/**
+ * The announced offers, all four placements at once.
+ *
+ * Never cached: an offer that ended two minutes ago must stop being
+ * advertised, and every one of these carries a countdown that a stale
+ * response would render wrong from the first tick.
+ */
+export async function getOffers(locale: Locale): Promise<Offers> {
+  const offers = await apiGet<Offers>("/api/v1/customer/offers", locale, NO_OFFERS, {
+    cache: "no-store",
+  });
+
+  return { ...NO_OFFERS, ...offers };
+}
+
 export function serviceFromPrice(service: {
   variations?: { price?: number | string | null }[];
   starting_price?: number | string | null;
