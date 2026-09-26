@@ -5,7 +5,6 @@ import {
   getOffers,
   getAdvertisements,
   getBanners,
-  getCampaigns,
   getHomeSections,
   getNearbyProviders,
   getConfig,
@@ -16,7 +15,6 @@ import {
 } from "@/lib/api";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { SearchBox } from "@/components/search/SearchBox";
-import { CampaignCarousel } from "@/components/home/CampaignCarousel";
 import { OffersSection } from "@/components/offers/OffersSection";
 import { AdvertisementRail } from "@/components/home/AdvertisementRail";
 import { CategoryStrip } from "@/components/home/CategoryStrip";
@@ -39,12 +37,11 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [sections, popular, config, banners, campaigns, ads, providers, offers] = await Promise.all([
+  const [sections, popular, config, banners, ads, providers, offers] = await Promise.all([
     getHomeSections(locale),
     getPopularServices(locale, 8),
     getConfig(locale),
     getBanners(locale),
-    getCampaigns(locale),
     getAdvertisements(locale),
     getNearbyProviders(locale),
     getOffers(locale),
@@ -244,20 +241,12 @@ export default async function HomePage({
         dict={dict.offers}
       />
 
-      {campaigns.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pt-16">
-          <SectionHeader
-            title={dict.campaign.title}
-            subtitle={dict.campaign.subtitle}
-          />
-          <CampaignCarousel
-            campaigns={campaigns}
-            locale={locale}
-            offLabel={dict.campaign.off}
-            intervalSeconds={Number(config.campaign_slider_interval ?? 0)}
-          />
-        </section>
-      )}
+      {/* The vendor's campaign carousel used to sit here. Two "limited-time
+          offers" sections on one page asked the reader to work out which one
+          was the real offer — and the old one cannot show a code, a countdown
+          or a Use-offer button, because a vendor campaign has none of those.
+          Those campaigns still work: they discount silently, without needing
+          to be advertised, which is the thing they are actually good at. */}
 
       {/* Why choose us — the owner's own words, from the admin panel. */}
       <HomeHighlights

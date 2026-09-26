@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
@@ -230,7 +230,19 @@ export function BookingWizard({
   const [professionals, setProfessionals] = useState(1);
   const [materials, setMaterials] = useState(false);
   const [instructions, setInstructions] = useState("");
-  const [coupon, setCoupon] = useState("");
+  // A code arriving in the URL from "Use offer" elsewhere on the site. It
+  // fills the field rather than being applied invisibly: the customer should
+  // watch the discount land where they can see it, not be told afterwards
+  // that something happened on a screen they were not looking at.
+  const [coupon, setCoupon] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return new URLSearchParams(window.location.search).get("offer")?.trim().toUpperCase() ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [offerFromUrl] = useState(() => coupon !== "");
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponAmount, setCouponAmount] = useState(0);
   const [couponError, setCouponError] = useState(false);
@@ -1174,6 +1186,18 @@ export function BookingWizard({
   // customer is being asked to weigh.
   const priceWithoutMaterials = serviceAmount * occurrenceCount;
   const priceWithMaterials = (serviceAmount + materialCost) * occurrenceCount;
+
+  // Apply a code that came from the URL, once, as soon as there is a price
+  // for it to work against. It waits for `serviceAmount` because the check
+  // asks the server what the discount is worth, and against nothing it is
+  // worth nothing — the customer would see "applied" beside a saving of zero.
+  const offerApplied = useRef(false);
+  useEffect(() => {
+    if (!offerFromUrl || offerApplied.current) return;
+    if (!serviceId || serviceAmount <= 0) return;
+    offerApplied.current = true;
+    void applyCoupon();
+  }, [offerFromUrl, serviceId, serviceAmount]);
 
   async function applyCoupon() {
     const code = coupon.trim();
