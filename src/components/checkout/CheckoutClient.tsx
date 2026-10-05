@@ -114,7 +114,18 @@ export function CheckoutClient({
       return [];
     }
   })();
-  const money = (n: number) => `${currency} ${formatNumber(n, locale)}`;
+  /**
+   * Always to two decimals, like the booking summary it continues.
+   *
+   * A discount printed as "- AED 11.2" between "AED 70.00" and "AED 0.45"
+   * reads as a number that lost a digit, and this is the page where the
+   * customer checks the arithmetic before paying.
+   */
+  const money = (n: number) =>
+    `${currency} ${formatNumber(n, locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   const [addressList, setAddressList] = useState(addresses);
   const [addressId, setAddressId] = useState<number | undefined>(addresses[0]?.id);

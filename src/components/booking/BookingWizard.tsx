@@ -463,6 +463,11 @@ export function BookingWizard({
   /**
    * A price, always to two decimals.
    *
+   * The payment summary uses this for every figure it prints. A discount that
+   * reads "- AED 11.2" beside "AED 70" and "AED 0.45" looks like a number that
+   * lost a digit, and a summary is the one place a reader checks the arithmetic
+   * themselves.
+   *
    * The plan cards read "AED 58.8" beside the app's "AED 58.80", and a struck
    * price sat flush against the price beside it — "AED 235.2AED 280" — which
    * is not a price at all until you have worked out where one number ends.
@@ -928,7 +933,7 @@ export function BookingWizard({
   const vat = (serviceFee * vatPercent) / 100;
   // Commitment discount: the more recurring services, the higher the admin-set
   // tier percent, applied to the (pre-tax) recurring base. Mirrors the backend.
-  const commitmentPercent =
+  const commitmentTierPercent =
     isRecurring
       ? repeatDiscountTiers.reduce(
           (acc, t) =>
@@ -938,7 +943,8 @@ export function BookingWizard({
           0
         )
       : 0;
-  const localCommitmentDiscount = (taxableBase * occurrenceCount * commitmentPercent) / 100;
+  const commitmentBase = taxableBase * occurrenceCount;
+  const localCommitmentDiscount = (commitmentBase * commitmentTierPercent) / 100;
 
   /**
    * What a plan would cost, for a choice the customer has not made yet.
@@ -1243,6 +1249,15 @@ export function BookingWizard({
   // The coupon is applied client-side on top, since /quote prices the cart line
   // and the coupon is validated separately.
   const commitmentDiscount = quote ? quote.commitment_discount : localCommitmentDiscount;
+  // Read back from the figure on the line, never from the tier table.
+  // The amount comes from the server, which prices the whole plan, while
+  // the table was being asked about a visit count the screen has not
+  // resolved yet — so the summary read "commitment discount (0%) -11.20",
+  // a percentage that contradicts the money beside it.
+  const commitmentPercent =
+    commitmentBase > 0
+      ? Math.round((commitmentDiscount / commitmentBase) * 100)
+      : commitmentTierPercent;
   // Shown, not calculated: the server already priced this line, and preferring
   // its figure means a stale config can never make the lines contradict the
   // total printed beneath them.
@@ -1411,6 +1426,36 @@ export function BookingWizard({
     }
   }
 
+  /**
+   * A count in the shape the language actually uses.
+   *
+   * Arabic counts in four: one is a word of its own, two is a word of its own,
+   * three to ten take the plural, and eleven upwards goes back to the singular.
+   * "1 أيام" is what number-plus-noun produces and it is wrong in the way a
+   * native reader notices immediately — which is what the repeat line on the
+   * summary said. English takes the same table and simply fills two of the
+   * boxes with the same word.
+   */
+  function countPhrase(
+    value: number,
+    one: string,
+    two: string,
+    few: string,
+    many: string
+  ): string {
+    if (value === 1) return one;
+    if (value === 2) return two;
+
+    const form = value % 100 >= 3 && value % 100 <= 10 ? few : many;
+
+    return form.replace("{n}", String(value));
+  }
+
+  const daysPhrase = (value: number) =>
+    countPhrase(value, dict.dayOne, dict.dayTwo, dict.dayFew, dict.dayMany);
+  const monthsPhrase = (value: number) =>
+    countPhrase(value, dict.monthOne, dict.monthTwo, dict.monthFew, dict.monthMany);
+
   function toggleAddOn(id: string) {
     setSelectedAddOns((prev) => {
       const next = new Set(prev);
@@ -1526,7 +1571,7 @@ export function BookingWizard({
                   <p className="mt-2 text-sm font-medium text-primary">
                     {dict.offerApplied}
                     {autoOffer?.label ? ` · ${autoOffer.label}` : ""} · -
-                    {money(autoDiscount)}
+                    {priceExact(autoDiscount)}
                   </p>
                 )}
               </div>
@@ -1824,7 +1869,7 @@ export function BookingWizard({
                               }`}
                             >
                               <span className="block text-sm font-semibold text-ink">
-                                {months} {months === 1 ? dict.month : dict.months}
+                                {monthsPhrase(months)}
                               </span>
                               <span className="block text-sm font-bold text-primary">
                                 {priceExact(plan.total)}
@@ -2470,7 +2515,7 @@ export function BookingWizard({
                   // mode still says underneath: name the plan the customer is
                   // actually buying, and how many visits it comes to.
                   isSubscriptionFlow
-                    ? `${planDaysPerWeek} ${dict.daysPerWeek} · ${planMonths} ${planMonths === 1 ? dict.month : dict.months}${
+                    ? `${daysPhrase(planDaysPerWeek)} ${dict.perWeek} · ${monthsPhrase(planMonths)}${
                         recurringValid ? ` (${buildDates().length})` : ""
                       }`
                     : bookingMode === "single" || isFlowDriven
@@ -2481,7 +2526,7 @@ export function BookingWizard({
                         selectedPackage
                         ? `${selectedPackage.name}${
                             packageQuote?.valid
-                              ? ` · ${packageQuote.days_per_week} ${dict.daysPerWeek}`
+                              ? ` · ${daysPhrase(packageQuote.days_per_week)} ${dict.perWeek}`
                               : ""
                           }`
                         : dict.packages
@@ -2549,14 +2594,14 @@ export function BookingWizard({
                   <>
                     <Line
                       label={dict.perVisit}
-                      value={money(packageQuote.undiscounted_visit_price)}
+                      value={priceExact(packageQuote.undiscounted_visit_price)}
                     />
                     {materialsFee > 0 && (
                       /* Folded into the per-visit price above, so it is noted
                          rather than added — listing it again would double it. */
                       <Line
                         label={dict.material}
-                        value={`${dict.included} · ${money(materialsFee)}`}
+                        value={`${dict.included} · ${priceExact(materialsFee)}`}
                         muted
                       />
                     )}
@@ -2567,17 +2612,17 @@ export function BookingWizard({
                            tax as well, so using it here left the lines short of
                            the total by exactly those charges. */
                         label={`${dict.packageDiscount} (${packageQuote.discount_percent}%)`}
-                        value={`- ${money(packageQuote.package_discount)}`}
+                        value={`- ${priceExact(packageQuote.package_discount)}`}
                         accent
                       />
                     )}
                     {packageQuote.extra_fee > 0 && (
-                      <Line label={dict.serviceFee} value={`+ ${money(packageQuote.extra_fee)}`} />
+                      <Line label={dict.serviceFee} value={`+ ${priceExact(packageQuote.extra_fee)}`} />
                     )}
                     {packageQuote.fee_tax > 0 && (
                       <Line
                         label={`${dict.vat} (${vatPercent}%)`}
-                        value={`+ ${money(packageQuote.fee_tax)}`}
+                        value={`+ ${priceExact(packageQuote.fee_tax)}`}
                       />
                     )}
                   </>
@@ -2588,12 +2633,12 @@ export function BookingWizard({
                 <>
               <Line
                 label={dict.serviceAmount}
-                value={money((professionalDiscount > 0 ? serviceGross : serviceAmount) * occurrenceCount)}
+                value={priceExact((professionalDiscount > 0 ? serviceGross : serviceAmount) * occurrenceCount)}
               />
               {professionalDiscount > 0 && (
                 <Line
                   label={`${dict.professionalDiscount} (${professionalPercent}%)`}
-                  value={`- ${money(professionalDiscount * occurrenceCount)}`}
+                  value={`- ${priceExact(professionalDiscount * occurrenceCount)}`}
                   accent
                 />
               )}
@@ -2601,17 +2646,17 @@ export function BookingWizard({
                 <Line label={dict.times} value={`× ${occurrenceCount}`} muted />
               )}
               {materialsFee > 0 && (
-                <Line label={dict.material} value={`+ ${money(materialsFee * occurrenceCount)}`} />
+                <Line label={dict.material} value={`+ ${priceExact(materialsFee * occurrenceCount)}`} />
               )}
               {addOns
                 .filter((a) => selectedAddOns.has(a.id))
                 .map((a) => (
-                  <Line key={a.id} label={a.name} value={`+ ${money(a.price * occurrenceCount)}`} muted />
+                  <Line key={a.id} label={a.name} value={`+ ${priceExact(a.price * occurrenceCount)}`} muted />
                 ))}
               {applicableDiscount > 0 && (
                 <Line
                   label={campApplicable ? dict.campaignDiscount : dict.serviceDiscount}
-                  value={`- ${money(applicableDiscount * occurrenceCount)}`}
+                  value={`- ${priceExact(applicableDiscount * occurrenceCount)}`}
                   accent
                 />
               )}
@@ -2622,29 +2667,33 @@ export function BookingWizard({
                       ? autoOffer?.label || dict.offerApplied
                       : dict.couponDiscount
                   }
-                  value={`- ${money(couponDiscount * occurrenceCount)}`}
+                  value={`- ${priceExact(couponDiscount * occurrenceCount)}`}
                   accent
                 />
               )}
               {commitmentDiscount > 0 && (
                 <Line
-                  label={`${dict.commitmentDiscount} (${commitmentPercent}%)`}
-                  value={`- ${money(commitmentDiscount)}`}
+                  label={
+                    commitmentPercent > 0
+                      ? `${dict.commitmentDiscount} (${commitmentPercent}%)`
+                      : dict.commitmentDiscount
+                  }
+                  value={`- ${priceExact(commitmentDiscount)}`}
                   accent
                 />
               )}
               {serviceFee > 0 && (
-                <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />
+                <Line label={dict.serviceFee} value={`+ ${priceExact(serviceFee)}`} />
               )}
               {vat > 0 && (
-                <Line label={`${dict.vat} (${vatPercent}%)`} value={`+ ${money(vat)}`} />
+                <Line label={`${dict.vat} (${vatPercent}%)`} value={`+ ${priceExact(vat)}`} />
               )}
                 </>
               )}
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
               <span className="font-semibold text-ink">{dict.total}</span>
-              <span className="text-xl font-bold text-primary">{money(grandTotal)}</span>
+              <span className="text-xl font-bold text-primary">{priceExact(grandTotal)}</span>
             </div>
           </div>
 

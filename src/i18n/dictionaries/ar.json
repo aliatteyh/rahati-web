@@ -467,7 +467,16 @@
     "daysChosenLater": "تختار أيام الأسبوع في خطوة الموعد — هذه مجرّد أيام مقترحة.",
     "daysAndTimeTitle": "الأيام والوقت",
     "daysChosenCount": "اخترت {chosen} من {total} أيام",
-    "offerApplied": "عرض مطبَّق تلقائيًا"
+    "offerApplied": "عرض مطبَّق تلقائيًا",
+    "dayOne": "يوم واحد",
+    "dayTwo": "يومان",
+    "dayFew": "{n} أيام",
+    "dayMany": "{n} يومًا",
+    "monthOne": "شهر واحد",
+    "monthTwo": "شهران",
+    "monthFew": "{n} أشهر",
+    "monthMany": "{n} شهرًا",
+    "perWeek": "أسبوعيًا"
   },
   "checkout": {
     "title": "الدفع",

@@ -467,7 +467,16 @@
     "daysChosenLater": "You choose the weekdays in the date step — these are only a suggestion.",
     "daysAndTimeTitle": "Days & time",
     "daysChosenCount": "{chosen} of {total} days chosen",
-    "offerApplied": "Offer applied automatically"
+    "offerApplied": "Offer applied automatically",
+    "dayOne": "1 day",
+    "dayTwo": "2 days",
+    "dayFew": "{n} days",
+    "dayMany": "{n} days",
+    "monthOne": "1 month",
+    "monthTwo": "2 months",
+    "monthFew": "{n} months",
+    "monthMany": "{n} months",
+    "perWeek": "a week"
   },
   "checkout": {
     "title": "Checkout",
