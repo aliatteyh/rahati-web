@@ -923,7 +923,6 @@ export function BookingWizard({
   const couponDiscount = Math.max(typedDiscount, autoDiscount);
   // What the cart is actually told to carry when the booking is made.
   const effectiveCode = usingAutoOffer ? autoOffer!.code : coupon.trim();
-
   const totalDiscounts = applicableDiscount + couponDiscount;
 
   const taxableBase = Math.max(0, itemsSubtotal - totalDiscounts);
