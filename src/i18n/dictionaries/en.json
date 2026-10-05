@@ -221,7 +221,8 @@
     "visit": "Visit",
     "nextVisit": "Next visit",
     "visitPrepaid": "Prepaid",
-    "noVisits": "No visits scheduled yet."
+    "noVisits": "No visits scheduled yet.",
+    "offerApplied": "Offer applied automatically"
   },
   "hero": {
     "badge": "Trusted home services",
@@ -465,7 +466,8 @@
     "swapsOldestDay": "Tap another day to swap the earliest one",
     "daysChosenLater": "You choose the weekdays in the date step — these are only a suggestion.",
     "daysAndTimeTitle": "Days & time",
-    "daysChosenCount": "{chosen} of {total} days chosen"
+    "daysChosenCount": "{chosen} of {total} days chosen",
+    "offerApplied": "Offer applied automatically"
   },
   "checkout": {
     "title": "Checkout",

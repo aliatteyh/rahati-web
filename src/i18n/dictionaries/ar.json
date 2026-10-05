@@ -221,7 +221,8 @@
     "visit": "زيارة",
     "nextVisit": "الزيارة القادمة",
     "visitPrepaid": "مدفوعة مسبقًا",
-    "noVisits": "لا توجد زيارات مجدولة بعد."
+    "noVisits": "لا توجد زيارات مجدولة بعد.",
+    "offerApplied": "عرض مطبَّق تلقائيًا"
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
@@ -465,7 +466,8 @@
     "swapsOldestDay": "اضغط يومًا آخر ليحلّ محلّ أقدم يوم اخترته",
     "daysChosenLater": "تختار أيام الأسبوع في خطوة الموعد — هذه مجرّد أيام مقترحة.",
     "daysAndTimeTitle": "الأيام والوقت",
-    "daysChosenCount": "اخترت {chosen} من {total} أيام"
+    "daysChosenCount": "اخترت {chosen} من {total} أيام",
+    "offerApplied": "عرض مطبَّق تلقائيًا"
   },
   "checkout": {
     "title": "الدفع",

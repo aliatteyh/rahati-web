@@ -264,6 +264,15 @@ export function BookingWizard({
   const [couponError, setCouponError] = useState(false);
   const [couponMessage, setCouponMessage] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+  // A discount the office set on the service itself, which the customer meets
+  // without carrying a code. Kept apart from the typed one so the field stays
+  // empty: they did not type this, and showing a code in it would invite them
+  // to delete something they never entered.
+  const [autoOffer, setAutoOffer] = useState<{
+    code: string;
+    discount_amount: number;
+    label: string | null;
+  } | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
   const [dateIndex, setDateIndex] = useState(0);
   const [timeSlot, setTimeSlot] = useState<string | null>(null);
@@ -786,12 +795,12 @@ export function BookingWizard({
         // screen, where the duration and the day can still be changed —
         // carrying the customer to checkout and taking the discount away
         // there would read as the price going up on its own.
-        if (couponApplied && coupon.trim()) {
+        if (effectiveCode) {
           const applyRes = await fetch("/api/coupon/apply", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              couponCode: coupon.trim(),
+              couponCode: effectiveCode,
               dates: isRecurring
                 ? buildDates().map((d) => d.date)
                 : [buildSchedule()],
@@ -802,12 +811,20 @@ export function BookingWizard({
           const applyData = applyRes ? await applyRes.json().catch(() => null) : null;
 
           if (!applyData?.ok) {
-            setCouponApplied(false);
-            setCouponAmount(0);
-            setCouponError(true);
-            setCouponMessage(applyData?.message || dict.couponInvalid);
-            setSubmitError(applyData?.message || dict.couponInvalid);
-            return;
+            // An automatic offer that the cart turns down is dropped in
+            // silence and the booking goes on: the customer never asked for
+            // it, and stopping them over an offer they did not know about
+            // would be stopping them for nothing.
+            if (usingAutoOffer) {
+              setAutoOffer(null);
+            } else {
+              setCouponApplied(false);
+              setCouponAmount(0);
+              setCouponError(true);
+              setCouponMessage(applyData?.message || dict.couponInvalid);
+              setSubmitError(applyData?.message || dict.couponInvalid);
+              return;
+            }
           }
         }
 
@@ -894,7 +911,16 @@ export function BookingWizard({
   );
   const campApplicable = campDiscount >= svcDiscount && campDiscount > 0;
   const applicableDiscount = Math.max(svcDiscount, campDiscount);
-  const couponDiscount = couponApplied ? couponAmount : 0;
+  // One of the two, never both: stacking a campaign on a typed code is how a
+  // ceiling is walked around. The customer keeps whichever is worth more, and
+  // the one that lost is simply not counted.
+  const typedDiscount = couponApplied ? couponAmount : 0;
+  const autoDiscount = autoOffer?.discount_amount ?? 0;
+  const usingAutoOffer = autoDiscount > typedDiscount;
+  const couponDiscount = Math.max(typedDiscount, autoDiscount);
+  // What the cart is actually told to carry when the booking is made.
+  const effectiveCode = usingAutoOffer ? autoOffer!.code : coupon.trim();
+
   const totalDiscounts = applicableDiscount + couponDiscount;
 
   const taxableBase = Math.max(0, itemsSubtotal - totalDiscounts);
@@ -1286,6 +1312,59 @@ export function BookingWizard({
     planDaysPerWeek,
   ]);
 
+  /**
+   * Looks for a discount that applies to this booking on its own.
+   *
+   * Asked again whenever the price moves, for the same reason the typed code is
+   * re-checked: an offer that needs three hours must stop counting at two. It
+   * never explains itself — the customer did not ask for this one, so a refusal
+   * would be a message about something they had not heard of.
+   */
+  useEffect(() => {
+    if (!serviceId || serviceAmount <= 0) {
+      setAutoOffer(null);
+      return;
+    }
+
+    let live = true;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/offers/auto", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            serviceId,
+            amount: serviceAmount,
+            minutes: variant.durationMinutes,
+            visitsPerWeek: isSubscriptionFlow ? planDaysPerWeek : 0,
+            dates: isRecurring ? buildDates().map((d) => d.date) : [buildSchedule()],
+            locale,
+          }),
+        });
+        const data = await res.json();
+        if (live) setAutoOffer(data?.offer ?? null);
+      } catch {
+        if (live) setAutoOffer(null);
+      }
+    }, 350);
+
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    serviceId,
+    serviceAmount,
+    variant.durationMinutes,
+    professionals,
+    materials,
+    dateIndex,
+    bookingMode,
+    planDaysPerWeek,
+  ]);
+
   async function applyCoupon() {
     const code = coupon.trim();
     if (!code) return;
@@ -1436,9 +1515,18 @@ export function BookingWizard({
                     {dict.couponApplied} · -{money(couponAmount)}
                   </p>
                 )}
-                {couponError && (
+                {couponError && !usingAutoOffer && (
                   <p className="mt-2 text-sm text-accent-dark">
                     {couponMessage || dict.couponInvalid}
+                  </p>
+                )}
+                {/* Said out loud, next to the empty field, so the saving on the
+                    summary is not a number the customer cannot account for. */}
+                {usingAutoOffer && (
+                  <p className="mt-2 text-sm font-medium text-primary">
+                    {dict.offerApplied}
+                    {autoOffer?.label ? ` · ${autoOffer.label}` : ""} · -
+                    {money(autoDiscount)}
                   </p>
                 )}
               </div>
@@ -2528,7 +2616,15 @@ export function BookingWizard({
                 />
               )}
               {couponDiscount > 0 && (
-                <Line label={dict.couponDiscount} value={`- ${money(couponDiscount * occurrenceCount)}`} accent />
+                <Line
+                  label={
+                    usingAutoOffer
+                      ? autoOffer?.label || dict.offerApplied
+                      : dict.couponDiscount
+                  }
+                  value={`- ${money(couponDiscount * occurrenceCount)}`}
+                  accent
+                />
               )}
               {commitmentDiscount > 0 && (
                 <Line
