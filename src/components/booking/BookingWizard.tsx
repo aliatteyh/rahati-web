@@ -758,6 +758,43 @@ export function BookingWizard({
         return;
       }
       if (data.ok) {
+        // The code the customer typed in step one was only ever *checked*.
+        // Now that a cart exists it has to be attached to it, because the
+        // booking takes its coupon from the cart — until this call was added
+        // the summary showed a discount the customer was then charged in full
+        // for.
+        //
+        // It is also the first moment the rules that need a cart can be
+        // judged: the minimum hours, the allowed weekdays, and a limited
+        // offer's remaining places. A refusal here stops the booking on this
+        // screen, where the duration and the day can still be changed —
+        // carrying the customer to checkout and taking the discount away
+        // there would read as the price going up on its own.
+        if (couponApplied && coupon.trim()) {
+          const applyRes = await fetch("/api/coupon/apply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              couponCode: coupon.trim(),
+              dates: isRecurring
+                ? buildDates().map((d) => d.date)
+                : [buildSchedule()],
+              locale,
+            }),
+          }).catch(() => null);
+
+          const applyData = applyRes ? await applyRes.json().catch(() => null) : null;
+
+          if (!applyData?.ok) {
+            setCouponApplied(false);
+            setCouponAmount(0);
+            setCouponError(true);
+            setCouponMessage(applyData?.message || dict.couponInvalid);
+            setSubmitError(applyData?.message || dict.couponInvalid);
+            return;
+          }
+        }
+
         // The first real signal of intent, and the one remarketing audiences
         // are built from — reported where the server accepted the line, not
         // when the button was pressed.
