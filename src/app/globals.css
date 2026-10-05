@@ -1,26 +1,115 @@
 @import "tailwindcss";
 
 @theme {
-  /* Rahati brand palette (matches the Flutter app) */
-  --color-primary: #0d9488;
-  --color-primary-dark: #0b7268;
-  --color-primary-light: #e6f5f3;
-  --color-accent: #ff7a45;
-  --color-accent-dark: #e85f2b;
-  --color-ink: #10201d;
-  --color-muted: #64766f;
-  --color-surface: #ffffff;
-  --color-surface-soft: #f5faf9;
-  --color-border: #e5efec;
+  /* ---------------------------------------------------------------
+     Naqi palette. Every value is the hex in the handoff's token table
+     (§7) — not an approximation of it, because the spec is pixel-exact
+     and a colour picked by eye reads as a different brand.
 
-  --font-sans: var(--font-tajawal), system-ui, sans-serif;
+     The old Rahati teal (#0d9488) is gone from the tokens rather than
+     kept beside them: two greens in one stylesheet is how half a site
+     ends up on the wrong one.
+     --------------------------------------------------------------- */
 
-  --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
+  /* Ink — text, dark sections, primary dark buttons */
+  --color-ink: #16211D;
+  --color-ink-55: rgba(22, 33, 29, 0.55);
+  --color-ink-62: rgba(22, 33, 29, 0.62);
+  --color-ink-45: rgba(22, 33, 29, 0.45);
+
+  /* Paper — the page itself */
+  --color-paper: #F4F1EC;
+  --color-paper-alt: #EFEBE4;
+
+  /* Brand green */
+  --color-green: #0F6B57;
+  --color-green-dark: #0A4A3C;
+  --color-green-soft: #E4F3EC;
+  --color-green-sel: #E6F3F0;
+  --color-green-band: #EAF1EC;
+
+  /* Mint — accents on dark grounds only */
+  --color-mint: #7FD3B6;
+  --color-mint-bright: #39D3A6;
+
+  /* Gold — offer tags and countdowns */
+  --color-gold: #C9A45C;
+  --color-gold-soft: #F1D9A6;
+
+  /* Sand — warnings, address chips */
+  --color-sand: #EFE7D6;
+  --color-sand-ink: #5C4712;
+  --color-sand-warn: #8A6A22;
+  --color-sand-warn-bg: #F3EAD6;
+
+  /* Danger — errors, cancel, expiry timers */
+  --color-danger: #B0412E;
+  --color-danger-alt: #9B3A2E;
+  --color-danger-soft: #FBEAE6;
+  --color-danger-pill: #F6E3DE;
+
+  /* Stone — placeholders, segmented controls, hover rows */
+  --color-stone: #E3DED4;
+  --color-stone-seg: #E9E5DD;
+  --color-stone-row: #F7F4EF;
+  --color-stone-hover: #FAF8F4;
+
+  --color-surface: #FFFFFF;
+  --color-line: rgba(22, 33, 29, 0.08);
+  --color-line-strong: rgba(22, 33, 29, 0.15);
+
+  /* One family for both languages, as the spec asks; the mono face
+     carries numbers, codes, refs and countdowns. */
+  --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --radius-chip: 14px;
+  --radius-card: 22px;
+  --radius-modal: 26px;
+  --radius-hero: 28px;
+
+  --shadow-float: 0 20px 50px -20px rgba(22, 33, 29, 0.35);
+  --shadow-hover: 0 18px 40px -22px rgba(22, 33, 29, 0.4);
+  --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.25);
+
+  /* The container every section sits in (§4). */
+  --spacing-page: 1320px;
+
+  /* Wide enough for the row in English, where the words are longer: at 1080
+     the logo, seven links and six actions came to 1106px inside a 1071px
+     line and pushed the whole page sideways. */
+  --breakpoint-wide: 1200px;
+
+  /* ---------------------------------------------------------------
+     The old names, pointing at the new colours.
+
+     Fifty-six components were written against `primary`, `accent`,
+     `muted`, `border` and `surface-soft`. Deleting those names did not
+     make them Naqi — it made them nothing: Tailwind stops generating a
+     class whose token is gone, so every one of those rules silently did
+     no work and the page kept its browser defaults. Which is why it
+     still read as the old site.
+
+     So the old vocabulary stays, aimed at the new palette. The whole
+     site takes the Naqi colours at once, and each component drops its
+     alias as it is converted. These go when the last one does.
+     --------------------------------------------------------------- */
+  --color-primary: #0F6B57;
+  --color-primary-dark: #0A4A3C;
+  --color-primary-light: #EAF1EC;
+
+  /* The old accent was an orange CTA. Naqi's primary action is ink, and
+     its hover is the green — there is no orange anywhere in the design. */
+  --color-accent: #16211D;
+  --color-accent-dark: #0F6B57;
+
+  --color-muted: rgba(22, 33, 29, 0.55);
+  --color-border: rgba(22, 33, 29, 0.08);
+  --color-surface-soft: #F7F4EF;
 }
 
 :root {
-  --background: #ffffff;
+  --background: var(--color-paper);
   --foreground: var(--color-ink);
 }
 

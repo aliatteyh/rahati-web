@@ -13,6 +13,7 @@ import type {
   ServiceRating,
   ServiceReview,
   SubcategoryWithServices,
+  SiteStats,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
@@ -77,9 +78,23 @@ export function getConfig(locale: Locale): Promise<BusinessConfig> {
   return apiGet<BusinessConfig>("/api/v1/customer/config", locale, {}, { cache: "no-store" });
 }
 
-export function getBanners(locale: Locale, limit = 10): Promise<Banner[]> {
+/**
+ * The panel's banners, optionally only those allowed in one place.
+ *
+ * The placement is a query the server treats as optional, and omitting it
+ * returns everything — which is what the customer app installed on people's
+ * phones asks for. Filtering by default would have emptied its home header on
+ * every handset nobody can update.
+ */
+export function getBanners(
+  locale: Locale,
+  limit = 10,
+  placement?: "web-hero" | "web-1" | "web-2" | "app-home"
+): Promise<Banner[]> {
+  const where = placement ? `&placement=${placement}` : "";
+
   return apiGetList<Banner>(
-    `/api/v1/customer/banner?limit=${limit}&offset=1`,
+    `/api/v1/customer/banner?limit=${limit}&offset=1${where}`,
     locale
   );
 }
@@ -1173,4 +1188,45 @@ export async function getPolicyPage(key: string, locale: Locale): Promise<string
     null
   );
   return page?.content ?? "";
+}
+
+/**
+ * The zones the business actually serves, as the panel lists them.
+ *
+ * `zoneId: "configuration"` is the panel's own way of saying "not scoped to a
+ * zone" — asking for the list while pretending to be inside one would return
+ * only that zone. The account's service-area screen already asks this way; the
+ * home page now asks the same question rather than inventing a second answer.
+ */
+export async function getServiceAreas(
+  locale: Locale
+): Promise<{ id?: string; name?: string }[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/customer/service/area-availability?limit=200&offset=1`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "X-localization": locale,
+          zoneId: "configuration",
+        },
+        next: { revalidate: 300 },
+      }
+    );
+    const json = await res.json();
+    const content = json?.content;
+    return (Array.isArray(content) ? content : content?.data) ?? [];
+  } catch {
+    // A list we could not fetch is a section that does not appear, not a page
+    // that fails.
+    return [];
+  }
+}
+
+/** The counted figures the home page puts under its headline. */
+export function getSiteStats(locale: Locale): Promise<SiteStats> {
+  return apiGet<SiteStats>("/api/v1/customer/stats", locale, {}, {
+    next: { revalidate: 300 },
+  });
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Tajawal } from "next/font/google";
+import { IBM_Plex_Sans_Arabic, IBM_Plex_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import "../globals.css";
 import { isLocale, locales, localeDirection, type Locale } from "@/i18n/config";
@@ -16,19 +16,26 @@ import { getOffers } from "@/lib/api";
 import { Analytics } from "@/components/seo/Analytics";
 import { GoogleTagManager } from "@/components/seo/GoogleTagManager";
 
-// Only the weights the site actually sets.
+// One family for both languages, which is what the design asks for: Arabic and
+// Latin set in the same face read as one voice rather than two.
 //
-// 300 was loaded and never used — nothing in the project asks for `font-light`
-// — so every visitor downloaded two files, Arabic and Latin, for a weight that
-// renders nowhere, and the browser said so: "preloaded but not used".
-//
-// `font-semibold` (600) is used heavily and is not in this list because Tajawal
-// does not publish a 600; the browser interpolates it from 500 and 700, which
-// is what it was already doing.
-const tajawal = Tajawal({
+// Only the weights the design actually uses. 300 was loaded here before and
+// rendered nowhere — every visitor downloaded two files, Arabic and Latin, for
+// a weight nothing asks for, and the browser said so.
+const plexArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-tajawal",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plex-arabic",
+  display: "swap",
+});
+
+// Numbers, promo codes, booking refs and countdowns. A countdown set in a
+// proportional face jumps on every tick because its digits are different
+// widths; these do not.
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-plex-mono",
   display: "swap",
 });
 
@@ -104,7 +111,7 @@ export default async function LocaleLayout({
   ]);
 
   return (
-    <html lang={locale} dir={localeDirection[typedLocale]} className={tajawal.variable}>
+    <html lang={locale} dir={localeDirection[typedLocale]} className={`${plexArabic.variable} ${plexMono.variable}`}>
       <body className="min-h-screen bg-surface text-ink">
         {/* First inside <body>, where Google's own snippet expects it. */}
         <GoogleTagManager />

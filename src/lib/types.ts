@@ -180,6 +180,13 @@ export interface BusinessConfig {
   home_testimonials?: { source?: string | null; rating?: number | null; comment?: string | null; author?: string | null; service?: string | null }[];
   social_media?: SocialMediaLink[];
   logo_full_path?: string | null;
+  /** Whether the name is printed beside the logo; off unless the office says
+   *  their logo is a wordless mark. */
+  show_business_name?: boolean;
+  /** The number people message. Null where the business has none. */
+  whatsapp_number?: string | null;
+  business_open_time?: string | null;
+  business_close_time?: string | null;
   /** The copyright line, written in Business Settings. */
   footer_text?: string | null;
   /** Policy pages, served by the admin panel. */
@@ -211,8 +218,28 @@ export interface BusinessConfig {
 export interface Banner {
   id?: string;
   banner_image_full_path?: string | null;
+  /** The card drawn over the picture; absent on an image-only banner. */
+  banner_title?: string | null;
+  subtitle?: string | null;
+  /** A short pill above the title — "New", "This week". */
+  button_text?: string | null;
+  background_color?: string | null;
   resource_type?: "service" | "category" | "link" | string;
   redirect_link?: string | null;
   service?: { slug?: string } | null;
   category?: { slug?: string } | null;
+}
+
+/**
+ * The three figures under the headline.
+ *
+ * Any of them may be null: the server withholds a figure that is too small to
+ * mean anything rather than publishing it, so the site shows what it is given
+ * and nothing else.
+ */
+export interface SiteStats {
+  customer_rating?: number | null;
+  rating_count?: number | null;
+  completed_bookings?: number | null;
+  served_areas?: number | null;
 }

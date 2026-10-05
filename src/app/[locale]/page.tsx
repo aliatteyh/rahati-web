@@ -12,6 +12,9 @@ import {
   formatPrice,
   serviceFromPrice,
   serviceFromDuration,
+  getServiceAreas,
+  getServiceDetail,
+  getSiteStats,
 } from "@/lib/api";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { SearchBox } from "@/components/search/SearchBox";
@@ -22,6 +25,16 @@ import { HomeHighlights } from "@/components/home/HomeHighlights";
 import { Testimonials } from "@/components/home/Testimonials";
 import { ProviderRail } from "@/components/home/ProviderRail";
 import { ServiceCard } from "@/components/ServiceCard";
+import { NaqiHero } from "@/components/naqi/NaqiHero";
+import { NaqiServices } from "@/components/naqi/NaqiServices";
+import { NaqiHow } from "@/components/naqi/NaqiHow";
+import { NaqiCta } from "@/components/naqi/NaqiCta";
+import { NaqiZones } from "@/components/naqi/NaqiZones";
+import { NaqiPricing, type PriceRow } from "@/components/naqi/NaqiPricing";
+import { NaqiFaq } from "@/components/naqi/NaqiFaq";
+import { NaqiHeroMedia } from "@/components/naqi/NaqiHeroMedia";
+import { NaqiBannerSlot } from "@/components/naqi/NaqiBannerSlot";
+import { NaqiContact } from "@/components/naqi/NaqiContact";
 import { SectionHeader } from "@/components/SectionHeader";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { absoluteUrl } from "@/lib/seo";
@@ -37,14 +50,37 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [sections, popular, config, banners, ads, providers, offers] = await Promise.all([
-    getHomeSections(locale),
-    getPopularServices(locale, 8),
-    getConfig(locale),
-    getBanners(locale),
-    getAdvertisements(locale),
-    getNearbyProviders(locale),
-    getOffers(locale),
+  const [sections, popular, config, banners, slotOne, slotTwo, ads, providers, offers, zones, stats] =
+    await Promise.all([
+      getHomeSections(locale),
+      getPopularServices(locale, 8),
+      getConfig(locale),
+      // Only the banners the office put in the hero.
+      getBanners(locale, 10, "web-hero"),
+      // The two mid-page strips. Separate calls rather than one list the
+      // page sorts out, because "which slot" is the panel's decision and
+      // the server is the one holding it.
+      getBanners(locale, 5, "web-1"),
+      getBanners(locale, 5, "web-2"),
+      getAdvertisements(locale),
+      getNearbyProviders(locale),
+      getOffers(locale),
+      // The panel's own service areas. Fetched with the rest rather than in
+      // the section, so a slow answer delays nothing that is already drawn.
+      getServiceAreas(locale),
+      getSiteStats(locale),
+    ]);
+
+  // The two services the pricing section is about, by how the panel books them
+  // rather than by name: `single` is the hourly one and `unit` the one sold by
+  // home size. Reading the flow rather than a slug means renaming a service in
+  // the panel does not empty a section of the website.
+  const hourlySlug = sections.find((s) => s.booking_flow === "single")?.service_slug;
+  const unitSlug = sections.find((s) => s.booking_flow === "unit")?.service_slug;
+
+  const [hourlyService, unitService] = await Promise.all([
+    hourlySlug ? getServiceDetail(hourlySlug, locale) : Promise.resolve(undefined),
+    unitSlug ? getServiceDetail(unitSlug, locale) : Promise.resolve(undefined),
   ]);
   const currency = currencyLabel(config, locale);
 
@@ -54,6 +90,165 @@ export default async function HomePage({
     { title: dict.steps.s2Title, text: dict.steps.s2Text },
     { title: dict.steps.s3Title, text: dict.steps.s3Text },
   ];
+
+  // The lowest price anybody can actually book, across everything on offer.
+  // Nothing is written down: the office changes a variation and the hero
+  // follows it.
+  const cheapest = popular
+    .map((service) => serviceFromPrice(service))
+    .filter((price) => price > 0)
+    .reduce((low, price) => (low === 0 || price < low ? price : low), 0);
+
+  // The first banner the panel publishes doubles as the hero artwork, so the
+  // picture is the office's to change without a release.
+  const heroImage =
+    banners[0]?.banner_image_full_path ??
+    popular.find((service) => service.image_full_path)?.image_full_path ??
+    null;
+
+  // The catalogue as the panel orders it — the same four the app shows, so the
+  // website and the phone cannot disagree about what is on offer.
+  //
+  // The price comes from the popular list when that list happens to carry the
+  // section's service, and is simply left off when it does not: a card with no
+  // price is honest, a card with a guessed one is not.
+  const serviceCards = sections.map((section) => {
+    const match = popular.find(
+      (service) => service.slug && service.slug === section.service_slug
+    );
+    const from = match ? serviceFromPrice(match) : 0;
+
+    return {
+      id: section.id,
+      name: section.name,
+      description: section.description,
+      image: section.image_full_path,
+      href: section.service_slug
+        ? `${base}/service/${section.service_slug}`
+        : `${base}/category/${section.slug}`,
+      priceLabel: from > 0 ? formatPrice(from, currency) : null,
+    };
+  });
+
+  /**
+   * Arabic counts things in four shapes, not two.
+   *
+   * "3 ساعة" is what a plain number-plus-noun produces and it is wrong in the
+   * way a native reader notices immediately. Two is its own word, three to ten
+   * take the plural, and eleven upwards goes back to the singular — so the
+   * figures on a price list have to be written, not concatenated. English is
+   * the easy case and gets the ordinary rule.
+   */
+  const hoursPhrase = (value: number): string => {
+    if (locale !== "ar") {
+      return `${value} ${value === 1 ? dict.naqi.hourWord : dict.naqi.hoursWord}`;
+    }
+
+    if (value === 1) return dict.naqi.hourOne;
+    if (value === 2) return dict.naqi.hourTwo;
+    if (Number.isInteger(value) && value >= 3 && value <= 10) {
+      return `${value} ${dict.naqi.hoursFew}`;
+    }
+
+    return `${value} ${dict.naqi.hoursMany}`;
+  };
+
+  const cleanersPhrase = (value: number): string => {
+    if (locale !== "ar") {
+      return `${value} ${value === 1 ? dict.naqi.cleanerWord : dict.naqi.cleanersWord}`;
+    }
+
+    if (value === 1) return dict.naqi.cleanerOne;
+    if (value === 2) return dict.naqi.cleanerTwo;
+    if (value >= 3 && value <= 10) return `${value} ${dict.naqi.cleanersFew}`;
+
+    return `${value} ${dict.naqi.cleanersMany}`;
+  };
+
+  /**
+   * "4-hours" is a key, not a name.
+   *
+   * Where the panel never gave a variation a human name it falls back to the
+   * key, and an Arabic page then reads "4-hours" in the middle of a sentence.
+   * A name somebody actually typed — "Studio", "1 Bedroom" — is left exactly
+   * as they typed it; only the machine-made ones are replaced.
+   */
+  const tidyVariantName = (name: string, hours: number): string => {
+    const machineMade = /^\s*\d+(\.\d+)?[\s-]*hours?\s*$/i.test(name);
+
+    return machineMade && hours ? hoursPhrase(hours) : name;
+  };
+
+  // Both price columns are the panel's variations, formatted and nothing more.
+  // A row whose price will not parse is dropped rather than shown as zero.
+  //
+  // Sorted by length, not by the order the panel happens to return: a list that
+  // runs 2, 3, 4 … 8 and then 2.5 reads as a mistake, and the reader stops
+  // trusting the column before they reach the price they came for.
+  const priceRows = (service: typeof hourlyService, withDetail: boolean): PriceRow[] =>
+    (service?.variations ?? [])
+      .map((variation, i) => {
+        const price = formatPrice(variation.price, currency);
+        if (!price) return null;
+
+        const minutes = variation.duration_minutes ?? 0;
+        const hours = minutes ? Math.round((minutes / 60) * 10) / 10 : 0;
+        const crew = variation.cleaners_count ?? 0;
+
+        const detail = [
+          hours ? hoursPhrase(hours) : null,
+          crew ? cleanersPhrase(crew) : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+        return {
+          key: variation.variant_key ?? `${i}`,
+          // The panel's own name, unless it is the machine-made "4-hours" that
+          // nobody typed — then the reader gets the length in their language.
+          label: tidyVariantName(variation.variant ?? variation.variant_key ?? "", hours),
+          price,
+          detail: withDetail && detail ? detail : null,
+          sort: minutes || i,
+        };
+      })
+      .filter((row) => row !== null)
+      .sort((a, b) => a!.sort - b!.sort) as PriceRow[];
+
+  // The questions the panel already answers on the services themselves, pooled
+  // for the home page. Deduplicated by the question: the same "do you bring
+  // materials?" is written against several services, and a reader meeting it
+  // three times in one list concludes nobody proof-read the page.
+  const faqItems = Array.from(
+    new Map(
+      [hourlyService, unitService]
+        .flatMap((service) => service?.faqs ?? [])
+        .filter((faq) => faq.question && faq.answer)
+        .map((faq) => [faq.question as string, {
+          question: faq.question as string,
+          answer: faq.answer as string,
+        }])
+    ).values()
+  ).slice(0, 8);
+
+  // Only the figures the server was willing to publish. It withholds a rating
+  // under ten votes and a booking count under fifty, so anything that arrives
+  // is a figure worth printing — and the row simply shortens when one is not
+  // there rather than showing a zero.
+  const heroStats = [
+    stats.customer_rating != null && {
+      value: String(stats.customer_rating),
+      label: dict.naqi.statRating,
+    },
+    stats.completed_bookings != null && {
+      value: `+${stats.completed_bookings.toLocaleString(locale === "ar" ? "ar-AE" : "en-AE")}`,
+      label: dict.naqi.statBookings,
+    },
+    stats.served_areas != null && {
+      value: String(stats.served_areas),
+      label: dict.naqi.statAreas,
+    },
+  ].filter(Boolean) as { value: string; label: string }[];
 
   const brand = config.business_name || dict.brand;
   const jsonLd = [
@@ -85,73 +280,62 @@ export default async function HomePage({
   return (
     <>
       <JsonLd data={jsonLd} />
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary-light to-surface">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-2 md:items-center md:py-24">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-medium text-primary shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-accent" />
-              {dict.hero.badge}
-            </span>
-            <h1 className="mt-5 text-4xl font-bold leading-tight text-ink sm:text-5xl">
-              {dict.hero.title}
-            </h1>
-            <p className="mt-4 max-w-lg text-lg text-muted">{dict.hero.subtitle}</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href={`${base}/services`}
-                className="rounded-full bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-dark"
-              >
-                {dict.hero.ctaPrimary}
-              </Link>
-              <Link
-                href={`${base}#how-it-works`}
-                className="rounded-full border border-border bg-surface px-6 py-3 font-semibold text-ink transition hover:border-primary"
-              >
-                {dict.hero.ctaSecondary}
-              </Link>
-            </div>
+      {/* Hero — Naqi §4.
+          The starting price is the cheapest option the panel actually sells,
+          read from the services themselves. A price typed into a page is a
+          price that goes stale the first time the office changes one. */}
+      <NaqiHero
+        eyebrow={dict.naqi.heroEyebrow}
+        titleTop={dict.naqi.heroTitleTop}
+        titleBottom={dict.naqi.heroTitleBottom}
+        subtitle={dict.naqi.heroSubtitle}
+        ctaLabel={dict.naqi.heroCta}
+        ctaHref={`${base}/services`}
+        ctaNote={
+          cheapest > 0
+            ? dict.naqi.heroCtaNote.replace(
+                "{price}",
+                formatPrice(cheapest, currency) ?? ""
+              )
+            : undefined
+        }
+        secondaryLabel={dict.naqi.heroSecondary}
+        secondaryHref={`${base}#how-it-works`}
+        facts={[dict.hero.stat1, dict.hero.stat2, dict.hero.stat3]}
+        media={
+          <NaqiHeroMedia
+            banners={banners}
+            locale={locale}
+            fallbackImage={heroImage}
+            alt={dict.naqi.heroImageAlt}
+            slideLabel={dict.naqi.slide}
+          />
+        }
+        stats={heroStats}
+      />
 
-            {/* Under the two calls to action: someone who already knows what
-                they want can say it instead of browsing for it. */}
-            <div className="mt-6 max-w-md">
-              <SearchBox
-                locale={locale}
-                placeholder={dict.search.placeholder}
-                label={dict.search.submit}
-              />
-            </div>
-            <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm text-muted">
-              {[dict.hero.stat1, dict.hero.stat2, dict.hero.stat3].map((s) => (
-                <span key={s} className="inline-flex items-center gap-2">
-                  <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {s}
-                </span>
-              ))}
-            </div>
-          </div>
-          {banners.length > 0 ? (
-            /* Promotional banners inside the hero showcase box */
-            <BannerCarousel banners={banners} locale={locale} variant="hero" />
-          ) : (
-            <div className="relative hidden md:block">
-              <div className="aspect-square rounded-[2rem] bg-primary/10" />
-              <div className="absolute inset-6 rounded-[1.5rem] bg-gradient-to-br from-primary to-primary-dark opacity-90" />
-              <div className="absolute inset-0 grid place-items-center">
-                <span className="text-6xl font-bold text-white/90">
-                  {(config.business_name || dict.brand).charAt(0)}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Services — Naqi §4 §01, on the panel's own catalogue. */}
+      <NaqiServices
+        index={dict.naqi.servicesIndex}
+        label={dict.naqi.servicesLabel}
+        title={dict.naqi.servicesTitle}
+        intro={dict.naqi.servicesIntro}
+        items={serviceCards}
+        fromLabel={dict.naqi.from}
+        viewLabel={dict.naqi.viewDetails}
+      />
+      {/* Website · slot 1 — whatever the office put there, and nothing at
+          all when they put nothing. */}
+      <NaqiBannerSlot
+        banners={slotOne}
+        locale={locale}
+        slideLabel={dict.naqi.slide}
+        alt={dict.naqi.heroImageAlt}
+      />
 
       {/* Categories */}
       {sections.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pt-16">
+        <section className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] pt-[clamp(56px,7vw,96px)]">
           <SectionHeader
             title={dict.sections.categories}
             subtitle={dict.sections.categoriesSub}
@@ -166,7 +350,7 @@ export default async function HomePage({
           scoped to the customer's zone by the API, so a promotion only shows
           where its provider actually works. Marked sponsored on every card. */}
       {ads.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pt-16">
+        <section className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] pt-[clamp(56px,7vw,96px)]">
           <SectionHeader title={dict.ads.title} subtitle={dict.ads.subtitle} />
           <AdvertisementRail
             ads={ads}
@@ -181,7 +365,7 @@ export default async function HomePage({
       {/* Popular services */}
       {popular.length > 0 && (
         <section className="bg-surface-soft py-16">
-          <div className="mx-auto max-w-6xl px-4">
+          <div className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)]">
             <SectionHeader
               title={dict.sections.popular}
               subtitle={dict.sections.popularSub}
@@ -211,7 +395,7 @@ export default async function HomePage({
           because it answers "who would do this?", which is the question that
           follows "what can I book?". */}
       {providers.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pt-16">
+        <section className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] pt-[clamp(56px,7vw,96px)]">
           <SectionHeader
             title={dict.providers.title}
             subtitle={dict.providers.subtitle}
@@ -255,21 +439,13 @@ export default async function HomePage({
         subtitle={dict.sections.whyUsSub}
       />
 
-      {/* How it works */}
-      <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-16">
-        <SectionHeader title={dict.sections.howItWorks} />
-        <div className="grid gap-6 md:grid-cols-3">
-          {steps.map((step, i) => (
-            <div key={step.title} className="rounded-2xl border border-border bg-surface p-6">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-primary-light text-lg font-bold text-primary">
-                {i + 1}
-              </span>
-              <h3 className="mt-4 text-lg font-semibold text-ink">{step.title}</h3>
-              <p className="mt-1 text-muted">{step.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* How it works — Naqi §4 §03. */}
+      <NaqiHow
+        index={dict.naqi.howIndex}
+        label={dict.naqi.howLabel}
+        title={dict.naqi.howTitle}
+        steps={steps}
+      />
 
       {/* What customers wrote — real reviews only, so the section simply is
           not there until there are some. */}
@@ -279,21 +455,69 @@ export default async function HomePage({
         subtitle={dict.sections.testimonialsSub}
       />
 
-      {/* CTA */}
-      {/* Its own breathing room above: the section before it ends with a
-         card edge, and without this the call to action looked stuck to it. */}
-      <section className="mx-auto max-w-6xl px-4 pb-20 pt-16">
-        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary-dark px-8 py-14 text-center">
-          <h2 className="text-3xl font-bold text-white">{dict.cta.title}</h2>
-          <p className="mx-auto mt-3 max-w-xl text-white/85">{dict.cta.text}</p>
-          <Link
-            href={`${base}/services`}
-            className="mt-8 inline-block rounded-full bg-white px-7 py-3 font-semibold text-primary transition hover:bg-primary-light"
-          >
-            {dict.cta.button}
-          </Link>
-        </div>
-      </section>
+      {/* Pricing — Naqi §4 §02, straight from the panel's variations. */}
+      <NaqiPricing
+        index={dict.naqi.pricingIndex}
+        label={dict.naqi.pricingLabel}
+        title={dict.naqi.pricingTitle}
+        intro={dict.naqi.pricingIntro}
+        hourlyTitle={dict.naqi.hourlyTitle}
+        hourlyNote={dict.naqi.hourlyNote}
+        hourlyRows={priceRows(hourlyService, false)}
+        hourlyHref={hourlySlug ? `${base}/service/${hourlySlug}` : `${base}/services`}
+        hourlyCta={dict.naqi.hourlyCta}
+        packagesTitle={dict.naqi.packagesTitle}
+        packageRows={priceRows(unitService, true)}
+        packagesHref={unitSlug ? `${base}/service/${unitSlug}` : `${base}/services`}
+      />
+
+      {/* Website · slot 2 — after the prices, where a reader who has just
+          worked out what it costs is the readiest to be offered something. */}
+      <NaqiBannerSlot
+        banners={slotTwo}
+        locale={locale}
+        slideLabel={dict.naqi.slide}
+        alt={dict.naqi.heroImageAlt}
+      />
+
+      {/* Where we work — Naqi §4 §06, from the panel's service areas. */}
+      <NaqiZones
+        index={dict.naqi.zonesIndex}
+        label={dict.naqi.zonesLabel}
+        title={dict.naqi.zonesTitle}
+        intro={dict.naqi.zonesIntro}
+        zones={zones}
+      />
+
+      {/* Questions — Naqi §4, pooled from the services' own FAQs. */}
+      <NaqiFaq
+        index={dict.naqi.faqIndex}
+        label={dict.naqi.faqLabel}
+        title={dict.naqi.faqTitle}
+        intro={dict.naqi.faqIntro}
+        items={faqItems}
+      />
+
+      {/* Contact — every line from Business Settings. */}
+      <NaqiContact
+        title={dict.naqi.contactTitle}
+        intro={dict.naqi.contactIntro}
+        phone={config.business_phone}
+        email={config.business_email}
+        address={config.business_address}
+        phoneLabel={dict.naqi.contactPhone}
+        emailLabel={dict.naqi.contactEmail}
+        addressLabel={dict.naqi.contactAddress}
+      />
+
+      {/* The closing call to action — Naqi's green band, in ink. */}
+      <NaqiCta
+        title={dict.cta.title}
+        text={dict.cta.text}
+        buttonLabel={dict.cta.button}
+        href={`${base}/services`}
+      />
+
     </>
   );
 }

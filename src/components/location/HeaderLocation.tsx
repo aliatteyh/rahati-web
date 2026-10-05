@@ -22,11 +22,18 @@ export function HeaderLocation({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden max-w-[180px] items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm text-ink transition hover:border-primary lg:flex"
+        className="flex max-w-[180px] items-center gap-1.5 rounded-full border border-border px-2.5 py-1.5 text-sm text-ink transition hover:border-primary lg:px-3"
         title={dict.change}
+        aria-label={dict.chooseLocation}
       >
         <span>📍</span>
-        <span className="truncate font-medium">{name ?? dict.chooseLocation}</span>
+        {/* The area decides what can be booked and at what price, so the way to
+            set it cannot be desktop-only — it used to disappear below 1024px
+            entirely. On a phone the pin stands on its own: the name beside it
+            is what pushes the row off the line, not the control. */}
+        <span className="hidden truncate font-medium lg:inline">
+          {name ?? dict.chooseLocation}
+        </span>
       </button>
 
       {open && (

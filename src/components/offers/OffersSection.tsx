@@ -34,15 +34,27 @@ export function OffersSection({
   if (!featured && cards.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <section
+      id="offers"
+      className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] py-[clamp(56px,7vw,96px)]"
+    >
+      <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-            {dict.offersEyebrow}
-          </p>
-          <h2 className="mt-1 text-2xl font-bold text-ink">{dict.offersTitle}</h2>
+          {/* The page's own eyebrow, so this section joins the numbered
+              sequence instead of announcing itself in a different voice. */}
+          <div className="flex items-center gap-3 text-green">
+            <span aria-hidden className="h-px w-9 bg-green opacity-60" />
+            <span className="text-[13px] font-semibold tracking-[0.1em]">
+              {dict.offersEyebrow}
+            </span>
+          </div>
+          <h2 className="mt-4 text-[clamp(28px,3vw,42px)] font-semibold leading-[1.4] text-ink text-balance">
+            {dict.offersTitle}
+          </h2>
         </div>
-        <p className="max-w-sm text-sm text-muted">{dict.offersHint}</p>
+        <p className="max-w-[420px] text-[15.5px] leading-[1.85] text-ink-62">
+          {dict.offersHint}
+        </p>
       </div>
 
       {featured && (
@@ -50,7 +62,7 @@ export function OffersSection({
       )}
 
       {cards.length > 0 && (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))]">
           {cards.map((offer) => (
             <OfferCard key={offer.id} offer={offer} serverTime={serverTime} locale={locale} dict={dict} />
           ))}
@@ -80,12 +92,12 @@ function FeaturedOffer({
   if (left.finished) return null;
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-ink text-white">
+    <div className="overflow-hidden rounded-card bg-green-dark text-white">
       <div className="grid gap-6 p-7 sm:p-9 lg:grid-cols-2">
         <div>
           <div className="flex flex-wrap items-center gap-3">
             {offer.tag && (
-              <span className="rounded-full bg-[#e8d9ae] px-3 py-1 text-xs font-semibold text-[#6b5a24]">
+              <span className="rounded-full bg-gold-soft px-3 py-1 text-[12.5px] font-semibold text-sand-ink">
                 {offer.tag}
               </span>
             )}
@@ -94,7 +106,7 @@ function FeaturedOffer({
 
           <p className="mt-5">
             {offer.big_number && (
-              <span className="text-5xl font-extrabold text-[#e8d9ae]">{offer.big_number}</span>
+              <span className="font-mono text-5xl font-semibold text-gold">{offer.big_number}</span>
             )}
             <span className="ms-3 text-xl font-semibold">{offer.headline}</span>
           </p>
@@ -166,29 +178,29 @@ function OfferCard({
   const clock = compactCountdown(left);
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-line bg-white p-5">
+    <div className="flex h-full flex-col rounded-card border border-line bg-surface p-6 transition hover:shadow-hover">
       <div className="flex items-start justify-between gap-2">
         {offer.tag && (
-          <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-semibold text-primary-dark">
+          <span className="rounded-full bg-green-soft px-3 py-1 text-[12.5px] font-semibold text-green">
             {offer.tag}
           </span>
         )}
-        {clock && <span className="font-mono text-xs text-danger">{clock}</span>}
+        {clock && <span className="font-mono text-[12.5px] text-danger-alt">{clock}</span>}
       </div>
 
       <p className="mt-4">
         {offer.big_number && (
-          <span className="text-2xl font-extrabold text-primary">{offer.big_number}</span>
+          <span className="font-mono text-[28px] font-semibold text-green">{offer.big_number}</span>
         )}
-        <span className="ms-2 font-semibold text-ink">{offer.headline}</span>
+        <span className="ms-2 text-[16px] font-semibold text-ink">{offer.headline}</span>
       </p>
 
       {offer.description && (
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{offer.description}</p>
+        <p className="mt-3 flex-1 text-[13.5px] leading-[1.75] text-ink-55">{offer.description}</p>
       )}
 
       <div className="mt-5 flex items-center justify-between gap-2 border-t border-line pt-4">
-        <span className="rounded-lg border border-dashed border-line px-3 py-1 font-mono text-xs text-ink">
+        <span dir="ltr" className="rounded-[12px] border border-dashed border-line-strong px-3 py-1.5 font-mono text-[13px] text-ink">
           {offer.code}
         </span>
         <UseOffer offer={offer} locale={locale} label={dict.useOffer} tone="dark" />
