@@ -806,9 +806,7 @@ export function BookingWizard({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               couponCode: effectiveCode,
-              dates: isRecurring
-                ? buildDates().map((d) => d.date)
-                : [buildSchedule()],
+              dates: chosenDates(),
               locale,
             }),
           }).catch(() => null);
@@ -1323,6 +1321,7 @@ export function BookingWizard({
     professionals,
     materials,
     dateIndex,
+    timeSlot,
     bookingMode,
     planDaysPerWeek,
   ]);
@@ -1353,7 +1352,7 @@ export function BookingWizard({
             amount: serviceAmount,
             minutes: variant.durationMinutes,
             visitsPerWeek: isSubscriptionFlow ? planDaysPerWeek : 0,
-            dates: isRecurring ? buildDates().map((d) => d.date) : [buildSchedule()],
+            dates: chosenDates(),
             locale,
           }),
         });
@@ -1376,6 +1375,7 @@ export function BookingWizard({
     professionals,
     materials,
     dateIndex,
+    timeSlot,
     bookingMode,
     planDaysPerWeek,
   ]);
@@ -1397,7 +1397,7 @@ export function BookingWizard({
           // to stop counting the moment the customer picks two, and the server
           // cannot know which duration they are looking at unless it is sent.
           minutes: variant.durationMinutes,
-          dates: isRecurring ? buildDates().map((d) => d.date) : [buildSchedule()],
+          dates: chosenDates(),
           // Only meaningful on a plan: an offer can ask for three visits a
           // week, which no number of hours expresses.
           visitsPerWeek: isSubscriptionFlow ? planDaysPerWeek : 0,
@@ -1455,6 +1455,22 @@ export function BookingWizard({
     countPhrase(value, dict.dayOne, dict.dayTwo, dict.dayFew, dict.dayMany);
   const monthsPhrase = (value: number) =>
     countPhrase(value, dict.monthOne, dict.monthTwo, dict.monthFew, dict.monthMany);
+
+  /**
+   * The dates this booking is actually for, or none when nobody has said yet.
+   *
+   * The screen always has a day selected — the first one free — but a default
+   * is not a choice. Judging a weekday-limited offer against it drops the offer
+   * before the customer has even reached the calendar, and for an automatic one
+   * that happens in silence: on a Monday, a Tuesday-and-Thursday offer would
+   * simply never appear. The server skips the weekday rule when it is told no
+   * dates, which is the honest answer until a time is picked.
+   */
+  const chosenDates = (): string[] => {
+    if (isRecurring) return recurringValid ? buildDates().map((d) => d.date) : [];
+
+    return timeSlot ? [buildSchedule()] : [];
+  };
 
   function toggleAddOn(id: string) {
     setSelectedAddOns((prev) => {
