@@ -20,7 +20,6 @@ import { BannerCarousel } from "@/components/BannerCarousel";
 import { SearchBox } from "@/components/search/SearchBox";
 import { OffersSection } from "@/components/offers/OffersSection";
 import { AdvertisementRail } from "@/components/home/AdvertisementRail";
-import { CategoryStrip } from "@/components/home/CategoryStrip";
 import { HomeHighlights } from "@/components/home/HomeHighlights";
 import { Testimonials } from "@/components/home/Testimonials";
 import { ProviderRail } from "@/components/home/ProviderRail";
@@ -334,18 +333,9 @@ export default async function HomePage({
         alt={dict.naqi.heroImageAlt}
       />
 
-      {/* Categories */}
-      {sections.length > 0 && (
-        <section className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] pt-[clamp(56px,7vw,96px)]">
-          <SectionHeader
-            title={dict.sections.categories}
-            subtitle={dict.sections.categoriesSub}
-          />
-          {/* The panel's sections, in the panel's order — the same list the
-              app shows, so the two cannot disagree about what is on offer. */}
-          <CategoryStrip sections={sections} locale={locale} />
-        </section>
-      )}
+      {/* The catalogue strip that stood here said the same thing as the
+          services block three screens up, in smaller pictures. Two lists of the
+          same four things is a page asking the reader to choose twice. */}
 
       {/* Provider advertisements — approved in the admin panel and already
           scoped to the customer's zone by the API, so a promotion only shows

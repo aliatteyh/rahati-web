@@ -178,7 +178,19 @@ function OfferCard({
   const clock = compactCountdown(left);
 
   return (
-    <div className="flex h-full flex-col rounded-card border border-line bg-surface p-6 transition hover:shadow-hover">
+    <div className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface transition hover:shadow-hover">
+      {/* Optional, like the featured block's: a card with no artwork is a card,
+          a card with a broken frame is a fault. */}
+      {offer.image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={offer.image}
+          alt=""
+          className="h-[150px] w-full object-cover"
+        />
+      )}
+
+      <div className="flex flex-1 flex-col p-6">
       <div className="flex items-start justify-between gap-2">
         {offer.tag && (
           <span className="rounded-full bg-green-soft px-3 py-1 text-[12.5px] font-semibold text-green">
@@ -204,6 +216,7 @@ function OfferCard({
           {offer.code}
         </span>
         <UseOffer offer={offer} locale={locale} label={dict.useOffer} tone="dark" />
+      </div>
       </div>
     </div>
   );
