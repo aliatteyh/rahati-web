@@ -2,7 +2,7 @@ import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getConfig, formatPrice } from "@/lib/api";
 import { currencyLabel } from "@/lib/currency";
-import { authGetList } from "@/lib/account";
+import { authGet } from "@/lib/account";
 
 interface Coupon {
   id?: string;
@@ -30,10 +30,18 @@ export default async function CouponsPage({
   const dict = getDictionary(locale);
   const a = dict.account as unknown as Record<string, string>;
 
-  const [coupons, config] = await Promise.all([
-    authGetList<Coupon>("/api/v1/customer/coupon?limit=100&offset=1", locale),
+  // This endpoint answers with two lists side by side, not one — so the
+  // generic "content.data" reader found no key of that name and every customer
+  // was told they had no coupons while the server was returning several.
+  const [couponContent, config] = await Promise.all([
+    authGet<{ active_coupons?: { data?: Coupon[] } } | null>(
+      "/api/v1/customer/coupon?limit=100&offset=1",
+      locale,
+      null
+    ),
     getConfig(locale),
   ]);
+  const coupons = couponContent?.active_coupons?.data ?? [];
   const currency = currencyLabel(config, locale);
 
   return (
