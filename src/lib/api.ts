@@ -359,6 +359,8 @@ export interface CouponResult {
   discount_amount: number;
   coupon_code?: string;
   message?: string;
+  /** Which rule turned it down — "promotion_min_hours", "promotion_weekday"… */
+  reason?: string;
 }
 
 /**
@@ -950,7 +952,12 @@ export async function validateCoupon(
   couponCode: string,
   serviceId: string,
   amount: number,
-  locale: Locale
+  locale: Locale,
+  // What the screen is pricing right now. The server judges the offer's own
+  // rules against these, so picking two hours under a three-hour offer is
+  // answered on the booking screen instead of at checkout.
+  minutes?: number,
+  dates?: string[]
 ): Promise<CouponResult> {
   try {
     const zoneId = await getZoneId();
@@ -966,6 +973,8 @@ export async function validateCoupon(
         coupon_code: couponCode,
         service_id: serviceId,
         amount,
+        ...(minutes && minutes > 0 ? { minutes } : {}),
+        ...(dates && dates.length ? { dates } : {}),
       }),
       cache: "no-store",
     });
@@ -976,6 +985,7 @@ export async function validateCoupon(
       discount_amount: Number(content.discount_amount ?? 0),
       coupon_code: content.coupon_code,
       message: content.message,
+      reason: content.reason,
     };
   } catch {
     return { valid: false, discount_amount: 0, message: "Could not validate coupon" };

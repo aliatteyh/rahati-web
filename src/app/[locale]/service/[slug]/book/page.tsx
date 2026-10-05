@@ -18,7 +18,7 @@ import {
 } from "@/components/booking/BookingWizard";
 
 type Params = Promise<{ locale: string; slug: string }>;
-type Search = Promise<{ package?: string; variant?: string }>;
+type Search = Promise<{ package?: string; variant?: string; hours?: string }>;
 
 function toNumber(v: unknown): number {
   const n = typeof v === "string" ? parseFloat(v) : (v as number);
@@ -51,7 +51,12 @@ export default async function BookPage({
   // long each visit runs and how often. Asking again is not a confirmation —
   // it is a second chance to answer differently and end up with a booking they
   // did not choose.
-  const { package: presetPackage, variant: presetVariant } = await searchParams;
+  //
+  // `hours` is different from `variant`: it comes from an offer that needs a
+  // visit of a certain length, and it only *starts* the customer there. They
+  // may change it, and the offer tells them what happens when they do.
+  const { package: presetPackage, variant: presetVariant, hours: offerHours } =
+    await searchParams;
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
 
@@ -125,6 +130,7 @@ export default async function BookPage({
       variants={variants}
       presetPackageId={presetPackage ?? null}
       presetVariantKey={presetVariant ?? null}
+      offerHours={toNumber(offerHours)}
       addOns={addOns}
       workStart={service.service_availability?.time_schedule?.start_time ?? null}
       workEnd={service.service_availability?.time_schedule?.end_time ?? null}

@@ -16,6 +16,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await validateCoupon(couponCode, serviceId, amount, locale);
+  // The length and day currently on screen, so the offer's own rules are
+  // judged against what the customer is actually looking at.
+  const minutes = Number(body.minutes ?? 0);
+  const dates = Array.isArray(body.dates) ? body.dates.map(String) : [];
+
+  const result = await validateCoupon(couponCode, serviceId, amount, locale, minutes, dates);
   return NextResponse.json(result);
 }

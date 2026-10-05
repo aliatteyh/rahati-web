@@ -82,8 +82,14 @@ export function OfferPopup({
   if (!open || !offer || left.finished) return null;
 
   const clock = compactCountdown(left);
+  // The length the offer needs travels with it, so "Use offer" lands on a
+  // visit the offer actually applies to instead of on the shortest one and a
+  // refusal. It selects without locking: the customer may still change it, and
+  // the offer says so when they do.
+  const hours = offer.min_hours > 0 ? `&hours=${offer.min_hours}` : "";
+
   const href = offer.service_slug
-    ? `/${locale}/service/${offer.service_slug}/book?offer=${offer.code}`
+    ? `/${locale}/service/${offer.service_slug}/book?offer=${offer.code}${hours}`
     : `/${locale}/services?offer=${offer.code}`;
 
   return (

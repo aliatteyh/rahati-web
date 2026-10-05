@@ -79,6 +79,12 @@ export interface BookingWizardProps {
   presetPackageId?: string | null;
   /** Chosen on the subscription browser; locks the duration here. */
   presetVariantKey?: string | null;
+  /**
+   * The hours an offer needs, carried in from "Use offer". Chooses the
+   * opening duration and nothing more — unlike `presetVariantKey` it leaves
+   * the picker open, because the customer is allowed to want something else.
+   */
+  offerHours?: number;
   /** Providers who can take this booking; empty leaves the server to assign. */
   bookableProviders?: BookableProvider[];
   /**
@@ -193,6 +199,7 @@ export function BookingWizard({
   providerId = null,
   presetPackageId = null,
   presetVariantKey = null,
+  offerHours = 0,
   bookableProviders = [],
   bookingFlow = null,
   subscriptionMonths = [1],
@@ -226,7 +233,16 @@ export function BookingWizard({
   const presetIndex = presetVariantKey
     ? Math.max(0, variants.findIndex((v) => v.key === presetVariantKey))
     : 0;
-  const [variantIndex, setVariantIndex] = useState(presetIndex);
+  // The shortest visit that satisfies the offer, not the exact one: an offer
+  // written for three hours is happy with four, and the office need not have
+  // named a duration that exists in this service's list.
+  const offerIndex =
+    offerHours > 0
+      ? variants.findIndex((v) => (v.durationMinutes ?? 0) >= offerHours * 60)
+      : -1;
+  const [variantIndex, setVariantIndex] = useState(
+    presetVariantKey ? presetIndex : offerIndex >= 0 ? offerIndex : 0
+  );
   const [professionals, setProfessionals] = useState(1);
   const [materials, setMaterials] = useState(false);
   const [instructions, setInstructions] = useState("");
@@ -1236,6 +1252,32 @@ export function BookingWizard({
     void applyCoupon();
   }, [offerFromUrl, serviceId, serviceAmount]);
 
+  /**
+   * Re-checks the code whenever what it is being checked against moves.
+   *
+   * The discount used to be worked out once and then left on screen: change
+   * the visit from three hours to eight and the saving shown was still the one
+   * calculated for three, and an offer that needed three hours kept showing a
+   * discount at two. The customer only found out at checkout, where a price
+   * that goes up on its own reads as a trick.
+   *
+   * The code stays in the field when a rule turns it down, with the reason
+   * under it — put the hours back and it starts counting again on its own.
+   * Clearing the field would look as though the site had swallowed the offer.
+   */
+  useEffect(() => {
+    if (!coupon.trim()) return;
+    if (!couponApplied && !couponError) return;
+    if (!serviceId || serviceAmount <= 0) return;
+
+    // Debounced: a customer clicking along the hour chips would otherwise fire
+    // a request per chip, and the answers can come back out of order.
+    const timer = setTimeout(() => void applyCoupon(), 350);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceAmount, variant.durationMinutes, professionals, materials, dateIndex, bookingMode]);
+
   async function applyCoupon() {
     const code = coupon.trim();
     if (!code) return;
@@ -1245,7 +1287,17 @@ export function BookingWizard({
       const res = await fetch("/api/coupon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ couponCode: code, serviceId, amount: serviceAmount, locale }),
+        body: JSON.stringify({
+          couponCode: code,
+          serviceId,
+          amount: serviceAmount,
+          // What is on screen right now. An offer written for three hours has
+          // to stop counting the moment the customer picks two, and the server
+          // cannot know which duration they are looking at unless it is sent.
+          minutes: variant.durationMinutes,
+          dates: isRecurring ? buildDates().map((d) => d.date) : [buildSchedule()],
+          locale,
+        }),
       });
       const data = await res.json();
       if (data?.valid) {

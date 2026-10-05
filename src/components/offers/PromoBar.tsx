@@ -60,7 +60,7 @@ export function PromoBar({
 
   const clock = compactCountdown(left);
   const target = offer.service_slug
-    ? `/${locale}/service/${offer.service_slug}/book?offer=${offer.code}`
+    ? `/${locale}/service/${offer.service_slug}/book?offer=${offer.code}${offer.min_hours > 0 ? `&hours=${offer.min_hours}` : ""}`
     : `/${locale}/services?offer=${offer.code}`;
 
   return (
