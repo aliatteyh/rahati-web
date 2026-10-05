@@ -678,6 +678,27 @@
     "statBookings": "حجز مكتمل",
     "statAreas": "منطقة مخدومة",
     "badgeNew": "جديد",
-    "slide": "شريحة"
+    "slide": "شريحة",
+    "careersIndex": "06",
+    "careersLabel": "الوظائف",
+    "careersTitle": "اعملي معنا، بجدولٍ يناسبك",
+    "careersIntro": "نبحث عن عاملات تنظيف محترفات في المناطق التي نخدمها. أرسلي بياناتك ونتواصل معك.",
+    "careersB1": "عمل منتظم بمواعيد معلومة",
+    "careersB2": "تدريب ومعدّات من الشركة",
+    "careersB3": "تطبيق خاص بكِ لإدارة زياراتك",
+    "careersFormTitle": "قدّمي الآن",
+    "careersName": "الاسم الكامل",
+    "careersPhone": "رقم الهاتف",
+    "careersEmail": "البريد الإلكتروني (اختياري)",
+    "careersExperience": "سنوات الخبرة",
+    "careersExpNone": "أقل من سنة",
+    "careersExp12": "سنة إلى سنتين",
+    "careersExp35": "ثلاث إلى خمس سنوات",
+    "careersExp5": "أكثر من خمس سنوات",
+    "careersSend": "أرسلي الطلب",
+    "careersError": "تعذّر الإرسال، حاولي مرة أخرى.",
+    "careersSentTitle": "وصلنا طلبك",
+    "careersSentNote": "سنراجعه ونتواصل معك على الرقم الذي أدخلتِه.",
+    "careersPrivacy": "نستعمل بياناتك للتواصل بشأن العمل فقط."
   }
 }

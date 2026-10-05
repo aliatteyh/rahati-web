@@ -41,6 +41,7 @@ export async function SiteHeader({
     { href: `${base}#pricing`, label: dict.naqi.navPricing },
     { href: `${base}#how-it-works`, label: dict.nav.howItWorks },
     { href: `${base}#zones`, label: dict.naqi.navAreas },
+    { href: `${base}#careers`, label: dict.naqi.navCareers },
     // A page, not an anchor, and the only one in this list: the articles are
     // their own documents and the panel publishes them without touching the
     // home page. Dropping it when the header was redesigned took the only

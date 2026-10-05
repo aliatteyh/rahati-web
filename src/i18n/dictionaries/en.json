@@ -680,6 +680,27 @@
     "statBookings": "Bookings completed",
     "statAreas": "Areas served",
     "badgeNew": "New",
-    "slide": "Slide"
+    "slide": "Slide",
+    "careersIndex": "06",
+    "careersLabel": "Careers",
+    "careersTitle": "Work with us, on a schedule that suits you",
+    "careersIntro": "We are looking for professional cleaners in the areas we serve. Send your details and we will be in touch.",
+    "careersB1": "Steady work with set hours",
+    "careersB2": "Training and equipment provided",
+    "careersB3": "Your own app to manage your visits",
+    "careersFormTitle": "Apply now",
+    "careersName": "Full name",
+    "careersPhone": "Mobile number",
+    "careersEmail": "Email (optional)",
+    "careersExperience": "Years of experience",
+    "careersExpNone": "Less than a year",
+    "careersExp12": "1 to 2 years",
+    "careersExp35": "3 to 5 years",
+    "careersExp5": "More than 5 years",
+    "careersSend": "Send application",
+    "careersError": "Could not send, please try again.",
+    "careersSentTitle": "We have your application",
+    "careersSentNote": "We will go through it and call you on the number you gave.",
+    "careersPrivacy": "We use your details only to contact you about work."
   }
 }

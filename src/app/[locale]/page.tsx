@@ -35,6 +35,7 @@ import { NaqiFaq } from "@/components/naqi/NaqiFaq";
 import { NaqiHeroMedia } from "@/components/naqi/NaqiHeroMedia";
 import { NaqiBannerSlot } from "@/components/naqi/NaqiBannerSlot";
 import { NaqiContact } from "@/components/naqi/NaqiContact";
+import { NaqiCareers } from "@/components/naqi/NaqiCareers";
 import { SectionHeader } from "@/components/SectionHeader";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { absoluteUrl } from "@/lib/seo";
@@ -499,6 +500,18 @@ export default async function HomePage({
       />
 
       {/* Contact — every line from Business Settings. */}
+      {/* Careers — the one block addressed to someone who is not buying
+          anything. It sits after the questions and before the way to reach us,
+          which is where a reader who has read this far would look for it. */}
+      <NaqiCareers
+        index={dict.naqi.careersIndex}
+        label={dict.naqi.careersLabel}
+        title={dict.naqi.careersTitle}
+        intro={dict.naqi.careersIntro}
+        benefits={[dict.naqi.careersB1, dict.naqi.careersB2, dict.naqi.careersB3]}
+        dict={dict.naqi as unknown as Record<string, string>}
+      />
+
       <NaqiContact
         title={dict.naqi.contactTitle}
         intro={dict.naqi.contactIntro}
