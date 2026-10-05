@@ -21,6 +21,16 @@ export async function POST(request: Request) {
   const minutes = Number(body.minutes ?? 0);
   const dates = Array.isArray(body.dates) ? body.dates.map(String) : [];
 
-  const result = await validateCoupon(couponCode, serviceId, amount, locale, minutes, dates);
+  const visitsPerWeek = Number(body.visitsPerWeek ?? 0);
+
+  const result = await validateCoupon(
+    couponCode,
+    serviceId,
+    amount,
+    locale,
+    minutes,
+    dates,
+    visitsPerWeek
+  );
   return NextResponse.json(result);
 }

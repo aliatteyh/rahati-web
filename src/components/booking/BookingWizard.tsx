@@ -1276,7 +1276,15 @@ export function BookingWizard({
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceAmount, variant.durationMinutes, professionals, materials, dateIndex, bookingMode]);
+  }, [
+    serviceAmount,
+    variant.durationMinutes,
+    professionals,
+    materials,
+    dateIndex,
+    bookingMode,
+    planDaysPerWeek,
+  ]);
 
   async function applyCoupon() {
     const code = coupon.trim();
@@ -1296,6 +1304,9 @@ export function BookingWizard({
           // cannot know which duration they are looking at unless it is sent.
           minutes: variant.durationMinutes,
           dates: isRecurring ? buildDates().map((d) => d.date) : [buildSchedule()],
+          // Only meaningful on a plan: an offer can ask for three visits a
+          // week, which no number of hours expresses.
+          visitsPerWeek: isSubscriptionFlow ? planDaysPerWeek : 0,
           locale,
         }),
       });

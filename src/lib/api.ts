@@ -957,7 +957,9 @@ export async function validateCoupon(
   // rules against these, so picking two hours under a three-hour offer is
   // answered on the booking screen instead of at checkout.
   minutes?: number,
-  dates?: string[]
+  dates?: string[],
+  // Subscriptions are judged by how often, not how long.
+  visitsPerWeek?: number
 ): Promise<CouponResult> {
   try {
     const zoneId = await getZoneId();
@@ -975,6 +977,7 @@ export async function validateCoupon(
         amount,
         ...(minutes && minutes > 0 ? { minutes } : {}),
         ...(dates && dates.length ? { dates } : {}),
+        ...(visitsPerWeek && visitsPerWeek > 0 ? { visits_per_week: visitsPerWeek } : {}),
       }),
       cache: "no-store",
     });
