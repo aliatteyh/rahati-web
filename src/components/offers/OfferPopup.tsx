@@ -101,9 +101,25 @@ export function OfferPopup({
       onClick={close}
     >
       <div
-        className="relative w-full max-w-md rounded-2xl bg-surface p-7 shadow-xl"
+        className={`relative w-full overflow-hidden rounded-2xl bg-surface shadow-xl ${
+          offer.image ? "max-w-2xl sm:grid sm:grid-cols-2" : "max-w-md"
+        }`}
         onClick={(event) => event.stopPropagation()}
       >
+        {/* The picture takes half the modal when there is one, and the modal
+            stays a single column when there is not — the office publishes
+            offers in a hurry and a blank half is worse than a narrow card.
+            Hidden on a phone, where half a modal is no picture at all. */}
+        {offer.image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={offer.image}
+            alt=""
+            className="hidden h-full w-full object-cover sm:block"
+          />
+        )}
+
+        <div className="p-7">
         <button
           type="button"
           aria-label={dict.close}
@@ -154,6 +170,7 @@ export function OfferPopup({
         >
           {dict.noThanks}
         </button>
+        </div>
       </div>
     </div>
   );
