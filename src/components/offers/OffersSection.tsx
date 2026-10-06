@@ -92,9 +92,13 @@ function FeaturedOffer({
   return (
     <div ref={seenRef} className="overflow-hidden rounded-[24px] bg-[#0A4A3C] text-white">
       {/* Two columns, and one below 760px — the picture is worth half the
-          block on a laptop and worth nothing at all on a phone. */}
-      <div className="grid gap-6 p-7 sm:p-9 [@media(min-width:760px)]:grid-cols-2">
-        <div>
+          block on a laptop and worth nothing at all on a phone.
+          The padding belongs to the text column alone: a gap and an inset
+          picture left a green margin around the photo, where the design has
+          the image meeting all three edges and the two halves dividing on one
+          straight line. */}
+      <div className="grid [@media(min-width:760px)]:grid-cols-2">
+        <div className="p-7 sm:p-9">
           <div className="flex flex-wrap items-center gap-3">
             {offer.tag && (
               <span className="rounded-full bg-gold-soft px-3 py-1 text-[12.5px] font-semibold text-sand-ink">
@@ -160,7 +164,9 @@ function FeaturedOffer({
              the whole block to 636px — twice the flat band the design asks for.
              Hidden below the two-column breakpoint, where half a block is no
              picture at all. */
-          <div className="hidden h-[clamp(240px,26vw,360px)] overflow-hidden rounded-xl [@media(min-width:760px)]:block">
+          <div className="hidden min-h-[clamp(260px,26vw,380px)] [@media(min-width:760px)]:block">
+            {/* Cropped into the half it is given, flush to the block's own
+                corners — the rounding is the block's, not the picture's. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={offer.image} alt="" className="h-full w-full object-cover" />
           </div>
