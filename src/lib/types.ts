@@ -175,6 +175,19 @@ export interface SocialMediaLink {
 export interface BusinessConfig {
   business_name?: string;
   /** The "why choose us" row, edited in the admin panel. */
+  /** The home page's opening block, already in the reader's language. */
+  hero_section?: {
+    eyebrow: string;
+    headlines: { top: string; bottom?: string }[];
+    subtitle: string;
+    cta_label: string;
+    cta_href: string | null;
+    secondary_label: string;
+    secondary_href: string | null;
+    facts: string[];
+    rotate: boolean;
+    rotate_seconds: number;
+  } | null;
   /** The home page's business block, already in the reader's language. */
   business_section?: {
     title: string;

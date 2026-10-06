@@ -265,6 +265,34 @@ export default async function HomePage({
     },
   ].filter(Boolean) as { value: string; label: string }[];
 
+  // The opening block's words. The panel's when the office has written them,
+  // and the built-in wording when they have not — a home page with no headline
+  // is not a state anybody should be able to reach from a settings screen.
+  //
+  // A link is stored without the language and gains it here, so the same row
+  // serves both sites.
+  const written = config.hero_section ?? null;
+  const withLocale = (href?: string | null, fallback = "") =>
+    href ? (href.startsWith("#") ? `${base}${href}` : `${base}${href}`) : fallback;
+
+  const hero = {
+    eyebrow: written?.eyebrow || dict.naqi.heroEyebrow,
+    headlines:
+      written?.headlines?.length
+        ? written.headlines
+        : [{ top: dict.naqi.heroTitleTop, bottom: dict.naqi.heroTitleBottom }],
+    rotate: written?.rotate ?? true,
+    rotateSeconds: written?.rotate_seconds ?? 6,
+    subtitle: written?.subtitle || dict.naqi.heroSubtitle,
+    ctaLabel: written?.cta_label || dict.naqi.heroCta,
+    ctaHref: withLocale(written?.cta_href, `${base}/services`),
+    secondaryLabel: written?.secondary_label || dict.naqi.heroSecondary,
+    secondaryHref: withLocale(written?.secondary_href, `${base}#how-it-works`),
+    facts: written?.facts?.length
+      ? written.facts
+      : [dict.hero.stat1, dict.hero.stat2, dict.hero.stat3],
+  };
+
   const brand = config.business_name || dict.brand;
   const jsonLd = [
     {
@@ -300,12 +328,13 @@ export default async function HomePage({
           read from the services themselves. A price typed into a page is a
           price that goes stale the first time the office changes one. */}
       <NaqiHero
-        eyebrow={dict.naqi.heroEyebrow}
-        titleTop={dict.naqi.heroTitleTop}
-        titleBottom={dict.naqi.heroTitleBottom}
-        subtitle={dict.naqi.heroSubtitle}
-        ctaLabel={dict.naqi.heroCta}
-        ctaHref={`${base}/services`}
+        eyebrow={hero.eyebrow}
+        headlines={hero.headlines}
+        rotate={hero.rotate}
+        rotateSeconds={hero.rotateSeconds}
+        subtitle={hero.subtitle}
+        ctaLabel={hero.ctaLabel}
+        ctaHref={hero.ctaHref}
         ctaNote={
           cheapest > 0
             ? dict.naqi.heroCtaNote.replace(
@@ -314,9 +343,9 @@ export default async function HomePage({
               )
             : undefined
         }
-        secondaryLabel={dict.naqi.heroSecondary}
-        secondaryHref={`${base}#how-it-works`}
-        facts={[dict.hero.stat1, dict.hero.stat2, dict.hero.stat3]}
+        secondaryLabel={hero.secondaryLabel}
+        secondaryHref={hero.secondaryHref}
+        facts={hero.facts}
         media={
           <NaqiHeroMedia
             banners={banners}

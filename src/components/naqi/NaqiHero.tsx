@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Container, Button } from "./primitives";
+import { HeroHeadline } from "./HeroHeadline";
 
 /**
  * The opening block (§4 Hero).
@@ -17,8 +18,9 @@ import { Container, Button } from "./primitives";
  */
 export function NaqiHero({
   eyebrow,
-  titleTop,
-  titleBottom,
+  headlines,
+  rotate,
+  rotateSeconds,
   subtitle,
   ctaLabel,
   ctaHref,
@@ -30,8 +32,10 @@ export function NaqiHero({
   stats,
 }: {
   eyebrow: string;
-  titleTop: string;
-  titleBottom: string;
+  /** One headline, or several for the page to move between. */
+  headlines: { top: string; bottom?: string }[];
+  rotate: boolean;
+  rotateSeconds: number;
   subtitle: string;
   ctaLabel: string;
   ctaHref: string;
@@ -55,11 +59,7 @@ export function NaqiHero({
             </span>
           </div>
 
-          <h1 className="mt-6 text-[clamp(38px,4.6vw,66px)] font-semibold leading-[1.15] tracking-[-0.01em] text-ink text-balance">
-            {titleTop}
-            <br />
-            <span className="font-normal text-green">{titleBottom}</span>
-          </h1>
+          <HeroHeadline headlines={headlines} rotate={rotate} seconds={rotateSeconds} />
 
           <p className="mt-6 max-w-[520px] text-[17px] leading-[1.8] text-ink-62">
             {subtitle}
