@@ -155,7 +155,12 @@ function FeaturedOffer({
             an admin who has not uploaded artwork gets a plain card rather than
             a broken half. */}
         {offer.image && (
-          <div className="hidden overflow-hidden rounded-xl lg:block">
+          /* A height of its own, because the picture had none: the column took
+             whatever the uploaded photo was tall, and a portrait shot stretched
+             the whole block to 636px — twice the flat band the design asks for.
+             Hidden below the two-column breakpoint, where half a block is no
+             picture at all. */
+          <div className="hidden h-[clamp(240px,26vw,360px)] overflow-hidden rounded-xl [@media(min-width:760px)]:block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={offer.image} alt="" className="h-full w-full object-cover" />
           </div>
