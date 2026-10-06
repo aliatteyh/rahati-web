@@ -34,6 +34,7 @@ import { NaqiFaq } from "@/components/naqi/NaqiFaq";
 import { NaqiHeroMedia } from "@/components/naqi/NaqiHeroMedia";
 import { NaqiBannerSlot } from "@/components/naqi/NaqiBannerSlot";
 import { NaqiContact } from "@/components/naqi/NaqiContact";
+import { NaqiBusiness } from "@/components/naqi/NaqiBusiness";
 import { NaqiCareers } from "@/components/naqi/NaqiCareers";
 import { SectionHeader } from "@/components/SectionHeader";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -105,6 +106,16 @@ export default async function HomePage({
     banners[0]?.banner_image_full_path ??
     popular.find((service) => service.image_full_path)?.image_full_path ??
     null;
+
+  // A second picture from the panel, never the hero's: the same photograph
+  // twice on one page reads as a site with one photograph. Taken from the
+  // catalogue sections, which are the rows that actually carry artwork — the
+  // popular list returns none.
+  const businessImage =
+    sections
+      .map((section) => section.image_full_path)
+      .filter(Boolean)
+      .find((image) => image !== heroImage) ?? null;
 
   // The catalogue as the panel orders it — the same four the app shows, so the
   // website and the phone cannot disagree about what is on offer.
@@ -324,35 +335,6 @@ export default async function HomePage({
         fromLabel={dict.naqi.from}
         viewLabel={dict.naqi.viewDetails}
       />
-      {/* Website · slot 1 — whatever the office put there, and nothing at
-          all when they put nothing. */}
-      <NaqiBannerSlot
-        banners={slotOne}
-        locale={locale}
-        slideLabel={dict.naqi.slide}
-        alt={dict.naqi.heroImageAlt}
-      />
-
-      {/* The catalogue strip that stood here said the same thing as the
-          services block three screens up, in smaller pictures. Two lists of the
-          same four things is a page asking the reader to choose twice. */}
-
-      {/* Provider advertisements — approved in the admin panel and already
-          scoped to the customer's zone by the API, so a promotion only shows
-          where its provider actually works. Marked sponsored on every card. */}
-      {ads.length > 0 && (
-        <section className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] pt-[clamp(56px,7vw,96px)]">
-          <SectionHeader title={dict.ads.title} subtitle={dict.ads.subtitle} />
-          <AdvertisementRail
-            ads={ads}
-            locale={locale}
-            sponsoredLabel={dict.ads.label}
-            ctaLabel={dict.ads.cta}
-            intervalSeconds={Number(config.campaign_slider_interval ?? 0)}
-          />
-        </section>
-      )}
-
       {/* Popular services */}
       {popular.length > 0 && (
         <section className="bg-surface-soft py-16">
@@ -381,6 +363,132 @@ export default async function HomePage({
         </section>
       )}
 
+      {/* Campaigns — the discount already applies at checkout; without this the
+          customer only met a running promotion by opening one of its services. */}
+      {/* The announced offers, between the hero and everything else: a
+          limited-time offer that appears below the fold has already lost most
+          of the urgency it was written with. */}
+      <OffersSection
+        featured={offers.featured}
+        cards={offers.cards}
+        serverTime={offers.server_time}
+        locale={locale}
+        dict={dict.offers}
+      />
+
+      {/* Pricing — Naqi §4 §02, straight from the panel's variations. */}
+      <NaqiPricing
+        index={dict.naqi.pricingIndex}
+        label={dict.naqi.pricingLabel}
+        title={dict.naqi.pricingTitle}
+        intro={dict.naqi.pricingIntro}
+        hourlyTitle={dict.naqi.hourlyTitle}
+        hourlyNote={dict.naqi.hourlyNote}
+        hourlyRows={priceRows(hourlyService, false)}
+        hourlyHref={hourlySlug ? `${base}/service/${hourlySlug}` : `${base}/services`}
+        hourlyCta={dict.naqi.hourlyCta}
+        packagesTitle={dict.naqi.packagesTitle}
+        packageRows={priceRows(unitService, true)}
+        packagesHref={unitSlug ? `${base}/service/${unitSlug}` : `${base}/services`}
+      />
+
+      {/* Website · slot 1 — whatever the office put there, and nothing at
+          all when they put nothing. */}
+      <NaqiBannerSlot
+        banners={slotOne}
+        locale={locale}
+        slideLabel={dict.naqi.slide}
+        alt={dict.naqi.heroImageAlt}
+      />
+
+      {/* Provider advertisements — approved in the admin panel and already
+          scoped to the customer's zone by the API, so a promotion only shows
+          where its provider actually works. Marked sponsored on every card. */}
+      {ads.length > 0 && (
+        <section className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] pt-[clamp(56px,7vw,96px)]">
+          <SectionHeader title={dict.ads.title} subtitle={dict.ads.subtitle} />
+          <AdvertisementRail
+            ads={ads}
+            locale={locale}
+            sponsoredLabel={dict.ads.label}
+            ctaLabel={dict.ads.cta}
+            intervalSeconds={Number(config.campaign_slider_interval ?? 0)}
+          />
+        </section>
+      )}
+
+      {/* How it works — Naqi §4 §03. */}
+      <NaqiHow
+        index={dict.naqi.howIndex}
+        label={dict.naqi.howLabel}
+        title={dict.naqi.howTitle}
+        steps={steps}
+      />
+
+      {/* Business — the one block written for somebody buying for a
+          building rather than a home, which is why it is the only dark
+          section on the page. */}
+      <NaqiBusiness
+        index={dict.naqi.businessIndex}
+        label={dict.naqi.businessLabel}
+        title={dict.naqi.businessTitle}
+        intro={dict.naqi.businessIntro}
+        chips={[
+          dict.naqi.businessChip1,
+          dict.naqi.businessChip2,
+          dict.naqi.businessChip3,
+          dict.naqi.businessChip4,
+          dict.naqi.businessChip5,
+        ]}
+        points={[
+          { title: dict.naqi.businessP1Title, text: dict.naqi.businessP1Text },
+          { title: dict.naqi.businessP2Title, text: dict.naqi.businessP2Text },
+          { title: dict.naqi.businessP3Title, text: dict.naqi.businessP3Text },
+          { title: dict.naqi.businessP4Title, text: dict.naqi.businessP4Text },
+        ]}
+        image={businessImage}
+        ctaTitle={dict.naqi.businessCtaTitle}
+        ctaNote={dict.naqi.businessCtaNote}
+        quoteLabel={dict.naqi.businessQuote}
+        quoteHref={`${base}#contact`}
+        phone={config.business_phone}
+      />
+
+      {/* Where we work — Naqi §4 §06, from the panel's service areas. */}
+      <NaqiZones
+        index={dict.naqi.zonesIndex}
+        label={dict.naqi.zonesLabel}
+        title={dict.naqi.zonesTitle}
+        intro={dict.naqi.zonesIntro}
+        zones={zones}
+      />
+
+      {/* Website · slot 2 — after the prices, where a reader who has just
+          worked out what it costs is the readiest to be offered something. */}
+      <NaqiBannerSlot
+        banners={slotTwo}
+        locale={locale}
+        slideLabel={dict.naqi.slide}
+        alt={dict.naqi.heroImageAlt}
+      />
+
+      {/* Why choose us — the owner's own words, from the admin panel. */}
+      <HomeHighlights
+        items={config.home_highlights ?? []}
+        title={dict.sections.whyUs}
+        subtitle={dict.sections.whyUsSub}
+      />
+
+      {/* What customers wrote — real reviews only, so the section simply is
+          not there until there are some. */}
+      <Testimonials
+        items={config.home_testimonials ?? []}
+        index={dict.naqi.reviewsIndex}
+        label={dict.naqi.reviewsLabel}
+        title={dict.sections.testimonials}
+        subtitle={dict.sections.testimonialsSub}
+      />
+
       {/* Providers near you — ordered by real distance when the customer's
           location is known, by rating when it is not. Sits after the services
           because it answers "who would do this?", which is the question that
@@ -403,81 +511,15 @@ export default async function HomePage({
         </section>
       )}
 
-      {/* Campaigns — the discount already applies at checkout; without this the
-          customer only met a running promotion by opening one of its services. */}
-      {/* The announced offers, between the hero and everything else: a
-          limited-time offer that appears below the fold has already lost most
-          of the urgency it was written with. */}
-      <OffersSection
-        featured={offers.featured}
-        cards={offers.cards}
-        serverTime={offers.server_time}
-        locale={locale}
-        dict={dict.offers}
-      />
-
-      {/* The vendor's campaign carousel used to sit here. Two "limited-time
-          offers" sections on one page asked the reader to work out which one
-          was the real offer — and the old one cannot show a code, a countdown
-          or a Use-offer button, because a vendor campaign has none of those.
-          Those campaigns still work: they discount silently, without needing
-          to be advertised, which is the thing they are actually good at. */}
-
-      {/* Why choose us — the owner's own words, from the admin panel. */}
-      <HomeHighlights
-        items={config.home_highlights ?? []}
-        title={dict.sections.whyUs}
-        subtitle={dict.sections.whyUsSub}
-      />
-
-      {/* How it works — Naqi §4 §03. */}
-      <NaqiHow
-        index={dict.naqi.howIndex}
-        label={dict.naqi.howLabel}
-        title={dict.naqi.howTitle}
-        steps={steps}
-      />
-
-      {/* What customers wrote — real reviews only, so the section simply is
-          not there until there are some. */}
-      <Testimonials
-        items={config.home_testimonials ?? []}
-        title={dict.sections.testimonials}
-        subtitle={dict.sections.testimonialsSub}
-      />
-
-      {/* Pricing — Naqi §4 §02, straight from the panel's variations. */}
-      <NaqiPricing
-        index={dict.naqi.pricingIndex}
-        label={dict.naqi.pricingLabel}
-        title={dict.naqi.pricingTitle}
-        intro={dict.naqi.pricingIntro}
-        hourlyTitle={dict.naqi.hourlyTitle}
-        hourlyNote={dict.naqi.hourlyNote}
-        hourlyRows={priceRows(hourlyService, false)}
-        hourlyHref={hourlySlug ? `${base}/service/${hourlySlug}` : `${base}/services`}
-        hourlyCta={dict.naqi.hourlyCta}
-        packagesTitle={dict.naqi.packagesTitle}
-        packageRows={priceRows(unitService, true)}
-        packagesHref={unitSlug ? `${base}/service/${unitSlug}` : `${base}/services`}
-      />
-
-      {/* Website · slot 2 — after the prices, where a reader who has just
-          worked out what it costs is the readiest to be offered something. */}
-      <NaqiBannerSlot
-        banners={slotTwo}
-        locale={locale}
-        slideLabel={dict.naqi.slide}
-        alt={dict.naqi.heroImageAlt}
-      />
-
-      {/* Where we work — Naqi §4 §06, from the panel's service areas. */}
-      <NaqiZones
-        index={dict.naqi.zonesIndex}
-        label={dict.naqi.zonesLabel}
-        title={dict.naqi.zonesTitle}
-        intro={dict.naqi.zonesIntro}
-        zones={zones}
+      {/* Careers — the one block addressed to someone who is not buying
+          anything at all. */}
+      <NaqiCareers
+        index={dict.naqi.careersIndex}
+        label={dict.naqi.careersLabel}
+        title={dict.naqi.careersTitle}
+        intro={dict.naqi.careersIntro}
+        benefits={[dict.naqi.careersB1, dict.naqi.careersB2, dict.naqi.careersB3]}
+        dict={dict.naqi as unknown as Record<string, string>}
       />
 
       {/* Questions — Naqi §4, pooled from the services' own FAQs. */}
@@ -490,18 +532,6 @@ export default async function HomePage({
       />
 
       {/* Contact — every line from Business Settings. */}
-      {/* Careers — the one block addressed to someone who is not buying
-          anything. It sits after the questions and before the way to reach us,
-          which is where a reader who has read this far would look for it. */}
-      <NaqiCareers
-        index={dict.naqi.careersIndex}
-        label={dict.naqi.careersLabel}
-        title={dict.naqi.careersTitle}
-        intro={dict.naqi.careersIntro}
-        benefits={[dict.naqi.careersB1, dict.naqi.careersB2, dict.naqi.careersB3]}
-        dict={dict.naqi as unknown as Record<string, string>}
-      />
-
       <NaqiContact
         title={dict.naqi.contactTitle}
         intro={dict.naqi.contactIntro}
@@ -512,6 +542,17 @@ export default async function HomePage({
         emailLabel={dict.naqi.contactEmail}
         addressLabel={dict.naqi.contactAddress}
       />
+
+      {/* The catalogue strip that stood here said the same thing as the
+          services block three screens up, in smaller pictures. Two lists of the
+          same four things is a page asking the reader to choose twice. */}
+
+      {/* The vendor's campaign carousel used to sit here. Two "limited-time
+          offers" sections on one page asked the reader to work out which one
+          was the real offer — and the old one cannot show a code, a countdown
+          or a Use-offer button, because a vendor campaign has none of those.
+          Those campaigns still work: they discount silently, without needing
+          to be advertised, which is the thing they are actually good at. */}
 
       {/* The closing call to action — Naqi's green band, in ink. */}
       <NaqiCta

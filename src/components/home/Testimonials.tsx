@@ -1,4 +1,5 @@
 import { SectionHeader } from "@/components/SectionHeader";
+import { Eyebrow } from "@/components/naqi/primitives";
 
 export interface Testimonial {
   source?: string | null;
@@ -24,10 +25,15 @@ export function Testimonials({
   items,
   title,
   subtitle,
+  index,
+  label,
 }: {
   items: Testimonial[];
   title: string;
   subtitle?: string;
+  /** Joins the page's numbered run; without these it keeps its old heading. */
+  index?: string;
+  label?: string;
 }) {
   const shown = items.filter((t) => t.comment);
   if (shown.length === 0) return null;
@@ -46,8 +52,20 @@ export function Testimonials({
     // Same column as every other section, so the row starts and ends where the
     // heading above it does. Running full-bleed made the line livelier and made
     // the page look like two different layouts stacked.
-    <section className="mx-auto max-w-6xl px-4 pt-16">
-      <SectionHeader title={title} subtitle={subtitle} />
+    <section id="reviews" className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] pt-[clamp(56px,7vw,96px)]">
+      {label ? (
+        <div className="mb-8">
+          <Eyebrow index={index} label={label} />
+          <h2 className="mt-5 text-[clamp(21px,2.4vw,28px)] font-semibold leading-[1.35] text-ink [text-wrap:balance]">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="mt-3 max-w-[52ch] text-[15.5px] leading-relaxed text-ink-62">{subtitle}</p>
+          )}
+        </div>
+      ) : (
+        <SectionHeader title={title} subtitle={subtitle} />
+      )}
 
       {/* The spacing lives on the cards, not on the track.
           `gap` puts a space *between* items, so a track of 2n cards has 2n−1
