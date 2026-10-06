@@ -42,11 +42,12 @@ export function NaqiBusiness({
 }) {
   return (
     <section id="business" className="bg-[#16211D] text-white">
-      {/* No padding above or below: the dark ground wraps the block itself
-          rather than standing as a band of its own, which is what made the
-          section read as a gap in the page with something in the middle of
-          it. The 32px between the three parts is all the air it needs. */}
-      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 px-[clamp(20px,4vw,48px)] py-0">
+      {/* Half a centimetre above and below — 20px — and no more. The clamp
+          that stood here ran to 96px, which made the dark ground read as a
+          band of its own with something in the middle of it; nothing at all
+          put the first line of type against the edge. This is the small
+          margin that keeps everything inside the box. */}
+      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 px-[clamp(20px,4vw,48px)] py-5">
         {/* Header — two columns that stack when either one runs out of room,
             sitting on the same baseline so the subtitle ends where the title
             does. */}
