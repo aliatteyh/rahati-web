@@ -42,7 +42,11 @@ export function NaqiBusiness({
 }) {
   return (
     <section id="business" className="bg-[#16211D] text-white">
-      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 px-[clamp(20px,4vw,48px)] py-[clamp(56px,7vw,96px)]">
+      {/* No padding above or below: the dark ground wraps the block itself
+          rather than standing as a band of its own, which is what made the
+          section read as a gap in the page with something in the middle of
+          it. The 32px between the three parts is all the air it needs. */}
+      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 px-[clamp(20px,4vw,48px)] py-0">
         {/* Header — two columns that stack when either one runs out of room,
             sitting on the same baseline so the subtitle ends where the title
             does. */}
@@ -85,7 +89,7 @@ export function NaqiBusiness({
             of their own when the line is too short for that. */}
         <div className="flex flex-wrap gap-4">
           {image && (
-            <div className="relative min-h-[320px] flex-[1_1_320px] overflow-hidden rounded-[18px]">
+            <div className="relative min-h-[320px] flex-[1_1_320px] self-stretch overflow-hidden rounded-[18px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={image}
@@ -95,7 +99,11 @@ export function NaqiBusiness({
             </div>
           )}
 
-          <div className="grid min-w-0 flex-[2_1_480px] gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))]">
+          {/* Two by two, and the rows share the height evenly so the four
+              cards end exactly where the picture does. The handoff's own
+              auto-fit rule gave three on a wide screen and left the fourth
+              alone beside a gap. */}
+          <div className="grid min-w-0 flex-[2_1_480px] auto-rows-fr gap-3 [@media(min-width:760px)]:grid-cols-2">
             {points.map((point, i) => (
               <div
                 key={point.title}
