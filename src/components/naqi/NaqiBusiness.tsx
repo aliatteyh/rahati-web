@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Eyebrow } from "./primitives";
 
 /**
  * The block addressed to an office rather than a home.
@@ -9,8 +8,10 @@ import { Eyebrow } from "./primitives";
  * building, who wants to know who turns up, how they are billed and who they
  * ring when something is wrong — and nothing about hourly rates.
  *
- * The phone is the panel's own, so the number on the page and the number in
- * the footer cannot drift apart.
+ * Built to the handoff's own figures (docs/BUSINESS_SECTION.md): three blocks
+ * 32px apart, the picture a third of the row beside a 2×2 grid of terms, and a
+ * band at the foot. Everything in it — the words, the sectors, the four terms,
+ * the picture and the number — comes from the panel.
  */
 export function NaqiBusiness({
   index,
@@ -40,28 +41,38 @@ export function NaqiBusiness({
   phone?: string | null;
 }) {
   return (
-    <section id="business" className="bg-ink py-[clamp(56px,7vw,96px)] text-white">
-      <div className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)]">
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-          <div>
-            <Eyebrow index={index} label={label} onDark />
-            <h2 className="mt-5 text-[clamp(26px,3.2vw,40px)] font-semibold leading-[1.15] [text-wrap:balance]">
+    <section id="business" className="bg-[#16211D] text-white">
+      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 px-[clamp(20px,4vw,48px)] py-[clamp(56px,7vw,96px)]">
+        {/* Header — two columns that stack when either one runs out of room,
+            sitting on the same baseline so the subtitle ends where the title
+            does. */}
+        <div className="grid items-end gap-4 gap-x-16 [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]">
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-3 text-[13px] font-semibold text-[#7FD3B6]">
+              <span dir="ltr" className="font-mono font-medium tracking-[0.06em]">
+                {index}
+              </span>
+              <span aria-hidden className="h-px w-9 bg-[#7FD3B6]" />
+              <span className="tracking-[0.12em] ltr:uppercase">{label}</span>
+            </div>
+
+            <h2 className="text-[clamp(28px,3vw,42px)] font-semibold leading-[1.4] [text-wrap:balance]">
               {title}
             </h2>
           </div>
 
-          <div className="lg:pt-10">
-            <p className="max-w-[52ch] text-[15.5px] leading-relaxed text-white/70">
+          <div className="flex flex-col gap-3.5">
+            <p className="text-[15.5px] leading-[1.85] text-white/[0.66] [text-wrap:pretty]">
               {intro}
             </p>
 
-            {/* The kinds of place we clean, as plain words. A reader looking
+            {/* The kinds of place we clean, as plain words: a reader looking
                 for "clinics" wants to see the word, not to infer it. */}
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {chips.map((chip) => (
                 <span
                   key={chip}
-                  className="rounded-full border border-white/20 px-4 py-2 text-[13.5px] text-white/80"
+                  className="rounded-full border border-white/[0.18] px-3 py-1.5 text-[12.5px] text-white/80"
                 >
                   {chip}
                 </span>
@@ -70,55 +81,59 @@ export function NaqiBusiness({
           </div>
         </div>
 
-        <div className="mt-10 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        {/* The picture takes a third and the terms two, and both fall to a row
+            of their own when the line is too short for that. */}
+        <div className="flex flex-wrap gap-4">
           {image && (
-            <div className="h-[clamp(220px,28vw,340px)] overflow-hidden rounded-[18px]">
+            <div className="relative min-h-[320px] flex-[1_1_320px] overflow-hidden rounded-[18px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={image} alt="" className="h-full w-full object-cover" />
+              <img
+                src={image}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
             </div>
           )}
 
-          {/* Numbered because the four are a set of terms to be pointed at in a
-              conversation, not steps in an order. */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid min-w-0 flex-[2_1_480px] gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))]">
             {points.map((point, i) => (
               <div
                 key={point.title}
-                className="rounded-[18px] bg-white/[0.04] p-5"
+                className="flex flex-col gap-2 rounded-[18px] border border-white/10 bg-white/[0.05] p-5"
               >
-                <span className="font-mono text-[12.5px] text-mint">
+                {/* Numbered because the four are terms to be pointed at in a
+                    conversation, not steps in an order. */}
+                <span dir="ltr" className="font-mono text-[12px] text-[#7FD3B6]">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <p className="mt-3 text-[16px] font-semibold">{point.title}</p>
-                <p className="mt-2 text-[13.5px] leading-relaxed text-white/60">
-                  {point.text}
-                </p>
+                <p className="text-[15.5px] font-semibold">{point.title}</p>
+                <p className="text-[13.5px] leading-[1.7] text-white/60">{point.text}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-5 rounded-[18px] bg-green px-[clamp(20px,2.6vw,32px)] py-6">
-          <div>
-            <p className="text-[17px] font-semibold">{ctaTitle}</p>
-            <p className="mt-1 text-[14px] text-white/80">{ctaNote}</p>
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-[18px] bg-[#0F6B57] px-6 py-5">
+          <div className="flex flex-col gap-[3px]">
+            <p className="text-[16px] font-semibold">{ctaTitle}</p>
+            <p className="text-[13.5px] text-white/[0.72]">{ctaNote}</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 max-[759px]:w-full">
             <Link
               href={quoteHref}
-              className="rounded-full bg-white px-6 py-3 text-[14.5px] font-semibold text-ink transition hover:bg-white/90"
+              className="rounded-full bg-white px-[22px] py-[13px] text-center text-[14px] font-semibold text-[#16211D] transition hover:bg-[#7FD3B6] max-[759px]:w-full"
             >
               {quoteLabel}
             </Link>
 
-            {/* Shown as text inside a link, and marked left-to-right: a phone
-                number written right-to-left is a different number. */}
+            {/* The number is written left to right whatever the page does: a
+                phone number read backwards is a different number. */}
             {phone && (
               <a
                 href={`tel:${phone}`}
                 dir="ltr"
-                className="rounded-full border border-white/40 px-6 py-3 text-[14.5px] font-semibold text-white transition hover:bg-white/10"
+                className="rounded-full border border-white/[0.35] px-5 py-[13px] text-center text-[14px] font-semibold text-white transition hover:border-white max-[759px]:w-full"
               >
                 {phone}
               </a>

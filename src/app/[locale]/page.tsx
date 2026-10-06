@@ -6,7 +6,6 @@ import {
   getAdvertisements,
   getBanners,
   getHomeSections,
-  getNearbyProviders,
   getConfig,
   getPopularServices,
   formatPrice,
@@ -22,7 +21,6 @@ import { OffersSection } from "@/components/offers/OffersSection";
 import { AdvertisementRail } from "@/components/home/AdvertisementRail";
 import { HomeHighlights } from "@/components/home/HomeHighlights";
 import { Testimonials } from "@/components/home/Testimonials";
-import { ProviderRail } from "@/components/home/ProviderRail";
 import { ServiceCard } from "@/components/ServiceCard";
 import { NaqiHero } from "@/components/naqi/NaqiHero";
 import { NaqiServices } from "@/components/naqi/NaqiServices";
@@ -51,7 +49,7 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [sections, popular, config, banners, slotOne, slotTwo, ads, providers, offers, zones, stats] =
+  const [sections, popular, config, banners, slotOne, slotTwo, ads, offers, zones, stats] =
     await Promise.all([
       getHomeSections(locale),
       getPopularServices(locale, 8),
@@ -64,7 +62,6 @@ export default async function HomePage({
       getBanners(locale, 5, "web-1"),
       getBanners(locale, 5, "web-2"),
       getAdvertisements(locale),
-      getNearbyProviders(locale),
       getOffers(locale),
       // The panel's own service areas. Fetched with the rest rather than in
       // the section, so a slow answer delays nothing that is already drawn.
@@ -107,15 +104,22 @@ export default async function HomePage({
     popular.find((service) => service.image_full_path)?.image_full_path ??
     null;
 
-  // A second picture from the panel, never the hero's: the same photograph
-  // twice on one page reads as a site with one photograph. Taken from the
-  // catalogue sections, which are the rows that actually carry artwork — the
-  // popular list returns none.
-  const businessImage =
-    sections
-      .map((section) => section.image_full_path)
-      .filter(Boolean)
-      .find((image) => image !== heroImage) ?? null;
+  // The business block is the office's to write, picture included. When they
+  // have not uploaded one, a catalogue picture stands in — never the hero's,
+  // because the same photograph twice on one page reads as a site with one
+  // photograph.
+  const business = config.business_section
+    ? {
+        ...config.business_section,
+        image:
+          config.business_section.image ??
+          sections
+            .map((section) => section.image_full_path)
+            .filter(Boolean)
+            .find((image) => image !== heroImage) ??
+          null,
+      }
+    : null;
 
   // The catalogue as the panel orders it — the same four the app shows, so the
   // website and the phone cannot disagree about what is on offer.
@@ -428,31 +432,22 @@ export default async function HomePage({
       {/* Business — the one block written for somebody buying for a
           building rather than a home, which is why it is the only dark
           section on the page. */}
-      <NaqiBusiness
-        index={dict.naqi.businessIndex}
-        label={dict.naqi.businessLabel}
-        title={dict.naqi.businessTitle}
-        intro={dict.naqi.businessIntro}
-        chips={[
-          dict.naqi.businessChip1,
-          dict.naqi.businessChip2,
-          dict.naqi.businessChip3,
-          dict.naqi.businessChip4,
-          dict.naqi.businessChip5,
-        ]}
-        points={[
-          { title: dict.naqi.businessP1Title, text: dict.naqi.businessP1Text },
-          { title: dict.naqi.businessP2Title, text: dict.naqi.businessP2Text },
-          { title: dict.naqi.businessP3Title, text: dict.naqi.businessP3Text },
-          { title: dict.naqi.businessP4Title, text: dict.naqi.businessP4Text },
-        ]}
-        image={businessImage}
-        ctaTitle={dict.naqi.businessCtaTitle}
-        ctaNote={dict.naqi.businessCtaNote}
-        quoteLabel={dict.naqi.businessQuote}
-        quoteHref={`${base}#contact`}
-        phone={config.business_phone}
-      />
+      {business && (
+        <NaqiBusiness
+          index={dict.naqi.businessIndex}
+          label={dict.naqi.businessLabel}
+          title={business.title}
+          intro={business.intro}
+          chips={business.sectors}
+          points={business.points}
+          image={business.image}
+          ctaTitle={business.cta_title}
+          ctaNote={business.cta_note}
+          quoteLabel={dict.naqi.businessQuote}
+          quoteHref={`${base}#contact`}
+          phone={business.phone || config.business_phone}
+        />
+      )}
 
       {/* Where we work — Naqi §4 §06, from the panel's service areas. */}
       <NaqiZones
@@ -488,28 +483,6 @@ export default async function HomePage({
         title={dict.sections.testimonials}
         subtitle={dict.sections.testimonialsSub}
       />
-
-      {/* Providers near you — ordered by real distance when the customer's
-          location is known, by rating when it is not. Sits after the services
-          because it answers "who would do this?", which is the question that
-          follows "what can I book?". */}
-      {providers.length > 0 && (
-        <section className="mx-auto w-full max-w-page px-[clamp(20px,4vw,48px)] pt-[clamp(56px,7vw,96px)]">
-          <SectionHeader
-            title={dict.providers.title}
-            subtitle={dict.providers.subtitle}
-          />
-          <ProviderRail
-            providers={providers}
-            locale={locale}
-            labels={{
-              served: dict.providers.served,
-              km: dict.providers.km,
-              away: dict.providers.away,
-            }}
-          />
-        </section>
-      )}
 
       {/* Careers — the one block addressed to someone who is not buying
           anything at all. */}

@@ -175,6 +175,17 @@ export interface SocialMediaLink {
 export interface BusinessConfig {
   business_name?: string;
   /** The "why choose us" row, edited in the admin panel. */
+  /** The home page's business block, already in the reader's language. */
+  business_section?: {
+    title: string;
+    intro: string;
+    sectors: string[];
+    points: { title: string; text: string }[];
+    cta_title: string;
+    cta_note: string;
+    image: string | null;
+    phone: string | null;
+  } | null;
   home_highlights?: { icon?: string | null; title?: string | null; description?: string | null }[];
   /** Real reviews shown on the home page; `source` allows Google later. */
   home_testimonials?: { source?: string | null; rating?: number | null; comment?: string | null; author?: string | null; service?: string | null }[];
