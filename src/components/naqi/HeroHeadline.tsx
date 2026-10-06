@@ -14,9 +14,10 @@ import { slideIndex } from "./adRotation";
  *
  * The first headline is drawn on the server and until the browser's first tick,
  * so the page never renders one thing on the server and another in the
- * browser. Every headline is stacked in place and the hidden ones are only
+ * browser. All of them share one grid cell and the hidden ones are only
  * transparent, which holds the block at the height of the tallest: a headline
- * that resizes the page every six seconds moves everything under it.
+ * that resizes the page every six seconds moves everything under it, and one
+ * that is taller than the first would otherwise spill over the paragraph.
  */
 export function HeroHeadline({
   headlines,
@@ -50,14 +51,19 @@ export function HeroHeadline({
   const index = tick ? slideIndex(headlines.length, interval, tick) : 0;
 
   return (
-    <h1 className="relative mt-6 text-[clamp(38px,4.6vw,66px)] font-semibold leading-[1.15] tracking-[-0.01em] text-ink text-balance">
+    /* Every headline sits in the same grid cell, so the block is as tall as
+       the tallest of them and none of them is taken out of the flow. Stacking
+       the later ones absolutely held the height of the *first* instead: a
+       longer headline — the English one usually — ran past the bottom and over
+       the paragraph underneath. */
+    <h1 className="mt-6 grid text-[clamp(30px,3.4vw,48px)] font-semibold leading-[1.15] tracking-[-0.01em] text-ink text-balance">
       {headlines.map((headline, i) => (
         <span
           key={`${headline.top}-${i}`}
           aria-hidden={i !== index}
-          className={`block transition-opacity duration-700 ${
+          className={`col-start-1 row-start-1 block transition-opacity duration-700 ${
             i === index ? "opacity-100" : "pointer-events-none opacity-0"
-          } ${i === 0 ? "" : "absolute inset-x-0 top-0"}`}
+          }`}
         >
           {headline.top}
           {headline.bottom && (

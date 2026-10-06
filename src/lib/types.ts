@@ -1,3 +1,9 @@
+/** One section's heading and the line under it, as the panel stores them. */
+export interface SectionText {
+  title?: string;
+  intro?: string;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -175,6 +181,21 @@ export interface SocialMediaLink {
 export interface BusinessConfig {
   business_name?: string;
   /** The "why choose us" row, edited in the admin panel. */
+  /** Section headings for the home page, already in the reader's language. */
+  home_texts?: {
+    services?: SectionText;
+    offers?: SectionText;
+    pricing?: SectionText;
+    how?: SectionText;
+    zones?: SectionText;
+    reviews?: SectionText;
+    careers?: SectionText;
+    faq?: SectionText;
+    contact?: SectionText;
+    cta?: SectionText & { button?: string; href?: string | null };
+    steps?: { title: string; text: string }[];
+    careers_benefits?: { title: string; text: string }[];
+  } | null;
   /** The home page's opening block, already in the reader's language. */
   hero_section?: {
     eyebrow: string;

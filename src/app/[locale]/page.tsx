@@ -83,11 +83,14 @@ export default async function HomePage({
   const currency = currencyLabel(config, locale);
 
 
-  const steps = [
-    { title: dict.steps.s1Title, text: dict.steps.s1Text },
-    { title: dict.steps.s2Title, text: dict.steps.s2Text },
-    { title: dict.steps.s3Title, text: dict.steps.s3Text },
-  ];
+  // The three steps, the office's where they wrote them.
+  const steps = config.home_texts?.steps?.length
+    ? config.home_texts.steps
+    : [
+        { title: dict.steps.s1Title, text: dict.steps.s1Text },
+        { title: dict.steps.s2Title, text: dict.steps.s2Text },
+        { title: dict.steps.s3Title, text: dict.steps.s3Text },
+      ];
 
   // The lowest price anybody can actually book, across everything on offer.
   // Nothing is written down: the office changes a variation and the hero
@@ -250,20 +253,23 @@ export default async function HomePage({
   // under ten votes and a booking count under fifty, so anything that arrives
   // is a figure worth printing — and the row simply shortens when one is not
   // there rather than showing a zero.
+  // All three, always. The row is part of the page's shape, and a column that
+  // appears and disappears with the week's takings makes the headline above it
+  // jump about. A figure with nothing behind it yet prints as a dash — an
+  // honest "not yet" rather than a zero dressed up as an achievement.
+  const figure = (value: number | null | undefined, plus = false) => {
+    if (value == null) return "—";
+
+    const printed = value.toLocaleString(locale === "ar" ? "ar-AE" : "en-AE");
+
+    return plus && value > 0 ? `+${printed}` : printed;
+  };
+
   const heroStats = [
-    stats.customer_rating != null && {
-      value: String(stats.customer_rating),
-      label: dict.naqi.statRating,
-    },
-    stats.completed_bookings != null && {
-      value: `+${stats.completed_bookings.toLocaleString(locale === "ar" ? "ar-AE" : "en-AE")}`,
-      label: dict.naqi.statBookings,
-    },
-    stats.served_areas != null && {
-      value: String(stats.served_areas),
-      label: dict.naqi.statAreas,
-    },
-  ].filter(Boolean) as { value: string; label: string }[];
+    { value: figure(stats.customer_rating), label: dict.naqi.statRating },
+    { value: figure(stats.completed_bookings, true), label: dict.naqi.statBookings },
+    { value: figure(stats.served_areas), label: dict.naqi.statAreas },
+  ];
 
   // The opening block's words. The panel's when the office has written them,
   // and the built-in wording when they have not — a home page with no headline
@@ -271,27 +277,37 @@ export default async function HomePage({
   //
   // A link is stored without the language and gains it here, so the same row
   // serves both sites.
-  const written = config.hero_section ?? null;
+  const heroWritten = config.hero_section ?? null;
   const withLocale = (href?: string | null, fallback = "") =>
     href ? (href.startsWith("#") ? `${base}${href}` : `${base}${href}`) : fallback;
 
   const hero = {
-    eyebrow: written?.eyebrow || dict.naqi.heroEyebrow,
+    eyebrow: heroWritten?.eyebrow || dict.naqi.heroEyebrow,
     headlines:
-      written?.headlines?.length
-        ? written.headlines
+      heroWritten?.headlines?.length
+        ? heroWritten.headlines
         : [{ top: dict.naqi.heroTitleTop, bottom: dict.naqi.heroTitleBottom }],
-    rotate: written?.rotate ?? true,
-    rotateSeconds: written?.rotate_seconds ?? 6,
-    subtitle: written?.subtitle || dict.naqi.heroSubtitle,
-    ctaLabel: written?.cta_label || dict.naqi.heroCta,
-    ctaHref: withLocale(written?.cta_href, `${base}/services`),
-    secondaryLabel: written?.secondary_label || dict.naqi.heroSecondary,
-    secondaryHref: withLocale(written?.secondary_href, `${base}#how-it-works`),
-    facts: written?.facts?.length
-      ? written.facts
+    rotate: heroWritten?.rotate ?? true,
+    rotateSeconds: heroWritten?.rotate_seconds ?? 6,
+    subtitle: heroWritten?.subtitle || dict.naqi.heroSubtitle,
+    ctaLabel: heroWritten?.cta_label || dict.naqi.heroCta,
+    ctaHref: withLocale(heroWritten?.cta_href, `${base}/services`),
+    secondaryLabel: heroWritten?.secondary_label || dict.naqi.heroSecondary,
+    secondaryHref: withLocale(heroWritten?.secondary_href, `${base}#how-it-works`),
+    facts: heroWritten?.facts?.length
+      ? heroWritten.facts
       : [dict.hero.stat1, dict.hero.stat2, dict.hero.stat3],
   };
+
+  // The headings the office has written, with the page's own wording standing
+  // in wherever they have not. A cleared box is not a published blank.
+  const written = config.home_texts ?? null;
+  type Said = { title?: string; intro?: string } | undefined;
+  const say = (
+    section: keyof NonNullable<typeof written>,
+    field: "title" | "intro",
+    fallback: string
+  ) => ((written?.[section] as Said)?.[field] || fallback);
 
   const brand = config.business_name || dict.brand;
   const jsonLd = [
@@ -362,8 +378,8 @@ export default async function HomePage({
       <NaqiServices
         index={dict.naqi.servicesIndex}
         label={dict.naqi.servicesLabel}
-        title={dict.naqi.servicesTitle}
-        intro={dict.naqi.servicesIntro}
+        title={say("services", "title", dict.naqi.servicesTitle)}
+        intro={say("services", "intro", dict.naqi.servicesIntro)}
         items={serviceCards}
         fromLabel={dict.naqi.from}
         viewLabel={dict.naqi.viewDetails}
@@ -413,8 +429,8 @@ export default async function HomePage({
       <NaqiPricing
         index={dict.naqi.pricingIndex}
         label={dict.naqi.pricingLabel}
-        title={dict.naqi.pricingTitle}
-        intro={dict.naqi.pricingIntro}
+        title={say("pricing", "title", dict.naqi.pricingTitle)}
+        intro={say("pricing", "intro", dict.naqi.pricingIntro)}
         hourlyTitle={dict.naqi.hourlyTitle}
         hourlyNote={dict.naqi.hourlyNote}
         hourlyRows={priceRows(hourlyService, false)}
@@ -454,7 +470,7 @@ export default async function HomePage({
       <NaqiHow
         index={dict.naqi.howIndex}
         label={dict.naqi.howLabel}
-        title={dict.naqi.howTitle}
+        title={say("how", "title", dict.naqi.howTitle)}
         steps={steps}
       />
 
@@ -482,8 +498,8 @@ export default async function HomePage({
       <NaqiZones
         index={dict.naqi.zonesIndex}
         label={dict.naqi.zonesLabel}
-        title={dict.naqi.zonesTitle}
-        intro={dict.naqi.zonesIntro}
+        title={say("zones", "title", dict.naqi.zonesTitle)}
+        intro={say("zones", "intro", dict.naqi.zonesIntro)}
         zones={zones}
       />
 
@@ -509,8 +525,8 @@ export default async function HomePage({
         items={config.home_testimonials ?? []}
         index={dict.naqi.reviewsIndex}
         label={dict.naqi.reviewsLabel}
-        title={dict.sections.testimonials}
-        subtitle={dict.sections.testimonialsSub}
+        title={say("reviews", "title", dict.sections.testimonials)}
+        subtitle={say("reviews", "intro", dict.sections.testimonialsSub)}
       />
 
       {/* Careers — the one block addressed to someone who is not buying
@@ -518,9 +534,13 @@ export default async function HomePage({
       <NaqiCareers
         index={dict.naqi.careersIndex}
         label={dict.naqi.careersLabel}
-        title={dict.naqi.careersTitle}
-        intro={dict.naqi.careersIntro}
-        benefits={[dict.naqi.careersB1, dict.naqi.careersB2, dict.naqi.careersB3]}
+        title={say("careers", "title", dict.naqi.careersTitle)}
+        intro={say("careers", "intro", dict.naqi.careersIntro)}
+        benefits={
+          written?.careers_benefits?.length
+            ? written.careers_benefits.map((row) => row.title)
+            : [dict.naqi.careersB1, dict.naqi.careersB2, dict.naqi.careersB3]
+        }
         dict={dict.naqi as unknown as Record<string, string>}
       />
 
@@ -528,15 +548,15 @@ export default async function HomePage({
       <NaqiFaq
         index={dict.naqi.faqIndex}
         label={dict.naqi.faqLabel}
-        title={dict.naqi.faqTitle}
-        intro={dict.naqi.faqIntro}
+        title={say("faq", "title", dict.naqi.faqTitle)}
+        intro={say("faq", "intro", dict.naqi.faqIntro)}
         items={faqItems}
       />
 
       {/* Contact — every line from Business Settings. */}
       <NaqiContact
-        title={dict.naqi.contactTitle}
-        intro={dict.naqi.contactIntro}
+        title={say("contact", "title", dict.naqi.contactTitle)}
+        intro={say("contact", "intro", dict.naqi.contactIntro)}
         phone={config.business_phone}
         email={config.business_email}
         address={config.business_address}
@@ -558,9 +578,9 @@ export default async function HomePage({
 
       {/* The closing call to action — Naqi's green band, in ink. */}
       <NaqiCta
-        title={dict.cta.title}
-        text={dict.cta.text}
-        buttonLabel={dict.cta.button}
+        title={say("cta", "title", dict.cta.title)}
+        text={say("cta", "intro", dict.cta.text)}
+        buttonLabel={written?.cta?.button || dict.cta.button}
         href={`${base}/services`}
       />
 

@@ -45,13 +45,19 @@ export function NaqiHero({
   facts: string[];
   /** The picture column — a carousel of the panel's banners. */
   media: ReactNode;
-  /** The counted figures under the headline; omitted when none qualify. */
+  /** The three counted figures under the headline. A figure with nothing
+   *  behind it yet arrives as a dash rather than being left out, so the row
+   *  keeps its shape. */
   stats?: { value: string; label: string }[];
 }) {
   return (
     <section className="bg-paper">
-      <Container className="grid gap-12 py-[clamp(48px,6vw,88px)] [grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))] items-center">
-        <div>
+      {/* The words and the picture are one row of equal height, and the words
+          are spread through it: the eyebrow starts where the picture starts and
+          the figures end where it ends. Centring a column that is taller than
+          the picture made the headline overhang it at the top. */}
+      <Container className="grid items-stretch gap-12 py-[clamp(48px,6vw,88px)] [grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))]">
+        <div className="flex flex-col justify-between">
           <div className="flex items-center gap-3 text-green">
             <span aria-hidden className="h-px w-9 bg-green opacity-60" />
             <span className="text-[13px] font-semibold tracking-[0.1em]">
@@ -104,8 +110,9 @@ export function NaqiHero({
             </ul>
           )}
 
-          {/* Counted, never typed — and absent rather than small. A figure the
-              server withheld is one that would have said less than nothing. */}
+          {/* Counted, never typed. All three are always drawn — a column that
+              comes and goes with the week's takings makes everything above it
+              jump about — and one with nothing behind it yet reads as a dash. */}
           {stats && stats.length > 0 && (
             <dl className="mt-10 flex flex-wrap items-start gap-x-12 gap-y-6 border-t border-line pt-7">
               {stats.map((stat) => (
