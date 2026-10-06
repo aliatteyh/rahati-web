@@ -56,7 +56,7 @@ export async function SiteHeader({
        hairline rather than a border, and the page's own container so the logo
        sits on the same line as everything else on the page. */
     <header className="sticky top-0 z-50 border-b border-line bg-paper/[0.88] backdrop-blur-[14px]">
-      <div className="mx-auto flex h-[72px] w-full max-w-page items-center gap-4 px-[clamp(20px,4vw,48px)]">
+      <div className="mx-auto flex h-[84px] w-full max-w-page items-center gap-4 px-[clamp(20px,4vw,48px)]">
         <Link href={base} className="flex shrink-0 items-center gap-2.5">
           {/* The uploaded logo when there is one, the brand's initial when there
               is not — so the header is never a broken image or the admin
@@ -70,10 +70,10 @@ export async function SiteHeader({
             <img
               src={logo}
               alt={brand}
-              className="h-9 w-auto max-w-[180px] object-contain"
+              className="h-12 w-auto max-w-[220px] object-contain"
             />
           ) : (
-            <span className="grid h-9 w-9 place-items-center rounded-[9px] bg-green text-base font-bold text-white">
+            <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-green text-lg font-bold text-white">
               {brand.charAt(0)}
             </span>
           )}
@@ -130,19 +130,14 @@ export async function SiteHeader({
           {/* The one filled button on the page, and the last thing in the row:
               everything beside it is an outline or plain text, which is what
               makes it read as the thing to press. */}
-          <Link
-            href={`${base}/services`}
-            className="hidden shrink-0 rounded-full bg-ink px-5 py-2.5 text-[14.5px] font-semibold text-white transition hover:bg-green wide:inline-block"
-          >
-            {dict.nav.book}
-          </Link>
+          {/* No booking button up here. The hero's own call to action sits a
+              few centimetres below it on every page that matters, and two of
+              them compete for the same press. */}
 
           {/* Everything that drops out of the row at this width lives in here,
               including the booking button above. */}
           <MobileMenu
             items={nav}
-            bookHref={`${base}/services`}
-            bookLabel={dict.nav.book}
             openLabel={dict.nav.menu}
             closeLabel={dict.nav.closeMenu}
           />

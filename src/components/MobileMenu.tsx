@@ -8,22 +8,19 @@ import Link from "next/link";
  *
  * The inline row of links is hidden below the wide breakpoint, and nothing
  * replaced it: a phone visitor could reach no section of the site, could not
- * set their area, and could not press the one button the page is built around.
- * The links were on the page, drawn at zero width, which is the same as absent.
+ * set their area. The links were on the page, drawn at zero width, which is
+ * the same as absent.
  *
- * Everything that drops out of the row at this width comes back here, in the
- * order it has on the page.
+ * The links that drop out of the row at this width come back here, in the
+ * order they have on the page. No booking button: the hero's own call to
+ * action is a few centimetres below, and two of them compete for one press.
  */
 export function MobileMenu({
   items,
-  bookHref,
-  bookLabel,
   openLabel,
   closeLabel,
 }: {
   items: { href: string; label: string }[];
-  bookHref: string;
-  bookLabel: string;
   openLabel: string;
   closeLabel: string;
 }) {
@@ -81,10 +78,10 @@ export function MobileMenu({
             type="button"
             aria-label={closeLabel}
             onClick={() => setOpen(false)}
-            className="fixed inset-x-0 bottom-0 top-[72px] z-40 cursor-default bg-ink/20 backdrop-blur-[2px]"
+            className="fixed inset-x-0 bottom-0 top-[84px] z-40 cursor-default bg-ink/20 backdrop-blur-[2px]"
           />
 
-          <div className="fixed inset-x-0 top-[72px] z-50 border-b border-line bg-paper shadow-[0_18px_40px_-24px_rgba(22,33,29,0.45)]">
+          <div className="fixed inset-x-0 top-[84px] z-50 border-b border-line bg-paper shadow-[0_18px_40px_-24px_rgba(22,33,29,0.45)]">
             <nav className="mx-auto flex w-full max-w-page flex-col px-[clamp(20px,4vw,48px)] py-2">
               {items.map((item) => (
                 <Link
@@ -96,14 +93,6 @@ export function MobileMenu({
                   {item.label}
                 </Link>
               ))}
-
-              <Link
-                href={bookHref}
-                onClick={() => setOpen(false)}
-                className="my-3 rounded-full bg-ink px-5 py-3 text-center text-[15px] font-semibold text-white transition hover:bg-green"
-              >
-                {bookLabel}
-              </Link>
             </nav>
           </div>
         </>
