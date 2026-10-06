@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import type { Offer } from "@/lib/api";
 import { compactCountdown, useCountdown } from "./useCountdown";
-import { reportSeen } from "./reportSeen";
+import { useReportSeen } from "./reportSeen";
 
 type Dict = Record<string, string>;
 
@@ -48,7 +48,7 @@ export function OffersSection({
               {dict.offersEyebrow}
             </span>
           </div>
-          <h2 className="mt-4 text-[clamp(28px,3vw,42px)] font-semibold leading-[1.4] text-ink text-balance">
+          <h2 className="mt-4 text-[clamp(21px,2.4vw,28px)] font-semibold leading-[1.35] text-ink text-balance">
             {dict.offersTitle}
           </h2>
         </div>
@@ -62,7 +62,7 @@ export function OffersSection({
       )}
 
       {cards.length > 0 && (
-        <div className="mt-6 grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))]">
+        <div className="mt-3 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))]">
           {cards.map((offer) => (
             <OfferCard key={offer.id} offer={offer} serverTime={serverTime} locale={locale} dict={dict} />
           ))}
@@ -85,15 +85,15 @@ function FeaturedOffer({
 }) {
   const left = useCountdown(offer.ends_at, serverTime);
 
-  useEffect(() => {
-    reportSeen(offer.id, "featured");
-  }, [offer.id]);
+  const seenRef = useReportSeen(offer.id, "featured");
 
   if (left.finished) return null;
 
   return (
-    <div className="overflow-hidden rounded-card bg-green-dark text-white">
-      <div className="grid gap-6 p-7 sm:p-9 lg:grid-cols-2">
+    <div ref={seenRef} className="overflow-hidden rounded-[24px] bg-[#0A4A3C] text-white">
+      {/* Two columns, and one below 760px — the picture is worth half the
+          block on a laptop and worth nothing at all on a phone. */}
+      <div className="grid gap-6 p-7 sm:p-9 [@media(min-width:760px)]:grid-cols-2">
         <div>
           <div className="flex flex-wrap items-center gap-3">
             {offer.tag && (
@@ -106,7 +106,9 @@ function FeaturedOffer({
 
           <p className="mt-5">
             {offer.big_number && (
-              <span className="font-mono text-5xl font-semibold text-gold">{offer.big_number}</span>
+              <span dir="ltr" className="font-mono text-[clamp(36px,4.4vw,50px)] font-semibold text-[#C9A45C]">
+                {offer.big_number}
+              </span>
             )}
             <span className="ms-3 text-xl font-semibold">{offer.headline}</span>
           </p>
@@ -125,7 +127,11 @@ function FeaturedOffer({
                 [left.seconds, dict.seconds],
               ] as const
             ).map(([value, label]) => (
-              <span key={label} className="rounded-lg bg-white/10 px-3 py-2 text-center">
+              <span
+                key={label}
+                dir="ltr"
+                className="w-[46px] shrink-0 rounded-[10px] bg-white/10 px-0 py-2 text-center"
+              >
                 <span className="block font-mono text-lg font-bold">
                   {String(value).padStart(2, "0")}
                 </span>
@@ -135,7 +141,10 @@ function FeaturedOffer({
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <span className="rounded-lg border border-dashed border-white/40 px-4 py-2 font-mono text-sm">
+            <span
+              dir="ltr"
+              className="rounded-lg border border-dashed border-white/40 px-4 py-2 font-mono text-sm"
+            >
               {offer.code}
             </span>
             <UseOffer offer={offer} locale={locale} label={dict.useOffer} tone="light" />
@@ -169,16 +178,17 @@ function OfferCard({
 }) {
   const left = useCountdown(offer.ends_at, serverTime);
 
-  useEffect(() => {
-    reportSeen(offer.id, "card");
-  }, [offer.id]);
+  const seenRef = useReportSeen(offer.id, "card");
 
   if (left.finished) return null;
 
   const clock = compactCountdown(left);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface transition hover:shadow-hover">
+    <div
+      ref={seenRef}
+      className="flex h-full flex-col overflow-hidden rounded-[18px] border border-line bg-white transition hover:shadow-hover"
+    >
       {/* Optional, like the featured block's: a card with no artwork is a card,
           a card with a broken frame is a fault. */}
       {offer.image && (
@@ -186,7 +196,7 @@ function OfferCard({
         <img
           src={offer.image}
           alt=""
-          className="h-[150px] w-full object-cover"
+          className="h-[140px] w-full object-cover"
         />
       )}
 
@@ -197,12 +207,20 @@ function OfferCard({
             {offer.tag}
           </span>
         )}
-        {clock && <span className="font-mono text-[12.5px] text-danger-alt">{clock}</span>}
+        {/* Figures read left to right whatever the page does: a clock and a
+            code are not sentences. */}
+        {clock && (
+          <span dir="ltr" className="font-mono text-[12.5px] text-[#9B3A2E]">
+            {clock}
+          </span>
+        )}
       </div>
 
       <p className="mt-4">
         {offer.big_number && (
-          <span className="font-mono text-[28px] font-semibold text-green">{offer.big_number}</span>
+          <span dir="ltr" className="font-mono text-[26px] font-semibold text-green">
+            {offer.big_number}
+          </span>
         )}
         <span className="ms-2 text-[16px] font-semibold text-ink">{offer.headline}</span>
       </p>
@@ -251,15 +269,18 @@ function UseOffer({
     ? `/${locale}/service/${offer.service_slug}/book?offer=${offer.code}${hours}`
     : `/${locale}/services?offer=${offer.code}`;
 
+  // White on the featured block and dark on a card, each turning the other
+  // colour of the pair on hover — gold against the deep green, green against
+  // the white card.
   const style =
     tone === "light"
-      ? "bg-white text-ink hover:bg-white/90"
-      : "bg-ink text-white hover:bg-ink/90";
+      ? "bg-white text-ink hover:bg-[#C9A45C] hover:text-white"
+      : "bg-ink text-white hover:bg-green";
 
   return (
     <Link
       href={href}
-      className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${style}`}
+      className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${style}`}
     >
       {label}
     </Link>

@@ -253,7 +253,12 @@ export function BookingWizard({
   const [coupon, setCoupon] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
-      return new URLSearchParams(window.location.search).get("offer")?.trim().toUpperCase() ?? "";
+      const params = new URLSearchParams(window.location.search);
+
+      // Two spellings for the same thing: `offer` is what this site writes,
+      // `promo` is what the campaign brief and anything pointed here from
+      // outside uses. Refusing one of them loses the discount silently.
+      return (params.get("offer") ?? params.get("promo"))?.trim().toUpperCase() ?? "";
     } catch {
       return "";
     }
