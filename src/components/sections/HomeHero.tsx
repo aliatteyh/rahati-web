@@ -16,7 +16,7 @@ import { HeroHeadline } from "./HeroHeadline";
  * panel's own variations, and a number typed into a page is a number that goes
  * stale the first time the office changes a price.
  */
-export function NaqiHero({
+export function HomeHero({
   eyebrow,
   headlines,
   rotate,

@@ -1,5 +1,5 @@
 /**
- * The pieces every Naqi section is built from.
+ * The pieces every section is built from.
  *
  * Kept together and used everywhere rather than restyled per page: the design
  * repeats five shapes — a chip, a selectable card, a pill, a section eyebrow

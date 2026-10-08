@@ -44,6 +44,13 @@ export interface Service {
   sub_category_id?: string;
   image_full_path?: string | null;
   cover_image_full_path?: string | null;
+  /**
+   * The small boxes under the name, as the panel sets them — already worked
+   * out and in the reader's language, so the site and the app agree.
+   */
+  page_facts_resolved?: { key: string; label: string; value: string }[];
+  /** A third picture of the work, uploaded on the service in the panel. */
+  gallery_image_full_path?: string | null;
   thumbnail_full_path?: string | null;
   short_description?: string | null;
   description?: string | null;
@@ -52,6 +59,8 @@ export interface Service {
   min_bidding_price?: number | string;
   avg_rating?: number;
   rating_count?: number;
+  /** How many times this service has been booked — the popular list counts it. */
+  bookings_count?: number;
   category?: {
     name?: string;
     slug?: string;
@@ -220,6 +229,25 @@ export interface BusinessConfig {
     image: string | null;
     phone: string | null;
   } | null;
+  /**
+   * What a visit involves, as the panel writes it once for the app and the
+   * website both (Business settings → App content). Labels arrive already in
+   * the reader's language.
+   *
+   * The schedule carries a `share` of the visit rather than minutes, so one
+   * list describes a two-hour clean and an eight-hour one.
+   */
+  cleaning_schedule_tasks?: { label: string; share?: number | null }[];
+  cleaning_materials?: { label: string; image_full_path?: string | null }[];
+  customer_provides?: { label: string }[];
+  cleaner_credentials?: { label: string }[];
+  /**
+   * How often a visit of a given length may be booked on a plan. Only the
+   * exceptions are sent; a length not listed may be booked at any frequency.
+   */
+  plan_duration_day_bands?: { minutes: number; min_days: number; max_days: number }[];
+  /** The picture beside those lines, uploaded in Business settings → App content. */
+  cleaner_credentials_image?: string | null;
   home_highlights?: { icon?: string | null; title?: string | null; description?: string | null }[];
   /** Real reviews shown on the home page; `source` allows Google later. */
   home_testimonials?: { source?: string | null; rating?: number | null; comment?: string | null; author?: string | null; service?: string | null }[];

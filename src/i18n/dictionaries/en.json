@@ -8,7 +8,8 @@
     "book": "Book now",
     "blog": "Blog",
     "menu": "Menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "more": "More"
   },
   "auth": {
     "login": "Log in",
@@ -284,6 +285,7 @@
     "hours": "hours",
     "min": "min",
     "noServices": "No services available for this option.",
+    "noPlans": "No subscription plans are offered yet. Please check back soon.",
     "featured": "Featured",
     "howOften": "How often?",
     "howOftenSub": "Pick a frequency — the more visits, the lower the price per visit.",
@@ -301,7 +303,11 @@
     "visitsEach": "{count} visits · {hours} each",
     "savePill": "Save {amount} ({percent}%)",
     "choosePackage": "Choose",
-    "subscriberCount": "{count} subscribed"
+    "subscriberCount": "{count} subscribed",
+    "bookedOne": "1 booking",
+    "bookedTwo": "2 bookings",
+    "bookedFew": "bookings",
+    "bookedMany": "bookings"
   },
   "booking": {
     "step": "Step",
@@ -478,7 +484,10 @@
     "monthTwo": "2 months",
     "monthFew": "{n} months",
     "monthMany": "{n} months",
-    "perWeek": "a week"
+    "perWeek": "a week",
+    "remove": "Remove",
+    "planBandOnly": "A {length} visit is booked {days} days a week.",
+    "planBandRange": "A {length} visit is booked from {min} to {max} days a week."
   },
   "checkout": {
     "title": "Checkout",
@@ -619,7 +628,7 @@
     "minutes": "min",
     "seconds": "sec"
   },
-  "naqi": {
+  "site": {
     "heroEyebrow": "Hourly home cleaning · UAE",
     "heroTitleTop": "A clean home,",
     "heroTitleBottom": "and your time back.",
@@ -724,6 +733,30 @@
     "businessQuote": "Request a quote",
     "navBusiness": "Business",
     "reviewsIndex": "06",
-    "reviewsLabel": "Reviews"
+    "reviewsLabel": "Reviews",
+    "svcStartsAt": "starting at",
+    "svcFactDuration": "Visit length",
+    "svcFactCleaners": "Cleaners",
+    "svcFactMaterials": "Materials",
+    "svcMaterialsIncluded": "Included",
+    "svcMaterialsOptional": "Optional",
+    "svcAsk": "Ask us",
+    "svcBook": "Book now",
+    "svcBookEyebrow": "Book",
+    "svcBookTitle": "Choose your visit",
+    "svcAbout": "About this service",
+    "svcOtherTitle": "Other services",
+    "svcMinutes": "min",
+    "svcPerHour": "/ hr",
+    "svcFactMinimum": "Minimum booking",
+    "svcSubTitle": "Get lower prices with a monthly subscription",
+    "svcSubNote": "Same cleaner, same slot, a discount on every visit",
+    "svcSubCta": "Book now",
+    "svcTrustTitle": "Top-rated cleaners",
+    "svcScheduleTitle": "{hours} sample schedule",
+    "svcScheduleNote": "You can ask the cleaner to customise it for you",
+    "svcMaterialsTitle": "Our cleaning material",
+    "svcMaterialsNote": "Please provide material if not added to the booking",
+    "svcNeedsTitle": "What we'll need from you"
   }
 }

@@ -13,7 +13,7 @@ import Link from "next/link";
  * band at the foot. Everything in it — the words, the sectors, the four terms,
  * the picture and the number — comes from the panel.
  */
-export function NaqiBusiness({
+export function BusinessSection({
   index,
   label,
   title,

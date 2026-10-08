@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { alternatesFor } from "@/lib/seo";
 import {
+  getCategories,
   getConfig,
   getBookableProviders,
+  getHomeSections,
   getServicePackages,
   getServicesBySubcategory,
   getSubcategories,
@@ -26,11 +29,42 @@ function toNumber(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * The slug, written as a title.
+ *
+ * Only ever a fallback for a sub-category that really exists and whose parent
+ * could not be read — never a way to give a made-up URL a name. A page that
+ * titles itself "Nope" because somebody typed /subcategory/nope is a page the
+ * site invented, and search engines index it.
+ */
 function prettify(slug: string): string {
   return slug
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+}
+
+/**
+ * Whether this is a sub-category at all.
+ *
+ * Asked of the panel's own ordered list, which is the same list the home page
+ * and the top bar are built from — so a section that exists is always found,
+ * and anything else is not a page.
+ */
+async function isRealSubcategory(slug: string, locale: Locale): Promise<boolean> {
+  const sections = await getHomeSections(locale);
+  if (sections.some((section) => section.slug === slug)) return true;
+
+  // A sub-category with no bookable service yet is absent from that list but
+  // is still a real page, so fall back to asking its parent.
+  const categories = await getCategories(locale);
+  const childLists = await Promise.all(
+    categories.map((category) =>
+      category.slug ? getSubcategories(category.slug, locale) : Promise.resolve([])
+    )
+  );
+
+  return childLists.some((children) => children.some((child) => child.slug === slug));
 }
 
 /** Resolve the subcategory display name via its parent's childes list. */
@@ -81,6 +115,11 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const loc: Locale = isLocale(locale) ? locale : "en";
   const services = await getServicesBySubcategory(slug, loc);
+
+  if (services.length === 0 && !(await isRealSubcategory(slug, loc))) {
+    return { title: "Not found", robots: { index: false, follow: false } };
+  }
+
   const name = await resolveName(slug, services, loc);
   return {
     title: name,
@@ -99,6 +138,13 @@ export default async function SubcategoryPage({ params }: { params: Params }) {
     getServicesBySubcategory(slug, locale),
     getConfig(locale),
   ]);
+
+  // A sub-category with no services is an ordinary state — the catalogue is
+  // filled over time — but a slug that belongs to no sub-category at all is
+  // not a page, and must not be dressed up as one.
+  if (services.length === 0 && !(await isRealSubcategory(slug, locale))) {
+    notFound();
+  }
   const currency = currencyLabel(config, locale);
   const name = await resolveName(slug, services, locale);
   const parent = services[0]?.category;

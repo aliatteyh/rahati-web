@@ -18,7 +18,7 @@ import { reportBannerClick, reportBannerSeen } from "./reportBanner";
  * picture with a timer attached. The dots are buttons, not decoration: someone
  * who wants the second offer should not have to wait seven seconds for it.
  */
-export function NaqiHeroMedia({
+export function HomeHeroMedia({
   banners,
   locale,
   fallbackImage,

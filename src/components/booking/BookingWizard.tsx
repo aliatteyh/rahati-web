@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
 import type {
@@ -95,6 +94,13 @@ export interface BookingWizardProps {
   bookingFlow?: string | null;
   /** Subscription lengths the panel offers, in months. */
   subscriptionMonths?: number[];
+  /**
+   * How often a visit of a given length may be booked. Only the exceptions
+   * are sent; a length not listed may be booked at any frequency the plan
+   * sells. The server enforces the same rule, so this is the courtesy of not
+   * offering what would be refused.
+   */
+  durationDayBands?: { minutes: number; min_days: number; max_days: number }[];
   /** How long an add-ons-only visit must be, in minutes. */
   addonsMinMinutes?: number;
   /** The discount for that many visits a week, as the panel sets it. */
@@ -203,6 +209,7 @@ export function BookingWizard({
   bookableProviders = [],
   bookingFlow = null,
   subscriptionMonths = [1],
+  durationDayBands = [],
   addonsMinMinutes = 60,
   planDayTiers = [],
   planMonthTiers = [],
@@ -240,8 +247,28 @@ export function BookingWizard({
     offerHours > 0
       ? variants.findIndex((v) => (v.durationMinutes ?? 0) >= offerHours * 60)
       : -1;
+  /**
+   * Which length the form opens on.
+   *
+   * The shortest is first in the row now, but a one-hour visit is sold six
+   * days a week only — opening there would present the whole plan at its
+   * narrowest, as though that were the ordinary offer. So the default is the
+   * first length with no restriction on it, which is the shortest ordinary
+   * clean. A preset from a link or an offer still wins.
+   */
+  const defaultVariantIndex = (() => {
+    const free = safeVariants.findIndex((v) => {
+      const band = durationDayBands.find(
+        (b) => Number(b.minutes) === Number(v.durationMinutes)
+      );
+      return !band || Number(band.min_days) <= 1;
+    });
+
+    return free >= 0 ? free : 0;
+  })();
+
   const [variantIndex, setVariantIndex] = useState(
-    presetVariantKey ? presetIndex : offerIndex >= 0 ? offerIndex : 0
+    presetVariantKey ? presetIndex : offerIndex >= 0 ? offerIndex : defaultVariantIndex
   );
   const [professionals, setProfessionals] = useState(1);
   const [materials, setMaterials] = useState(false);
@@ -278,7 +305,34 @@ export function BookingWizard({
     discount_amount: number;
     label: string | null;
   } | null>(null);
-  const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
+  /**
+   * How many of each add-on, not merely which ones.
+   *
+   * Two bedrooms, three windows: the panel prices an add-on per unit and the
+   * server has always accepted a quantity — the app asks for one, and this
+   * screen was the only place that sent 1 whatever the customer meant. A key
+   * with no entry is an add-on that was not chosen; removing the last one
+   * deletes the key rather than leaving a zero behind.
+   */
+  const [addOnQty, setAddOnQty] = useState<Record<string, number>>({});
+  const selectedAddOns = useMemo(() => new Set(Object.keys(addOnQty)), [addOnQty]);
+  /** What every price, slot and cart call sends — id and count, in one shape. */
+  const addOnPayload = useMemo(
+    () =>
+      Object.entries(addOnQty)
+        .filter(([, quantity]) => quantity > 0)
+        .map(([id, quantity]) => ({ id, quantity })),
+    [addOnQty]
+  );
+  /** The same, as one string, for the keys that decide when to ask again. */
+  const addOnKey = useMemo(
+    () =>
+      addOnPayload
+        .map(({ id, quantity }) => `${id}:${quantity}`)
+        .sort()
+        .join(","),
+    [addOnPayload]
+  );
   const [dateIndex, setDateIndex] = useState(0);
   const [timeSlot, setTimeSlot] = useState<string | null>(null);
   // A package chosen on the browser means the customer is buying a
@@ -355,7 +409,15 @@ export function BookingWizard({
       if (typeof d.professionals === "number") setProfessionals(d.professionals);
       if (typeof d.materials === "boolean") setMaterials(d.materials);
       if (typeof d.instructions === "string") setInstructions(d.instructions);
-      if (Array.isArray(d.selectedAddOns)) setSelectedAddOns(new Set(d.selectedAddOns as string[]));
+      // Counts now; a draft written before they existed is a list of ids, and
+      // each of those is one.
+      if (d.addOnQty && typeof d.addOnQty === "object") {
+        setAddOnQty(d.addOnQty as Record<string, number>);
+      } else if (Array.isArray(d.selectedAddOns)) {
+        setAddOnQty(
+          Object.fromEntries((d.selectedAddOns as string[]).map((id) => [id, 1]))
+        );
+      }
       if (typeof d.dateIndex === "number") setDateIndex(d.dateIndex);
       if (typeof d.timeSlot === "string") setTimeSlot(d.timeSlot);
       if (typeof d.bookingMode === "string" && (MODES as readonly string[]).includes(d.bookingMode)) {
@@ -382,7 +444,7 @@ export function BookingWizard({
         professionals,
         materials,
         instructions,
-        selectedAddOns: [...selectedAddOns],
+        addOnQty,
         dateIndex,
         timeSlot,
         bookingMode,
@@ -493,9 +555,10 @@ export function BookingWizard({
   }
 
   /** Minutes of add-ons chosen — what an add-ons-only visit is measured by. */
-  const addOnMinutes = addOns
-    .filter((a) => selectedAddOns.has(a.id))
-    .reduce((total, a) => total + (a.durationMinutes ?? 0), 0);
+  const addOnMinutes = addOns.reduce(
+    (total, a) => total + (a.durationMinutes ?? 0) * (addOnQty[a.id] ?? 0),
+    0
+  );
   const missingAddOnMinutes = Math.max(0, addonsMinMinutes - addOnMinutes);
 
   function fmtDuration(minutes: number): string {
@@ -576,10 +639,8 @@ export function BookingWizard({
 
   const addOnsTotal = useMemo(
     () =>
-      addOns
-        .filter((a) => selectedAddOns.has(a.id))
-        .reduce((sum, a) => sum + a.price, 0),
-    [addOns, selectedAddOns]
+      addOns.reduce((sum, a) => sum + a.price * (addOnQty[a.id] ?? 0), 0),
+    [addOns, addOnQty]
   );
 
   // The days and times the server will accept for what is being built.
@@ -593,7 +654,7 @@ export function BookingWizard({
         variant.key,
         professionals,
         materials ? 1 : 0,
-        [...selectedAddOns].sort().join(","),
+        addOnKey,
         isSubscriptionFlow ? [...planWeekdays].sort().join(",") : "",
       ].join("|")
     : "";
@@ -615,7 +676,7 @@ export function BookingWizard({
         variantKey: variant.key,
         professionalCount: isUnitFlow || isAddonsFlow ? 1 : professionals,
         needMaterials: isUnitFlow || isAddonsFlow ? false : materials,
-        addOns: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+        addOns: addOnPayload,
         weekdays: isSubscriptionFlow
           ? planWeekdays.map((iso) => weekdayNamesIso[iso - 1]).filter(Boolean)
           : [],
@@ -764,7 +825,7 @@ export function BookingWizard({
           need_materials: isUnitFlow ? 0 : materials ? 1 : 0,
           add_ons: isUnitFlow
             ? []
-            : [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+            : addOnPayload,
           // Carried on the cart line so checkout creates a package purchase and
           // applies the package discount instead of the commitment tier.
           // Only when the customer actually chose; otherwise the server picks.
@@ -956,6 +1017,8 @@ export function BookingWizard({
    * arithmetic answers the question the customer is actually asking — is two
    * visits a week worth it? — at the moment they are asking it.
    */
+  const selectedPackage = servicePackages.find((p) => p.id === packageId) ?? null;
+
   function planPrice(daysPerWeek: number, months: number) {
     // Four weeks to a month, which is how buildDates() lays the visits out.
     const visits = Math.max(1, daysPerWeek * 4 * months);
@@ -1024,7 +1087,7 @@ export function BookingWizard({
     v: variant.key,
     p: professionals,
     m: materials,
-    a: [...selectedAddOns].sort(),
+    a: addOnKey,
     d: quoteDates,
     // Part of the price now, so a change to either has to re-quote.
     w: planDaysPerWeek,
@@ -1046,7 +1109,7 @@ export function BookingWizard({
             quantity: 1,
             professionalCount: professionals,
             needMaterials: materials,
-            addOns: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+            addOns: addOnPayload,
             dates: quoteDates,
             // The plan's two halves, so the server prices the commitment the
             // same way the cards above it do.
@@ -1068,7 +1131,6 @@ export function BookingWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quoteKey, locale, serviceId]);
 
-  const selectedPackage = servicePackages.find((p) => p.id === packageId) ?? null;
   /** Only offered when the admin allowed it on this package. */
   const prepaidAvailable = Number(selectedPackage?.allow_prepaid ?? 0) === 1;
   /** A package may be sold upfront-only; then there is nothing to choose. */
@@ -1211,7 +1273,7 @@ export function BookingWizard({
             weekdays: [...packageWeekdays].sort((a, b) => a - b),
             professionalCount: professionals,
             needMaterials: materials,
-            addOns: [...selectedAddOns].map((id) => ({ id, quantity: 1 })),
+            addOns: addOnPayload,
           }),
         });
         if (!res.ok) {
@@ -1476,11 +1538,53 @@ export function BookingWizard({
     return timeSlot ? [buildSchedule()] : [];
   };
 
-  function toggleAddOn(id: string) {
-    setSelectedAddOns((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  /**
+   * How often *this* length may be booked.
+   *
+   * An hour is a daily visit and an hour and a half wants at least three; from
+   * two hours up there is no tie. Offering the other frequencies and refusing
+   * them at the end is how a customer learns a rule the hard way, so the
+   * picker simply does not draw them.
+   */
+  const [bandMin, bandMax] = useMemo(() => {
+    const hit = durationDayBands.find(
+      (band) => Number(band.minutes) === Number(variant.durationMinutes)
+    );
+
+    if (!hit) return [1, maxDaysPerWeek];
+
+    return [
+      Math.max(1, Number(hit.min_days) || 1),
+      Math.min(maxDaysPerWeek, Number(hit.max_days) || maxDaysPerWeek),
+    ];
+  }, [durationDayBands, variant.durationMinutes, maxDaysPerWeek]);
+
+  // Changing the length can put the chosen frequency outside its band. Move it
+  // to the nearest one that is allowed rather than leaving a selection the
+  // server would turn down.
+  useEffect(() => {
+    if (!isSubscriptionFlow) return;
+    if (planDaysPerWeek >= bandMin && planDaysPerWeek <= bandMax) return;
+
+    const next = Math.min(bandMax, Math.max(bandMin, planDaysPerWeek));
+    setPlanDaysPerWeek(next);
+    setPlanWeekdays((current) =>
+      current.length > next ? current.slice(current.length - next) : current
+    );
+  }, [isSubscriptionFlow, bandMin, bandMax, planDaysPerWeek]);
+
+  /** One more of this add-on. */
+  function addAddOn(id: string) {
+    setAddOnQty((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+  }
+
+  /** One fewer; at one it leaves the booking altogether. */
+  function removeAddOn(id: string) {
+    setAddOnQty((prev) => {
+      const left = (prev[id] ?? 0) - 1;
+      const next = { ...prev };
+      if (left > 0) next[id] = left;
+      else delete next[id];
       return next;
     });
   }
@@ -1564,13 +1668,17 @@ export function BookingWizard({
                     value={coupon}
                     onChange={(e) => setCoupon(e.target.value)}
                     placeholder={dict.couponPlaceholder}
-                    className="flex-1 rounded-full border border-border bg-surface px-4 py-2 text-sm outline-none focus:border-primary"
+                    /* `min-w-0`: a flex child refuses to shrink below the
+                       width its own placeholder needs, which pushed the Apply
+                       button off the side of a phone and left the whole page
+                       scrolling sideways. */
+                    className="min-w-0 flex-1 rounded-full border border-border bg-surface px-4 py-2 text-sm outline-none focus:border-primary"
                   />
                   <button
                     type="button"
                     onClick={applyCoupon}
                     disabled={couponLoading}
-                    className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:opacity-60"
+                    className="shrink-0 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:opacity-60"
                   >
                     {couponLoading ? "…" : dict.apply}
                   </button>
@@ -1659,13 +1767,15 @@ export function BookingWizard({
                               shopping for, and it is honest only while the
                               deepest plan really does reach it. */}
                           <span className="mt-0.5 block text-xs font-normal opacity-80">
-                            {priceExact(isSubscriptionFlow ? fromPrice(v.price) : v.price)}
+                            {/* "from" sits on the price's own line rather than
+                                on a third one. A pill underneath made the chip
+                                three lines deep, and a three-line pill with a
+                                full radius reads as an oval beside the two-line
+                                chips every other service draws. */}
+                            {isSubscriptionFlow
+                              ? `${dict.fromPrice} ${priceExact(fromPrice(v.price))}`
+                              : priceExact(v.price)}
                           </span>
-                          {isSubscriptionFlow && (
-                            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                              {dict.fromPrice}
-                            </span>
-                          )}
                         </>
                       )}
                     </button>
@@ -1728,8 +1838,24 @@ export function BookingWizard({
                 <div className="space-y-4 rounded-xl border border-border bg-surface-soft p-4">
                   <div>
                     <p className="mb-2 text-sm font-semibold text-ink">{dict.daysPerWeekQuestion}</p>
+
+                    {/* Said before the choices, not after the refusal: a short
+                        visit is a frequent one, and the reader should know why
+                        the other options are not on offer. */}
+                    {(bandMin > 1 || bandMax < maxDaysPerWeek) && (
+                      <p className="mb-2 rounded-lg bg-primary-light px-3 py-2 text-xs text-primary-dark">
+                        {(bandMin === bandMax ? dict.planBandOnly : dict.planBandRange)
+                          .replace("{length}", fmtDuration(variant.durationMinutes))
+                          .replace("{days}", String(bandMin))
+                          .replace("{min}", String(bandMin))
+                          .replace("{max}", String(bandMax))}
+                      </p>
+                    )}
+
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {Array.from({ length: maxDaysPerWeek }, (_, i) => i + 1).map((count) => {
+                      {Array.from({ length: maxDaysPerWeek }, (_, i) => i + 1)
+                        .filter((count) => count >= bandMin && count <= bandMax)
+                        .map((count) => {
                         const plan = planPrice(count, planMonths);
                         return (
                           <button
@@ -1976,7 +2102,8 @@ export function BookingWizard({
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {addOns.map((a) => {
-                    const active = selectedAddOns.has(a.id);
+                    const quantity = addOnQty[a.id] ?? 0;
+                    const active = quantity > 0;
                     // Its bullets, one per line, as the panel wrote them.
                     const bullets = (a.description ?? "")
                       .split(/\r?\n/)
@@ -2039,17 +2166,42 @@ export function BookingWizard({
                               className="aspect-square w-full rounded-xl object-cover"
                             />
                           )}
-                          <button
-                            type="button"
-                            onClick={() => toggleAddOn(a.id)}
-                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                              active
-                                ? "border-primary bg-primary text-white"
-                                : "border-primary text-primary hover:bg-primary-light"
-                            }`}
-                          >
-                            {active ? dict.added : dict.add}
-                          </button>
+                          {/* Add once, then count. The same add-on can be
+                              wanted twice — two bedrooms, three windows — and
+                              the server has always priced a quantity; this
+                              screen used to send one however many the customer
+                              meant. Pressing minus at one removes it. */}
+                          {quantity === 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => addAddOn(a.id)}
+                              className="rounded-full border border-primary px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-light"
+                            >
+                              {dict.add}
+                            </button>
+                          ) : (
+                            <div className="flex items-center justify-between gap-1 rounded-full border border-primary bg-primary px-1 py-1 text-white">
+                              <button
+                                type="button"
+                                onClick={() => removeAddOn(a.id)}
+                                aria-label={dict.remove}
+                                className="grid h-6 w-6 place-items-center rounded-full text-sm font-bold transition hover:bg-white/20"
+                              >
+                                −
+                              </button>
+                              <span className="min-w-5 text-center text-xs font-semibold tabular-nums">
+                                {formatNumber(quantity, locale)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => addAddOn(a.id)}
+                                aria-label={dict.add}
+                                className="grid h-6 w-6 place-items-center rounded-full text-sm font-bold transition hover:bg-white/20"
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -2584,7 +2736,16 @@ export function BookingWizard({
                   {dict.prepaidRefundNote}
                 </p>
               )}
-              <Row label={dict.duration} value={fmtDuration(variant.durationMinutes)} />
+              {/* An add-ons visit has no length of its own: it runs as long as
+                  the add-ons chosen, counts included. Showing the variation's
+                  hour beside four half-hour add-ons said the cleaner would be
+                  gone before half the work was done. */}
+              <Row
+                label={dict.duration}
+                value={fmtDuration(
+                  isAddonsFlow && addOnMinutes > 0 ? addOnMinutes : variant.durationMinutes
+                )}
+              />
               {/* A unit brings the crew its price includes, so showing the
                   screen's unused "1" contradicts the card the customer just
                   read. Same for its materials, which are in the price. */}
@@ -2669,10 +2830,20 @@ export function BookingWizard({
                 <Line label={dict.material} value={`+ ${priceExact(materialsFee * occurrenceCount)}`} />
               )}
               {addOns
-                .filter((a) => selectedAddOns.has(a.id))
-                .map((a) => (
-                  <Line key={a.id} label={a.name} value={`+ ${priceExact(a.price * occurrenceCount)}`} muted />
-                ))}
+                .filter((a) => (addOnQty[a.id] ?? 0) > 0)
+                .map((a) => {
+                  const quantity = addOnQty[a.id] ?? 1;
+                  return (
+                    <Line
+                      key={a.id}
+                      // The count is written beside the name, so a line that
+                      // is twice the add-on's price says why.
+                      label={quantity > 1 ? `${a.name} × ${formatNumber(quantity, locale)}` : a.name}
+                      value={`+ ${priceExact(a.price * quantity * occurrenceCount)}`}
+                      muted
+                    />
+                  );
+                })}
               {applicableDiscount > 0 && (
                 <Line
                   label={campApplicable ? dict.campaignDiscount : dict.serviceDiscount}
@@ -2717,12 +2888,9 @@ export function BookingWizard({
             </div>
           </div>
 
-          <Link
-            href={`/${locale}/service/${serviceSlug}`}
-            className="block text-center text-sm text-muted hover:text-primary"
-          >
-            ← {serviceName}
-          </Link>
+          {/* The link back to the service used to sit here. The service is
+              this page: the form and the service's own description are one
+              scroll apart now, so a link that reloads it says nothing. */}
         </aside>
       </div>
     </div>

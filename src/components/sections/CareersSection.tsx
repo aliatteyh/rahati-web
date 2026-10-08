@@ -16,7 +16,7 @@ type Dict = Record<string, string>;
  * the server quietly ignores a second one from the same number within the hour
  * and there is nothing useful to tell someone about that.
  */
-export function NaqiCareers({
+export function CareersSection({
   index,
   label,
   title,

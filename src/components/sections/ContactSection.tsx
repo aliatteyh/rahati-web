@@ -10,7 +10,7 @@ import { Container, Section } from "./primitives";
  * The phone and the email are plain links. `dir="ltr"` on the number because a
  * phone number written right-to-left is a different number.
  */
-export function NaqiContact({
+export function ContactSection({
   title,
   intro,
   phone,

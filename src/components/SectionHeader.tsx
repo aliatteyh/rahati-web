@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /**
- * The heading above every non-Naqi section — and now in Naqi's proportions.
+ * The heading above every older section — and now in the handoff's proportions.
  *
  * Restyled here rather than at each call site: seven sections use it, and the
  * fastest way to give the whole page one rhythm was to change the one thing

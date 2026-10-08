@@ -11,7 +11,7 @@ import { Container, Section, SectionHead } from "./primitives";
  * The questions come from the services themselves — the same ones the app
  * shows — so an answer corrected in the panel is corrected everywhere.
  */
-export function NaqiFaq({
+export function FaqSection({
   index,
   label,
   title,

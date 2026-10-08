@@ -9,7 +9,7 @@ import { Container, Section } from "./primitives";
  * button is white because it sits on the darkest ground the page has — the
  * one place the ink button cannot be seen.
  */
-export function NaqiCta({
+export function ClosingCta({
   title,
   text,
   buttonLabel,

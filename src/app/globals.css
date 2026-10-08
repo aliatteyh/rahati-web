@@ -2,7 +2,7 @@
 
 @theme {
   /* ---------------------------------------------------------------
-     Naqi palette. Every value is the hex in the handoff's token table
+     The palette. Every value is the hex in the handoff's token table
      (§7) — not an approximation of it, because the spec is pixel-exact
      and a colour picked by eye reads as a different brand.
 
@@ -58,9 +58,12 @@
   --color-line: rgba(22, 33, 29, 0.08);
   --color-line-strong: rgba(22, 33, 29, 0.15);
 
-  /* One family for both languages, as the spec asks; the mono face
-     carries numbers, codes, refs and countdowns. */
-  --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
+  /* A face per script, in the order the browser should try them: Latin
+     letters and figures from the first, every Arabic letter falling through
+     to the second. One family for both scripts always leaves one of them
+     looking like the afterthought it was. The mono face carries numbers,
+     codes, refs and countdowns. */
+  --font-sans: var(--font-latin), var(--font-arabic), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
   --radius-chip: 14px;
@@ -75,30 +78,33 @@
   /* The container every section sits in (§4). */
   --spacing-page: 1320px;
 
-  /* Wide enough for the row in English, where the words are longer: at 1080
-     the logo, seven links and six actions came to 1106px inside a 1071px
-     line and pushed the whole page sideways. */
-  --breakpoint-wide: 1200px;
+  /* Wide enough for the row in English, where the words are longer, and now
+     for a Latin face that is wider than the one it replaced: at 1221px the
+     logo, nine links and six actions came to 1349px inside a 1206px line and
+     pushed the page sideways. Below this the whole row folds into the menu
+     button, which is the honest answer — a nav that overflows is worse than
+     one behind a button. */
+  --breakpoint-wide: 1340px;
 
   /* ---------------------------------------------------------------
      The old names, pointing at the new colours.
 
      Fifty-six components were written against `primary`, `accent`,
      `muted`, `border` and `surface-soft`. Deleting those names did not
-     make them Naqi — it made them nothing: Tailwind stops generating a
+     make them the new design — it made them nothing: Tailwind stops generating a
      class whose token is gone, so every one of those rules silently did
      no work and the page kept its browser defaults. Which is why it
      still read as the old site.
 
      So the old vocabulary stays, aimed at the new palette. The whole
-     site takes the Naqi colours at once, and each component drops its
+     site takes the new colours at once, and each component drops its
      alias as it is converted. These go when the last one does.
      --------------------------------------------------------------- */
   --color-primary: #0F6B57;
   --color-primary-dark: #0A4A3C;
   --color-primary-light: #EAF1EC;
 
-  /* The old accent was an orange CTA. Naqi's primary action is ink, and
+  /* The old accent was an orange CTA. the design's primary action is ink, and
      its hover is the green — there is no orange anywhere in the design. */
   --color-accent: #16211D;
   --color-accent-dark: #0F6B57;

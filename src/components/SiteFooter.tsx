@@ -32,7 +32,7 @@ export function SiteFooter({
     { href: `${base}/refund-policy`, label: dict.footer.refund },
   ];
 
-  // Naqi closes on ink, not on a pale band: the page's last block is the one
+  // The design closes on ink, not on a pale band: the page's last block is the one
   // that should feel like the end of it. Everything inside flips to the
   // light-on-dark pairing the design uses for its dark sections.
   return (

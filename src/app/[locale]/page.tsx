@@ -22,22 +22,23 @@ import { AdvertisementRail } from "@/components/home/AdvertisementRail";
 import { HomeHighlights } from "@/components/home/HomeHighlights";
 import { Testimonials } from "@/components/home/Testimonials";
 import { ServiceCard } from "@/components/ServiceCard";
-import { NaqiHero } from "@/components/naqi/NaqiHero";
-import { NaqiServices } from "@/components/naqi/NaqiServices";
-import { NaqiHow } from "@/components/naqi/NaqiHow";
-import { NaqiCta } from "@/components/naqi/NaqiCta";
-import { NaqiZones } from "@/components/naqi/NaqiZones";
-import { NaqiPricing, type PriceRow } from "@/components/naqi/NaqiPricing";
-import { NaqiFaq } from "@/components/naqi/NaqiFaq";
-import { NaqiHeroMedia } from "@/components/naqi/NaqiHeroMedia";
-import { NaqiBannerSlot } from "@/components/naqi/NaqiBannerSlot";
-import { NaqiContact } from "@/components/naqi/NaqiContact";
-import { NaqiBusiness } from "@/components/naqi/NaqiBusiness";
-import { NaqiCareers } from "@/components/naqi/NaqiCareers";
+import { HomeHero } from "@/components/sections/HomeHero";
+import { ServicesGrid } from "@/components/sections/ServicesGrid";
+import { HowItWorks } from "@/components/sections/HowItWorks";
+import { ClosingCta } from "@/components/sections/ClosingCta";
+import { AreasSection } from "@/components/sections/AreasSection";
+import { PricingSection, type PriceRow } from "@/components/sections/PricingSection";
+import { FaqSection } from "@/components/sections/FaqSection";
+import { HomeHeroMedia } from "@/components/sections/HomeHeroMedia";
+import { BannerSlot } from "@/components/sections/BannerSlot";
+import { ContactSection } from "@/components/sections/ContactSection";
+import { BusinessSection } from "@/components/sections/BusinessSection";
+import { CareersSection } from "@/components/sections/CareersSection";
 import { SectionHeader } from "@/components/SectionHeader";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { absoluteUrl } from "@/lib/seo";
 import { currencyLabel } from "@/lib/currency";
+import { sectionHref } from "@/lib/sections";
 
 export default async function HomePage({
   params,
@@ -141,10 +142,18 @@ export default async function HomePage({
       name: section.name,
       description: section.description,
       image: section.image_full_path,
-      href: section.service_slug
-        ? `${base}/service/${section.service_slug}`
-        : `${base}/category/${section.slug}`,
+      // One helper decides where a section leads, everywhere. Written out by
+      // hand here, it pointed a section with no single service at
+      // /category/<sub-category slug> — a path that answers 404, because that
+      // slug belongs to a sub-category and the route expects a main one.
+      href: sectionHref(section, locale),
       priceLabel: from > 0 ? formatPrice(from, currency) : null,
+      // What this section's own service has earned. The section carries no
+      // rating of its own — the service behind it does, and that is the thing
+      // the card leads to.
+      rating: match?.avg_rating ?? null,
+      ratingCount: match?.rating_count ?? null,
+      bookings: match?.bookings_count ?? null,
     };
   });
 
@@ -159,28 +168,28 @@ export default async function HomePage({
    */
   const hoursPhrase = (value: number): string => {
     if (locale !== "ar") {
-      return `${value} ${value === 1 ? dict.naqi.hourWord : dict.naqi.hoursWord}`;
+      return `${value} ${value === 1 ? dict.site.hourWord : dict.site.hoursWord}`;
     }
 
-    if (value === 1) return dict.naqi.hourOne;
-    if (value === 2) return dict.naqi.hourTwo;
+    if (value === 1) return dict.site.hourOne;
+    if (value === 2) return dict.site.hourTwo;
     if (Number.isInteger(value) && value >= 3 && value <= 10) {
-      return `${value} ${dict.naqi.hoursFew}`;
+      return `${value} ${dict.site.hoursFew}`;
     }
 
-    return `${value} ${dict.naqi.hoursMany}`;
+    return `${value} ${dict.site.hoursMany}`;
   };
 
   const cleanersPhrase = (value: number): string => {
     if (locale !== "ar") {
-      return `${value} ${value === 1 ? dict.naqi.cleanerWord : dict.naqi.cleanersWord}`;
+      return `${value} ${value === 1 ? dict.site.cleanerWord : dict.site.cleanersWord}`;
     }
 
-    if (value === 1) return dict.naqi.cleanerOne;
-    if (value === 2) return dict.naqi.cleanerTwo;
-    if (value >= 3 && value <= 10) return `${value} ${dict.naqi.cleanersFew}`;
+    if (value === 1) return dict.site.cleanerOne;
+    if (value === 2) return dict.site.cleanerTwo;
+    if (value >= 3 && value <= 10) return `${value} ${dict.site.cleanersFew}`;
 
-    return `${value} ${dict.naqi.cleanersMany}`;
+    return `${value} ${dict.site.cleanersMany}`;
   };
 
   /**
@@ -266,9 +275,9 @@ export default async function HomePage({
   };
 
   const heroStats = [
-    { value: figure(stats.customer_rating), label: dict.naqi.statRating },
-    { value: figure(stats.completed_bookings, true), label: dict.naqi.statBookings },
-    { value: figure(stats.served_areas), label: dict.naqi.statAreas },
+    { value: figure(stats.customer_rating), label: dict.site.statRating },
+    { value: figure(stats.completed_bookings, true), label: dict.site.statBookings },
+    { value: figure(stats.served_areas), label: dict.site.statAreas },
   ];
 
   // The opening block's words. The panel's when the office has written them,
@@ -282,17 +291,17 @@ export default async function HomePage({
     href ? (href.startsWith("#") ? `${base}${href}` : `${base}${href}`) : fallback;
 
   const hero = {
-    eyebrow: heroWritten?.eyebrow || dict.naqi.heroEyebrow,
+    eyebrow: heroWritten?.eyebrow || dict.site.heroEyebrow,
     headlines:
       heroWritten?.headlines?.length
         ? heroWritten.headlines
-        : [{ top: dict.naqi.heroTitleTop, bottom: dict.naqi.heroTitleBottom }],
+        : [{ top: dict.site.heroTitleTop, bottom: dict.site.heroTitleBottom }],
     rotate: heroWritten?.rotate ?? true,
     rotateSeconds: heroWritten?.rotate_seconds ?? 6,
-    subtitle: heroWritten?.subtitle || dict.naqi.heroSubtitle,
-    ctaLabel: heroWritten?.cta_label || dict.naqi.heroCta,
+    subtitle: heroWritten?.subtitle || dict.site.heroSubtitle,
+    ctaLabel: heroWritten?.cta_label || dict.site.heroCta,
     ctaHref: withLocale(heroWritten?.cta_href, `${base}/services`),
-    secondaryLabel: heroWritten?.secondary_label || dict.naqi.heroSecondary,
+    secondaryLabel: heroWritten?.secondary_label || dict.site.heroSecondary,
     secondaryHref: withLocale(heroWritten?.secondary_href, `${base}#how-it-works`),
     facts: heroWritten?.facts?.length
       ? heroWritten.facts
@@ -339,11 +348,11 @@ export default async function HomePage({
   return (
     <>
       <JsonLd data={jsonLd} />
-      {/* Hero — Naqi §4.
+      {/* Hero — handoff §4.
           The starting price is the cheapest option the panel actually sells,
           read from the services themselves. A price typed into a page is a
           price that goes stale the first time the office changes one. */}
-      <NaqiHero
+      <HomeHero
         eyebrow={hero.eyebrow}
         headlines={hero.headlines}
         rotate={hero.rotate}
@@ -353,7 +362,7 @@ export default async function HomePage({
         ctaHref={hero.ctaHref}
         ctaNote={
           cheapest > 0
-            ? dict.naqi.heroCtaNote.replace(
+            ? dict.site.heroCtaNote.replace(
                 "{price}",
                 formatPrice(cheapest, currency) ?? ""
               )
@@ -363,26 +372,28 @@ export default async function HomePage({
         secondaryHref={hero.secondaryHref}
         facts={hero.facts}
         media={
-          <NaqiHeroMedia
+          <HomeHeroMedia
             banners={banners}
             locale={locale}
             fallbackImage={heroImage}
-            alt={dict.naqi.heroImageAlt}
-            slideLabel={dict.naqi.slide}
+            alt={dict.site.heroImageAlt}
+            slideLabel={dict.site.slide}
           />
         }
         stats={heroStats}
       />
 
-      {/* Services — Naqi §4 §01, on the panel's own catalogue. */}
-      <NaqiServices
-        index={dict.naqi.servicesIndex}
-        label={dict.naqi.servicesLabel}
-        title={say("services", "title", dict.naqi.servicesTitle)}
-        intro={say("services", "intro", dict.naqi.servicesIntro)}
+      {/* Services — handoff §4 §01, on the panel's own catalogue. */}
+      <ServicesGrid
+        index={dict.site.servicesIndex}
+        label={dict.site.servicesLabel}
+        title={say("services", "title", dict.site.servicesTitle)}
+        intro={say("services", "intro", dict.site.servicesIntro)}
         items={serviceCards}
-        fromLabel={dict.naqi.from}
-        viewLabel={dict.naqi.viewDetails}
+        fromLabel={dict.site.from}
+        viewLabel={dict.site.viewDetails}
+        locale={locale}
+        statsDict={dict.browse as unknown as Record<string, string>}
       />
       {/* Popular services */}
       {popular.length > 0 && (
@@ -405,6 +416,7 @@ export default async function HomePage({
                   featuredLabel={service.is_featured ? dict.browse.featured : undefined}
                   favouriteLabel={dict.browse.favourite}
                   locale={locale}
+                  statsDict={dict.browse as unknown as Record<string, string>}
                 />
               ))}
             </div>
@@ -425,29 +437,29 @@ export default async function HomePage({
         dict={dict.offers}
       />
 
-      {/* Pricing — Naqi §4 §02, straight from the panel's variations. */}
-      <NaqiPricing
-        index={dict.naqi.pricingIndex}
-        label={dict.naqi.pricingLabel}
-        title={say("pricing", "title", dict.naqi.pricingTitle)}
-        intro={say("pricing", "intro", dict.naqi.pricingIntro)}
-        hourlyTitle={dict.naqi.hourlyTitle}
-        hourlyNote={dict.naqi.hourlyNote}
+      {/* Pricing — handoff §4 §02, straight from the panel's variations. */}
+      <PricingSection
+        index={dict.site.pricingIndex}
+        label={dict.site.pricingLabel}
+        title={say("pricing", "title", dict.site.pricingTitle)}
+        intro={say("pricing", "intro", dict.site.pricingIntro)}
+        hourlyTitle={dict.site.hourlyTitle}
+        hourlyNote={dict.site.hourlyNote}
         hourlyRows={priceRows(hourlyService, false)}
         hourlyHref={hourlySlug ? `${base}/service/${hourlySlug}` : `${base}/services`}
-        hourlyCta={dict.naqi.hourlyCta}
-        packagesTitle={dict.naqi.packagesTitle}
+        hourlyCta={dict.site.hourlyCta}
+        packagesTitle={dict.site.packagesTitle}
         packageRows={priceRows(unitService, true)}
         packagesHref={unitSlug ? `${base}/service/${unitSlug}` : `${base}/services`}
       />
 
       {/* Website · slot 1 — whatever the office put there, and nothing at
           all when they put nothing. */}
-      <NaqiBannerSlot
+      <BannerSlot
         banners={slotOne}
         locale={locale}
-        slideLabel={dict.naqi.slide}
-        alt={dict.naqi.heroImageAlt}
+        slideLabel={dict.site.slide}
+        alt={dict.site.heroImageAlt}
       />
 
       {/* Provider advertisements — approved in the admin panel and already
@@ -466,11 +478,11 @@ export default async function HomePage({
         </section>
       )}
 
-      {/* How it works — Naqi §4 §03. */}
-      <NaqiHow
-        index={dict.naqi.howIndex}
-        label={dict.naqi.howLabel}
-        title={say("how", "title", dict.naqi.howTitle)}
+      {/* How it works — handoff §4 §03. */}
+      <HowItWorks
+        index={dict.site.howIndex}
+        label={dict.site.howLabel}
+        title={say("how", "title", dict.site.howTitle)}
         steps={steps}
       />
 
@@ -478,9 +490,9 @@ export default async function HomePage({
           building rather than a home, which is why it is the only dark
           section on the page. */}
       {business && (
-        <NaqiBusiness
-          index={dict.naqi.businessIndex}
-          label={dict.naqi.businessLabel}
+        <BusinessSection
+          index={dict.site.businessIndex}
+          label={dict.site.businessLabel}
           title={business.title}
           intro={business.intro}
           chips={business.sectors}
@@ -488,28 +500,28 @@ export default async function HomePage({
           image={business.image}
           ctaTitle={business.cta_title}
           ctaNote={business.cta_note}
-          quoteLabel={dict.naqi.businessQuote}
+          quoteLabel={dict.site.businessQuote}
           quoteHref={`${base}#contact`}
           phone={business.phone || config.business_phone}
         />
       )}
 
-      {/* Where we work — Naqi §4 §06, from the panel's service areas. */}
-      <NaqiZones
-        index={dict.naqi.zonesIndex}
-        label={dict.naqi.zonesLabel}
-        title={say("zones", "title", dict.naqi.zonesTitle)}
-        intro={say("zones", "intro", dict.naqi.zonesIntro)}
+      {/* Where we work — handoff §4 §06, from the panel's service areas. */}
+      <AreasSection
+        index={dict.site.zonesIndex}
+        label={dict.site.zonesLabel}
+        title={say("zones", "title", dict.site.zonesTitle)}
+        intro={say("zones", "intro", dict.site.zonesIntro)}
         zones={zones}
       />
 
       {/* Website · slot 2 — after the prices, where a reader who has just
           worked out what it costs is the readiest to be offered something. */}
-      <NaqiBannerSlot
+      <BannerSlot
         banners={slotTwo}
         locale={locale}
-        slideLabel={dict.naqi.slide}
-        alt={dict.naqi.heroImageAlt}
+        slideLabel={dict.site.slide}
+        alt={dict.site.heroImageAlt}
       />
 
       {/* Why choose us — the owner's own words, from the admin panel. */}
@@ -523,46 +535,46 @@ export default async function HomePage({
           not there until there are some. */}
       <Testimonials
         items={config.home_testimonials ?? []}
-        index={dict.naqi.reviewsIndex}
-        label={dict.naqi.reviewsLabel}
+        index={dict.site.reviewsIndex}
+        label={dict.site.reviewsLabel}
         title={say("reviews", "title", dict.sections.testimonials)}
         subtitle={say("reviews", "intro", dict.sections.testimonialsSub)}
       />
 
       {/* Careers — the one block addressed to someone who is not buying
           anything at all. */}
-      <NaqiCareers
-        index={dict.naqi.careersIndex}
-        label={dict.naqi.careersLabel}
-        title={say("careers", "title", dict.naqi.careersTitle)}
-        intro={say("careers", "intro", dict.naqi.careersIntro)}
+      <CareersSection
+        index={dict.site.careersIndex}
+        label={dict.site.careersLabel}
+        title={say("careers", "title", dict.site.careersTitle)}
+        intro={say("careers", "intro", dict.site.careersIntro)}
         benefits={
           written?.careers_benefits?.length
             ? written.careers_benefits.map((row) => row.title)
-            : [dict.naqi.careersB1, dict.naqi.careersB2, dict.naqi.careersB3]
+            : [dict.site.careersB1, dict.site.careersB2, dict.site.careersB3]
         }
-        dict={dict.naqi as unknown as Record<string, string>}
+        dict={dict.site as unknown as Record<string, string>}
       />
 
-      {/* Questions — Naqi §4, pooled from the services' own FAQs. */}
-      <NaqiFaq
-        index={dict.naqi.faqIndex}
-        label={dict.naqi.faqLabel}
-        title={say("faq", "title", dict.naqi.faqTitle)}
-        intro={say("faq", "intro", dict.naqi.faqIntro)}
+      {/* Questions — handoff §4, pooled from the services' own FAQs. */}
+      <FaqSection
+        index={dict.site.faqIndex}
+        label={dict.site.faqLabel}
+        title={say("faq", "title", dict.site.faqTitle)}
+        intro={say("faq", "intro", dict.site.faqIntro)}
         items={faqItems}
       />
 
       {/* Contact — every line from Business Settings. */}
-      <NaqiContact
-        title={say("contact", "title", dict.naqi.contactTitle)}
-        intro={say("contact", "intro", dict.naqi.contactIntro)}
+      <ContactSection
+        title={say("contact", "title", dict.site.contactTitle)}
+        intro={say("contact", "intro", dict.site.contactIntro)}
         phone={config.business_phone}
         email={config.business_email}
         address={config.business_address}
-        phoneLabel={dict.naqi.contactPhone}
-        emailLabel={dict.naqi.contactEmail}
-        addressLabel={dict.naqi.contactAddress}
+        phoneLabel={dict.site.contactPhone}
+        emailLabel={dict.site.contactEmail}
+        addressLabel={dict.site.contactAddress}
       />
 
       {/* The catalogue strip that stood here said the same thing as the
@@ -576,8 +588,8 @@ export default async function HomePage({
           Those campaigns still work: they discount silently, without needing
           to be advertised, which is the thing they are actually good at. */}
 
-      {/* The closing call to action — Naqi's green band, in ink. */}
-      <NaqiCta
+      {/* The closing call to action — the handoff's green band, in ink. */}
+      <ClosingCta
         title={say("cta", "title", dict.cta.title)}
         text={say("cta", "intro", dict.cta.text)}
         buttonLabel={written?.cta?.button || dict.cta.button}

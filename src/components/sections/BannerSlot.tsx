@@ -21,7 +21,7 @@ import { reportBannerClick, reportBannerSeen } from "./reportBanner";
  * frame with a placeholder in it tells the reader we meant to sell them
  * something and failed.
  */
-export function NaqiBannerSlot({
+export function BannerSlot({
   banners,
   locale,
   slideLabel,

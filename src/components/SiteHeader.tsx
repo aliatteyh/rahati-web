@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { MobileMenu } from "@/components/MobileMenu";
+import { HeaderTabs } from "@/components/HeaderTabs";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { BusinessConfig } from "@/lib/types";
 import { getZoneInfo } from "@/lib/zone";
+import { getHomeSections } from "@/lib/api";
+import { sectionHref } from "@/lib/sections";
 import { uploadedImage } from "@/lib/branding";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { AuthButtons } from "./auth/AuthButtons";
@@ -29,30 +32,49 @@ export async function SiteHeader({
   const zone = await getZoneInfo();
   const showName = config.show_business_name === true;
 
+  // The catalogue the bar leads with: the panel's own sections, in the panel's
+  // own order, each going straight to the page it is booked on. The bar now
+  // changes with the catalogue instead of being a list somebody maintains by
+  // hand, and `HeaderTabs` lights the one the reader is on.
+  const sections = await getHomeSections(locale);
+  const tabs = [
+    // Home first, as the design has it. It is marked exact: every path on the
+    // site starts with the locale, so without that it would be the lit tab on
+    // every page at once.
+    { href: base, match: base, label: dict.nav.home, exact: true },
+    ...sections.map((section) => {
+      // Through the shared helper, so a tab cannot point somewhere the home
+      // page's own card does not.
+      const href = sectionHref(section, locale);
+      return { href, match: href, label: section.name };
+    }),
+  ];
+
   // The page's own sections, in the order they appear on it.
   //
   // Anchors, not pages: every one of these is a block of the home page, and a
   // link that loads a new document to show something already on screen is
-  // slower and loses the reader's place. Only entries whose section exists are
-  // listed — a nav item that scrolls nowhere is worse than one that is absent.
+  // slower and loses the reader's place. They sat across the bar until the
+  // catalogue took that room; they are all still here, under "More", and the
+  // footer lists them in full.
   const nav = [
-    { href: `${base}#offers`, label: dict.naqi.navOffers },
-    { href: `${base}#services`, label: dict.naqi.navServices },
-    { href: `${base}#pricing`, label: dict.naqi.navPricing },
+    { href: `${base}#offers`, label: dict.site.navOffers },
+    { href: `${base}#services`, label: dict.site.navServices },
+    { href: `${base}#pricing`, label: dict.site.navPricing },
     { href: `${base}#how-it-works`, label: dict.nav.howItWorks },
-    { href: `${base}#business`, label: dict.naqi.navBusiness },
-    { href: `${base}#zones`, label: dict.naqi.navAreas },
-    { href: `${base}#careers`, label: dict.naqi.navCareers },
+    { href: `${base}#business`, label: dict.site.navBusiness },
+    { href: `${base}#zones`, label: dict.site.navAreas },
+    { href: `${base}#careers`, label: dict.site.navCareers },
     // A page, not an anchor, and the only one in this list: the articles are
     // their own documents and the panel publishes them without touching the
     // home page. Dropping it when the header was redesigned took the only
     // route a reader had to them.
     { href: `${base}/blog`, label: dict.nav.blog },
-    { href: `${base}#faq`, label: dict.naqi.navFaq },
+    { href: `${base}#faq`, label: dict.site.navFaq },
   ];
 
   return (
-    /* Naqi §4 header: translucent paper over whatever scrolls beneath it, a
+    /* Handoff §4 header: translucent paper over whatever scrolls beneath it, a
        hairline rather than a border, and the page's own container so the logo
        sits on the same line as everything else on the page. */
     <header className="sticky top-0 z-50 border-b border-line bg-paper/[0.88] backdrop-blur-[14px]">
@@ -70,7 +92,9 @@ export async function SiteHeader({
             <img
               src={logo}
               alt={brand}
-              className="h-12 w-auto max-w-[220px] object-contain"
+              /* Smaller on a phone: at full size the mark alone took a third
+                 of the line and pushed the menu button off the screen. */
+              className="h-10 w-auto max-w-[150px] object-contain wide:h-12 wide:max-w-[220px]"
             />
           ) : (
             <span className="grid h-12 w-12 place-items-center rounded-[12px] bg-green text-lg font-bold text-white">
@@ -90,17 +114,7 @@ export async function SiteHeader({
             breakpoint the links move into the menu button at the end of the
             row — they used to simply stop being drawn, which left a phone with
             no way to reach any section of the site. */}
-        <nav className="hidden flex-1 items-center justify-center gap-7 wide:flex">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-[14.5px] font-medium text-ink-62 transition hover:text-green"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <HeaderTabs catalogue={tabs} pages={nav} moreLabel={dict.nav.more} />
 
         <div className="flex flex-1 items-center justify-end gap-2.5 wide:flex-none">
           {/* Hides itself on the home page, where the hero already carries a
@@ -137,7 +151,7 @@ export async function SiteHeader({
           {/* Everything that drops out of the row at this width lives in here,
               including the booking button above. */}
           <MobileMenu
-            items={nav}
+            items={[...tabs.slice(1), ...nav]}
             openLabel={dict.nav.menu}
             closeLabel={dict.nav.closeMenu}
           />

@@ -270,7 +270,7 @@ export function SubscriptionBrowser({
                   style={featured && priced ? { borderColor: "var(--color-primary)" } : undefined}
                   onClick={() =>
                     router.push(
-                      `/${locale}/service/${serviceSlug}/book?package=${pkg.id}&variant=${variantKey}`
+                      `/${locale}/service/${serviceSlug}?package=${pkg.id}&variant=${variantKey}#book`
                     )
                   }
                   className={`flex h-full w-full flex-col rounded-2xl border-2 bg-surface p-5 text-center transition ${
@@ -372,6 +372,15 @@ export function SubscriptionBrowser({
             );
           })}
         </div>
+
+        {/* Said rather than left blank. The plans are the office's own now, and
+            a heading over an empty grid reads as a page that failed to load
+            rather than a shelf nobody has stocked yet. */}
+        {ordered.length === 0 && (
+          <p className="mt-6 rounded-2xl border border-border bg-surface-soft p-6 text-center text-sm text-muted">
+            {dict.noPlans}
+          </p>
+        )}
       </div>
     </div>
   );

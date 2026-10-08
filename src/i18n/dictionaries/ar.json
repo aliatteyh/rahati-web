@@ -8,7 +8,8 @@
     "book": "احجز الآن",
     "blog": "المدوّنة",
     "menu": "القائمة",
-    "closeMenu": "إغلاق القائمة"
+    "closeMenu": "إغلاق القائمة",
+    "more": "المزيد"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -284,6 +285,7 @@
     "hours": "ساعات",
     "min": "دقيقة",
     "noServices": "لا توجد خدمات متاحة لهذا الخيار.",
+    "noPlans": "لا توجد خطط اشتراك معروضة بعد. تابعنا قريباً.",
     "featured": "مميزة",
     "howOften": "كم مرة في الأسبوع؟",
     "howOftenSub": "اختر التكرار — كلما زادت الزيارات انخفض سعر الزيارة.",
@@ -301,7 +303,11 @@
     "visitsEach": "{count} زيارة · {hours} لكل زيارة",
     "savePill": "وفّر {amount} ({percent}%)",
     "choosePackage": "اختر الباقة",
-    "subscriberCount": "{count} مشترك"
+    "subscriberCount": "{count} مشترك",
+    "bookedOne": "حجز واحد",
+    "bookedTwo": "حجزان",
+    "bookedFew": "حجوزات",
+    "bookedMany": "حجز"
   },
   "booking": {
     "step": "الخطوة",
@@ -478,7 +484,10 @@
     "monthTwo": "شهران",
     "monthFew": "{n} أشهر",
     "monthMany": "{n} شهرًا",
-    "perWeek": "أسبوعيًا"
+    "perWeek": "أسبوعيًا",
+    "remove": "أزل",
+    "planBandOnly": "زيارة {length} تُحجز {days} زيارات أسبوعياً.",
+    "planBandRange": "زيارة {length} تُحجز من {min} إلى {max} زيارات أسبوعياً."
   },
   "checkout": {
     "title": "الدفع",
@@ -619,7 +628,7 @@
     "minutes": "دقيقة",
     "seconds": "ثانية"
   },
-  "naqi": {
+  "site": {
     "heroEyebrow": "تنظيف منزلي بالساعة · الإمارات",
     "heroTitleTop": "بيتك نظيف،",
     "heroTitleBottom": "ووقتك لك.",
@@ -722,6 +731,30 @@
     "businessQuote": "اطلب عرض سعر",
     "navBusiness": "الأعمال",
     "reviewsIndex": "06",
-    "reviewsLabel": "آراء العملاء"
+    "reviewsLabel": "آراء العملاء",
+    "svcStartsAt": "يبدأ من",
+    "svcFactDuration": "مدة الزيارة",
+    "svcFactCleaners": "العاملات",
+    "svcFactMaterials": "المواد",
+    "svcMaterialsIncluded": "مشمولة",
+    "svcMaterialsOptional": "اختيارية",
+    "svcAsk": "اسألنا",
+    "svcBook": "احجز الآن",
+    "svcBookEyebrow": "احجز",
+    "svcBookTitle": "اختر زيارتك",
+    "svcAbout": "عن هذه الخدمة",
+    "svcOtherTitle": "خدمات أخرى",
+    "svcMinutes": "دقيقة",
+    "svcPerHour": "/ الساعة",
+    "svcFactMinimum": "أقل حجز",
+    "svcSubTitle": "أسعار أقل مع اشتراك شهري",
+    "svcSubNote": "نفس العاملة، ونفس الموعد، وخصم على كل زيارة",
+    "svcSubCta": "احجز الآن",
+    "svcTrustTitle": "عاملات بأعلى التقييمات",
+    "svcScheduleTitle": "نموذج جدول لـ {hours}",
+    "svcScheduleNote": "يمكنك أن تطلب من العاملة تعديله كما تشاء",
+    "svcMaterialsTitle": "مواد التنظيف لدينا",
+    "svcMaterialsNote": "يرجى توفير المواد إن لم تُضف إلى الحجز",
+    "svcNeedsTitle": "ما نحتاجه منك"
   }
 }

@@ -10,7 +10,7 @@ import { Container, Section, SectionHead } from "./primitives";
  * The rule sits on top of each column rather than between them, so a column
  * that wraps to the next row still opens with its own line.
  */
-export function NaqiHow({
+export function HowItWorks({
   index,
   label,
   title,

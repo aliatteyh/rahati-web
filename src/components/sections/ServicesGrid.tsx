@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Container, Section, SectionHead } from "./primitives";
+import { ServiceStats } from "@/components/ServiceStats";
 
 /** One card. Shaped here rather than taken from an API type, because the
  *  catalogue comes from the panel's sections and the price from its services —
  *  two shapes the card has no reason to know about. */
-export type NaqiServiceItem = {
+export type ServiceCardItem = {
   id: string;
   name: string;
   description?: string | null;
@@ -12,6 +13,10 @@ export type NaqiServiceItem = {
   href: string;
   /** Already formatted; omitted when no price is known for this card. */
   priceLabel?: string | null;
+  /** What the section's own service has earned — nothing shown when it has none. */
+  rating?: number | null;
+  ratingCount?: number | null;
+  bookings?: number | null;
 };
 
 /**
@@ -24,7 +29,7 @@ export type NaqiServiceItem = {
  * The mono index is structural: it numbers the catalogue in the order the panel
  * set, which is the order a customer is meant to read it in.
  */
-export function NaqiServices({
+export function ServicesGrid({
   index,
   label,
   title,
@@ -32,14 +37,19 @@ export function NaqiServices({
   items,
   fromLabel,
   viewLabel,
+  locale,
+  statsDict,
 }: {
   index: string;
   label: string;
   title: string;
   intro?: string;
-  items: NaqiServiceItem[];
+  items: ServiceCardItem[];
   fromLabel: string;
   viewLabel: string;
+  locale?: string;
+  /** `browse`, for the booking count's Arabic shapes. */
+  statsDict?: Record<string, string>;
 }) {
   if (items.length === 0) return null;
 
@@ -64,6 +74,19 @@ export function NaqiServices({
                         alt={item.name}
                         loading="lazy"
                         className="h-full w-full object-cover"
+                      />
+                    )}
+
+                    {/* On the picture, in its two bottom corners: the card
+                        keeps the height it has whether or not a service has
+                        been rated or booked. */}
+                    {locale && statsDict && (
+                      <ServiceStats
+                        rating={item.rating}
+                        ratingCount={item.ratingCount}
+                        bookings={item.bookings}
+                        locale={locale}
+                        dict={statsDict}
                       />
                     )}
                   </div>

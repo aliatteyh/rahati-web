@@ -1,5 +1,5 @@
 import { SectionHeader } from "@/components/SectionHeader";
-import { Eyebrow } from "@/components/naqi/primitives";
+import { Eyebrow } from "@/components/sections/primitives";
 
 export interface Testimonial {
   source?: string | null;

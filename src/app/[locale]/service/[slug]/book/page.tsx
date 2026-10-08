@@ -1,162 +1,31 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { isLocale, type Locale } from "@/i18n/config";
-import { getDictionary } from "@/i18n/dictionaries";
-import {
-  getConfig,
-  getBookableProviders,
-  getPackageAvailability,
-  getServiceAddOns,
-  getServiceDetail,
-  getServicePackages,
-} from "@/lib/api";
-import { currencyLabel } from "@/lib/currency";
-import {
-  BookingWizard,
-  type WizardAddOn,
-  type WizardVariant,
-} from "@/components/booking/BookingWizard";
+import { redirect } from "next/navigation";
 
-type Params = Promise<{ locale: string; slug: string }>;
-type Search = Promise<{ package?: string; variant?: string; hours?: string }>;
-
-function toNumber(v: unknown): number {
-  const n = typeof v === "string" ? parseFloat(v) : (v as number);
-  return Number.isFinite(n) ? n : 0;
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Params;
-}): Promise<Metadata> {
-  const { locale, slug } = await params;
-  const loc: Locale = isLocale(locale) ? locale : "en";
-  const service = await getServiceDetail(slug, loc);
-  return {
-    title: service ? service.name : "Booking",
-    robots: { index: false, follow: false },
-  };
-}
-
-export default async function BookPage({
+/**
+ * The booking form no longer has a page of its own.
+ *
+ * Choosing a service now lands on the service page with the form on it, and
+ * the information underneath — so there is nothing left here to show. The
+ * route stays as a forward rather than a 404: offer links already sent out,
+ * a customer's bookmark and the app's own deep links all still point at it,
+ * and every one of them carries the query the form reads (`package`,
+ * `variant`, `hours`, `offer`), which is passed on untouched.
+ */
+export default async function BookRedirect({
   params,
   searchParams,
 }: {
-  params: Params;
-  searchParams: Search;
+  params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { locale: raw, slug } = await params;
-  // Arriving from the subscription browser, the customer has already said how
-  // long each visit runs and how often. Asking again is not a confirmation —
-  // it is a second chance to answer differently and end up with a booking they
-  // did not choose.
-  //
-  // `hours` is different from `variant`: it comes from an offer that needs a
-  // visit of a certain length, and it only *starts* the customer there. They
-  // may change it, and the offer tells them what happens when they do.
-  const { package: presetPackage, variant: presetVariant, hours: offerHours } =
-    await searchParams;
-  const locale: Locale = isLocale(raw) ? raw : "en";
-  const dict = getDictionary(locale);
+  const { locale, slug } = await params;
+  const search = await searchParams;
 
-  const [service, config] = await Promise.all([
-    getServiceDetail(slug, locale),
-    getConfig(locale),
-  ]);
-  if (!service) notFound();
-
-  const currency = currencyLabel(config, locale);
-
-  const variants: WizardVariant[] = (service.variations ?? []).map((v) => ({
-    key: v.variant_key || v.variant || "variant",
-    price: toNumber(v.price),
-    durationMinutes: v.duration_minutes ?? 60,
-    // A unit is picked by its name, and carries its own crew.
-    label: v.variant ?? null,
-    cleanersCount: v.cleaners_count ?? null,
-    materialCharge: v.material_charge != null ? toNumber(v.material_charge) : null,
-  }));
-  if (variants.length === 0) {
-    variants.push({
-      key: "default",
-      price: toNumber(service.starting_price ?? service.price ?? service.min_bidding_price),
-      durationMinutes: 60,
-    });
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(search)) {
+    if (typeof value === "string") query.set(key, value);
+    else if (Array.isArray(value) && value[0]) query.set(key, value[0]);
   }
 
-  // Subscription packages for this sub-category, plus the weekdays it can be
-  // booked on — the union across every provider serving it, so a day is only
-  // disabled when nobody works it.
-  const [servicePackages, availability, bookableProviders] = await Promise.all([
-    getServicePackages(service.sub_category_id ?? "", locale),
-    getPackageAvailability(service.sub_category_id ?? null, locale),
-    getBookableProviders(service.sub_category_id ?? "", locale),
-  ]);
-
-  // Real, admin-managed add-ons for this service (by category or direct link)
-  const rawAddOns = await getServiceAddOns(service.id, locale);
-  const addOns: WizardAddOn[] = rawAddOns.map((a) => ({
-    id: a.id,
-    name: a.name,
-    price: toNumber(a.price),
-    image: a.image_full_path,
-    description: a.description ?? null,
-    durationMinutes: a.duration_minutes ?? 0,
-    rating: a.rating ?? 0,
-    ratingCount: a.rating_count ?? 0,
-  }));
-
-  return (
-    <BookingWizard
-      locale={locale}
-      dict={dict.booking as unknown as Record<string, string>}
-      currency={currency}
-      // ISO code for the ad platforms, which do not read "د.إ.".
-      currencyCode={String(config.currency_code ?? "AED")}
-      vatPercent={toNumber(config.vat_percentage)}
-      serviceFee={toNumber(config.additional_charge_fee_amount)}
-      materialCharge={toNumber(config.material_charge)}
-      professionalTiers={config.professional_discount_tiers ?? []}
-      serviceDiscount={service.service_discount ?? []}
-      campaignDiscount={service.campaign_discount ?? []}
-      categoryDiscount={service.category?.category_discount ?? []}
-      categoryCampaignDiscount={service.category?.campaign_discount ?? []}
-      serviceId={service.id}
-      categoryId={service.category_id ?? ""}
-      subCategoryId={service.sub_category_id ?? ""}
-      serviceName={service.name}
-      serviceSlug={slug}
-      variants={variants}
-      presetPackageId={presetPackage ?? null}
-      presetVariantKey={presetVariant ?? null}
-      offerHours={toNumber(offerHours)}
-      addOns={addOns}
-      workStart={service.service_availability?.time_schedule?.start_time ?? null}
-      workEnd={service.service_availability?.time_schedule?.end_time ?? null}
-      repeatDiscountTiers={
-        (config as unknown as { repeat_discount_tiers?: { min_services: number; discount_percent: number }[] })
-          .repeat_discount_tiers ?? []
-      }
-      planDayTiers={
-        (config as unknown as { plan_days_discount_tiers?: { days: number; discount_percent: number }[] })
-          .plan_days_discount_tiers ?? []
-      }
-      planMonthTiers={
-        (config as unknown as { plan_month_bonus_tiers?: { months: number; bonus_percent: number }[] })
-          .plan_month_bonus_tiers ?? []
-      }
-      servicePackages={servicePackages}
-      selectableWeekdays={availability.selectable_weekdays}
-      providerOffDays={availability.off_days_iso}
-      maxDaysPerWeek={availability.max_days_per_week}
-      providerId={service.service_availability?.provider_id ?? null}
-      bookableProviders={bookableProviders}
-      // The panel decides which questions this service asks; the site no longer
-      // offers a mode the server would refuse.
-      bookingFlow={service.booking_flow ?? null}
-      subscriptionMonths={service.subscription_months ?? [1]}
-      addonsMinMinutes={service.addons_min_minutes ?? 60}
-    />
-  );
+  const tail = query.toString();
+  redirect(`/${locale}/service/${slug}${tail ? `?${tail}` : ""}#book`);
 }

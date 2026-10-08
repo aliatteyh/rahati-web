@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_Arabic, IBM_Plex_Mono } from "next/font/google";
+import { Almarai, Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import "../globals.css";
 import { isLocale, locales, localeDirection, type Locale } from "@/i18n/config";
@@ -16,16 +16,40 @@ import { getOffers } from "@/lib/api";
 import { Analytics } from "@/components/seo/Analytics";
 import { GoogleTagManager } from "@/components/seo/GoogleTagManager";
 
-// One family for both languages, which is what the design asks for: Arabic and
-// Latin set in the same face read as one voice rather than two.
-//
-// Only the weights the design actually uses. 300 was loaded here before and
-// rendered nowhere — every visitor downloaded two files, Arabic and Latin, for
-// a weight nothing asks for, and the browser said so.
-const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic", "latin"],
+/**
+ * Two faces, one voice.
+ *
+ * One family was set for both scripts, which sounds tidy and is not: a Latin
+ * face with Arabic bolted on draws the Arabic a little flat, and an Arabic
+ * face's Latin is almost always its weaker half. Readers see whichever half
+ * was the afterthought.
+ *
+ * So each script gets a face chosen for it, and the stack decides per glyph:
+ * Latin letters and figures come from the first, every Arabic letter falls
+ * through to the second. The two are matched on the only things that make a
+ * pair read as one voice — an open aperture, a generous x-height and the same
+ * weights.
+ *
+ * Almarai is the Arabic: even, quiet and unfussy, which is what a page of
+ * prices and dates wants. It ships four weights and no 500 or 600, so the
+ * browser resolves a medium to the regular and a semibold to the bold — the
+ * hierarchy stays, it simply has three steps rather than four.
+ */
+const arabic = Almarai({
+  subsets: ["arabic"],
+  weight: ["400", "700", "800"],
+  variable: "--font-arabic",
+  display: "swap",
+});
+
+/**
+ * The Latin half. Humanist rather than grotesque — the figures have real
+ * shapes, which matters on a page that is mostly prices and durations.
+ */
+const latin = Plus_Jakarta_Sans({
+  subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-plex-arabic",
+  variable: "--font-latin",
   display: "swap",
 });
 
@@ -111,7 +135,7 @@ export default async function LocaleLayout({
   ]);
 
   return (
-    <html lang={locale} dir={localeDirection[typedLocale]} className={`${plexArabic.variable} ${plexMono.variable}`}>
+    <html lang={locale} dir={localeDirection[typedLocale]} className={`${latin.variable} ${arabic.variable} ${plexMono.variable}`}>
       <body className="min-h-screen bg-surface text-ink">
         {/* First inside <body>, where Google's own snippet expects it. */}
         <GoogleTagManager />

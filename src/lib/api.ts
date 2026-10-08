@@ -51,7 +51,25 @@ async function apiGet<T>(
     });
     if (!res.ok) return fallback;
     const json = await res.json();
-    return (json?.content ?? json) as T;
+
+    // "Nothing here" is not a payload.
+    //
+    // The API answers a record that does not exist with HTTP 200 and
+    // `{"content": null}`. Reading that as `json?.content ?? json` handed the
+    // caller the envelope itself — an object, and therefore truthy — so a page
+    // that checks `if (!service) notFound()` believed it had a service and
+    // drew an empty booking form under a blank title, at status 200, for any
+    // misspelt or retired URL.
+    //
+    // An envelope is recognised by having the key at all, so an empty list
+    // (`content: []`) still arrives as an empty list rather than as nothing,
+    // and an endpoint that answers with a bare payload and no envelope is
+    // passed through untouched.
+    if (json && typeof json === "object" && "content" in json) {
+      return ((json as { content?: unknown }).content ?? fallback) as T;
+    }
+
+    return json as T;
   } catch {
     return fallback;
   }

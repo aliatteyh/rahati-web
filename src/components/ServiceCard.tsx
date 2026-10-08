@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Service } from "@/lib/types";
 import { Thumb } from "./Thumb";
 import { FavouriteButton } from "./FavouriteButton";
+import { ServiceStats } from "./ServiceStats";
 
 /**
  * A service, as it appears in a list.
@@ -27,6 +28,7 @@ export function ServiceCard({
   featuredLabel,
   favouriteLabel,
   locale,
+  statsDict,
 }: {
   service: Service;
   priceLabel: string | null;
@@ -40,9 +42,9 @@ export function ServiceCard({
   /** Both required to show the heart; omitted leaves the card as it was. */
   favouriteLabel?: string;
   locale?: string;
+  /** `browse`, for the booking count's Arabic shapes. Omitted hides the chip. */
+  statsDict?: Record<string, string>;
 }) {
-  const rating = Number(service.avg_rating ?? 0);
-  const ratingCount = Number(service.rating_count ?? 0);
 
   const inner = (
     <>
@@ -78,20 +80,16 @@ export function ServiceCard({
           </span>
         )}
 
-        {rating > 0 && (
-          // A solid chip rather than text on the image: it has to stay legible
-          // over whatever photograph the admin uploaded.
-          <span className="absolute bottom-3 start-3 inline-flex items-center gap-1 rounded-full bg-surface/95 px-2.5 py-1 text-sm font-bold text-ink shadow-sm backdrop-blur">
-            {rating.toFixed(1)}
-            <span className="text-accent">★</span>
-            {/* How many people that score is made of. A bare 5.0 says nothing —
-                it is one review as easily as two hundred — and the count is the
-                difference between a number worth trusting and a number worth
-                ignoring. Shown only when there is one to show. */}
-            {ratingCount > 0 && (
-              <span className="font-medium text-muted">({ratingCount})</span>
-            )}
-          </span>
+        {/* Rating on one corner, bookings on the other — both on the picture,
+            so a service with reviews is not a taller card than one without. */}
+        {locale && statsDict && (
+          <ServiceStats
+            rating={service.avg_rating}
+            ratingCount={service.rating_count}
+            bookings={service.bookings_count}
+            locale={locale}
+            dict={statsDict}
+          />
         )}
       </div>
 

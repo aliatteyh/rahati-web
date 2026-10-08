@@ -12,7 +12,7 @@ import { Container, Section, SectionHead } from "./primitives";
  * panel models one level, and inventing a second would mean writing the
  * neighbourhoods into the page by hand.
  */
-export function NaqiZones({
+export function AreasSection({
   index,
   label,
   title,

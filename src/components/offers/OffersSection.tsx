@@ -277,7 +277,7 @@ function UseOffer({
   const hours = offer.min_hours > 0 ? `&hours=${offer.min_hours}` : "";
 
   const href = offer.service_slug
-    ? `/${locale}/service/${offer.service_slug}/book?offer=${offer.code}${hours}`
+    ? `/${locale}/service/${offer.service_slug}?offer=${offer.code}${hours}#book`
     : `/${locale}/services?offer=${offer.code}`;
 
   // White on the featured block and dark on a card, each turning the other

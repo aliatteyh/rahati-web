@@ -25,7 +25,7 @@ export type PriceRow = {
  * arrive for; the packages sit beside it as the alternative, which is the
  * order the reference puts them in.
  */
-export function NaqiPricing({
+export function PricingSection({
   index,
   label,
   title,
