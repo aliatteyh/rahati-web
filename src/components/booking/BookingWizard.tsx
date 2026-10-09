@@ -1318,10 +1318,45 @@ export function BookingWizard({
   // the table was being asked about a visit count the screen has not
   // resolved yet — so the summary read "commitment discount (0%) -11.20",
   // a percentage that contradicts the money beside it.
+  //
+  // But reading it back from the money is only safe while the money and the
+  // base agree on what they are a share of, and they do not: the server works
+  // the commitment discount out before the coupon comes off, and this base is
+  // after it. So the division inflated the figure by exactly the coupon —
+  // a 28% plan under a 30% code printed 0.28 / 0.70 = 40%, a number the office
+  // could not find anywhere in its own settings.
+  //
+  // The plan's own ladders are the honest answer where the booking has them:
+  // the same two the plan cards already add up, and the same two the server
+  // reads. The division stays for a recurring booking that is not a plan,
+  // which has no ladder to ask.
+  const planLadderPercent =
+    isSubscriptionFlow && planDayTiers.length
+      ? Math.min(
+          100,
+          planDayTiers.reduce(
+            (acc, tier) =>
+              planDaysPerWeek >= Number(tier.days)
+                ? Math.max(acc, Number(tier.discount_percent) || 0)
+                : acc,
+            0
+          ) +
+            planMonthTiers.reduce(
+              (acc, tier) =>
+                planMonths >= Number(tier.months)
+                  ? Math.max(acc, Number(tier.bonus_percent) || 0)
+                  : acc,
+              0
+            )
+        )
+      : 0;
+
   const commitmentPercent =
-    commitmentBase > 0
-      ? Math.round((commitmentDiscount / commitmentBase) * 100)
-      : commitmentTierPercent;
+    planLadderPercent > 0
+      ? planLadderPercent
+      : commitmentBase > 0
+        ? Math.round((commitmentDiscount / commitmentBase) * 100)
+        : commitmentTierPercent;
   // Shown, not calculated: the server already priced this line, and preferring
   // its figure means a stale config can never make the lines contradict the
   // total printed beneath them.
