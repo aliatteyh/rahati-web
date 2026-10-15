@@ -377,6 +377,31 @@ export async function fetchAvailableSlots(
   return content?.days ?? [];
 }
 
+/**
+ * The cleaners the office features, for the home row.
+ *
+ * Public: it is shown before anyone signs in, and it reveals nothing a
+ * customer could not read on a review. An empty list hides the section, which
+ * is what an office that has named nobody means.
+ */
+export function getFeaturedCleaners(locale: Locale): Promise<FeaturedCleaner[]> {
+  return apiGetList<FeaturedCleaner>(
+    "/api/v1/customer/serviceman/top-rated?limit=8",
+    locale
+  );
+}
+
+export interface FeaturedCleaner {
+  id?: string;
+  name?: string;
+  team?: string;
+  zone?: string;
+  image_full_path?: string | null;
+  avg_rating?: string | number;
+  rating_count?: number;
+  bookings_count?: number;
+}
+
 export function getServiceAddOns(
   serviceId: string,
   locale: Locale

@@ -14,6 +14,7 @@ import {
   getServiceAreas,
   getServiceDetail,
   getSiteStats,
+  getFeaturedCleaners,
 } from "@/lib/api";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { SearchBox } from "@/components/search/SearchBox";
@@ -21,6 +22,7 @@ import { OffersSection } from "@/components/offers/OffersSection";
 import { AdvertisementRail } from "@/components/home/AdvertisementRail";
 import { HomeHighlights } from "@/components/home/HomeHighlights";
 import { Testimonials } from "@/components/home/Testimonials";
+import { CleanerRow } from "@/components/home/CleanerRow";
 import { ServiceCard } from "@/components/ServiceCard";
 import { HomeHero } from "@/components/sections/HomeHero";
 import { ServicesGrid } from "@/components/sections/ServicesGrid";
@@ -50,7 +52,7 @@ export default async function HomePage({
   const dict = getDictionary(locale);
   const base = `/${locale}`;
 
-  const [sections, popular, config, banners, slotOne, slotTwo, ads, offers, zones, stats] =
+  const [sections, popular, config, banners, slotOne, slotTwo, ads, offers, zones, stats, cleaners] =
     await Promise.all([
       getHomeSections(locale),
       getPopularServices(locale, 8),
@@ -68,6 +70,9 @@ export default async function HomePage({
       // the section, so a slow answer delays nothing that is already drawn.
       getServiceAreas(locale),
       getSiteStats(locale),
+      // The team, by name and face. Fetched with the rest so a slow answer
+      // delays nothing already drawn, and an empty list hides the section.
+      getFeaturedCleaners(locale),
     ]);
 
   // The two services the pricing section is about, by how the panel books them
@@ -423,6 +428,16 @@ export default async function HomePage({
           </div>
         </section>
       )}
+
+      {/* The team. What this company sells is these particular women, and
+          somebody booking from a desktop saw none of them. */}
+      <CleanerRow
+        cleaners={cleaners}
+        title={dict.sections.ourCleaners}
+        subtitle={dict.sections.ourCleanersSub}
+        newLabel={dict.sections.newCleaner}
+        bookingsLabel={dict.sections.cleanerBookings}
+      />
 
       {/* Campaigns — the discount already applies at checkout; without this the
           customer only met a running promotion by opening one of its services. */}

@@ -260,7 +260,11 @@
     "whyUs": "Why choose us?",
     "whyUsSub": "What you get with every booking",
     "testimonials": "What our customers say",
-    "testimonialsSub": "Reviews written after a completed booking"
+    "testimonialsSub": "Reviews written after a completed booking",
+    "ourCleaners": "The people who clean your home",
+    "ourCleanersSub": "Named, background-verified, and the same one every week on a plan.",
+    "newCleaner": "New",
+    "cleanerBookings": "{n} bookings"
   },
   "steps": {
     "s1Title": "Choose a service",
