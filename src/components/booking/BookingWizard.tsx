@@ -2005,13 +2005,24 @@ export function BookingWizard({
                         className="h-14 w-14 rounded-full object-cover"
                       />
                     ) : (
-                      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-bold text-white">
-                        {lastServiceman.name.charAt(0)}
+                      /* One quiet mark rather than an initial: a monogram
+                         looks like somebody in particular, and we are saying
+                         the opposite — there is no photograph here yet. */
+                      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-light/40">
+                        <svg viewBox="0 0 24 24" className="h-7 w-7 text-ink/40" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                          <circle cx="12" cy="8" r="3.4" />
+                          <path d="M5 19.5c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5" strokeLinecap="round" />
+                        </svg>
                       </span>
                     )}
 
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-ink">{lastServiceman.name}</p>
+                      {/* Wrapped, and read left to right: a full Filipino name
+                          carries the mother's surname in the middle, so one
+                          truncated line showed every cleaner as "AMBAY NAIM
+                          ABD" — and in Arabic the ellipsis landed at the start
+                          of it. */}
+                      <p className="font-semibold text-ink" dir="ltr">{lastServiceman.name}</p>
                       <p className="text-sm text-muted">
                         {lastServiceman.rating_count > 0
                           ? `★ ${lastServiceman.rating.toFixed(1)} (${lastServiceman.rating_count})`
