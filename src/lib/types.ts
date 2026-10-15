@@ -280,6 +280,11 @@ export interface BusinessConfig {
   additional_charge_fee_amount?: number | string;
   /** Global VAT rate; charged on the service fee only. */
   vat_percentage?: number | string;
+  /**
+   * What the customer is told when they open the taxes-and-fee line. Written
+   * in the panel, per language; absent when nobody has written it.
+   */
+  tax_and_fee_note?: string | null;
   /** Seconds between campaign slides; 0 stops the auto-advance. */
   campaign_slider_interval?: number | string;
   wallet_status?: number | string;

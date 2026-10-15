@@ -47,6 +47,8 @@ export interface BookingWizardProps {
   /** Global VAT rate. It applies to the service fee only — service prices are
    *  quoted to the customer inclusive of tax. */
   vatPercent: number;
+  /** What the office says the taxes and the fee are for. Null hides the link. */
+  taxAndFeeNote?: string | null;
   serviceFee: number;
   /** Materials rate per hour — a 2-hour variant is charged twice this. */
   materialCharge: number;
@@ -181,6 +183,7 @@ export function BookingWizard({
   currency,
   currencyCode,
   vatPercent,
+  taxAndFeeNote,
   serviceFee,
   materialCharge,
   professionalTiers,
@@ -992,8 +995,6 @@ export function BookingWizard({
   const totalDiscounts = applicableDiscount + couponDiscount;
 
   const taxableBase = Math.max(0, itemsSubtotal - totalDiscounts);
-  // VAT is charged on the service fee only, once per booking — never per visit.
-  const vat = (serviceFee * vatPercent) / 100;
   // Commitment discount: the more recurring services, the higher the admin-set
   // tier percent, applied to the (pre-tax) recurring base. Mirrors the backend.
   const commitmentTierPercent =
@@ -1070,9 +1071,17 @@ export function BookingWizard({
   }
   // Shown instantly while the server quote is in flight; the server's number
   // replaces it as soon as it arrives, and is what the customer is charged.
+  // The service fee is charged once a visit, and VAT rides on the fee alone:
+  // service prices are quoted VAT-inclusive, so taxing them again would tax
+  // the same money twice. Both are multiplied out before the tax is rounded,
+  // which is the order the backend uses — rounding per visit and multiplying
+  // afterwards disagrees with it by a fil on some fees.
+  const feesTotal = serviceFee * occurrenceCount;
+  const vat = Math.round(((feesTotal * vatPercent) / 100) * 100) / 100;
+
   const localTotal = Math.max(
     0,
-    taxableBase * occurrenceCount + serviceFee + vat - localCommitmentDiscount
+    taxableBase * occurrenceCount + feesTotal + vat - localCommitmentDiscount
   );
 
   // The authoritative price comes from the backend calculator — the same one
@@ -2908,11 +2917,14 @@ export function BookingWizard({
                   accent
                 />
               )}
-              {serviceFee > 0 && (
-                <Line label={dict.serviceFee} value={`+ ${priceExact(serviceFee)}`} />
-              )}
-              {vat > 0 && (
-                <Line label={`${dict.vat} (${vatPercent}%)`} value={`+ ${priceExact(vat)}`} />
+              {feesTotal + vat > 0 && (
+                <TaxesAndFeeLine
+                  label={dict.taxesAndFee}
+                  value={`+ ${priceExact(feesTotal + vat)}`}
+                  title={dict.whatIsTaxesAndFee}
+                  note={taxAndFeeNote}
+                  dismiss={dict.okayGotIt}
+                />
               )}
                 </>
               )}
@@ -2938,6 +2950,71 @@ function Row({ label, value }: { label: string; value: string }) {
       <dt className="text-muted">{label}</dt>
       <dd className="text-end font-medium text-ink">{value}</dd>
     </div>
+  );
+}
+
+/**
+ * The taxes-and-fee line, which answers for itself.
+ *
+ * Two bare numbers with no account of what they are is the part of a bill
+ * people actually question, so the office writes the answer in the panel and
+ * clicking the line shows it. No note written means no dotted underline and
+ * nothing to click, rather than a dialog that opens on nothing.
+ */
+function TaxesAndFeeLine({
+  label,
+  value,
+  title,
+  note,
+  dismiss,
+}: {
+  label: string;
+  value: string;
+  title: string;
+  note?: string | null;
+  dismiss: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (!note) return <Line label={label} value={value} />;
+
+  return (
+    <>
+      <div className="flex justify-between gap-4">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-start text-ink/80 underline decoration-dotted underline-offset-4"
+        >
+          {label}
+        </button>
+        <span className="text-end text-ink">{value}</span>
+      </div>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="mb-3 text-lg font-semibold text-ink">{title}</h3>
+            <p className="text-sm leading-relaxed text-ink/70">{note}</p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="mt-5 w-full rounded-xl bg-primary px-4 py-3 font-semibold text-white"
+            >
+              {dismiss}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

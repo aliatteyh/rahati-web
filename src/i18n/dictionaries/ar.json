@@ -225,7 +225,10 @@
     "nextVisit": "الزيارة القادمة",
     "visitPrepaid": "مدفوعة مسبقًا",
     "noVisits": "لا توجد زيارات مجدولة بعد.",
-    "offerApplied": "عرض مطبَّق تلقائيًا"
+    "offerApplied": "عرض مطبَّق تلقائيًا",
+    "taxesAndFee": "الضرائب والرسوم",
+    "whatIsTaxesAndFee": "ما هي الضرائب والرسوم؟",
+    "okayGotIt": "حسناً، فهمت"
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
@@ -487,7 +490,10 @@
     "perWeek": "أسبوعيًا",
     "remove": "أزل",
     "planBandOnly": "زيارة {length} تُحجز {days} زيارات أسبوعياً.",
-    "planBandRange": "زيارة {length} تُحجز من {min} إلى {max} زيارات أسبوعياً."
+    "planBandRange": "زيارة {length} تُحجز من {min} إلى {max} زيارات أسبوعياً.",
+    "taxesAndFee": "الضرائب والرسوم",
+    "whatIsTaxesAndFee": "ما هي الضرائب والرسوم؟",
+    "okayGotIt": "حسناً، فهمت"
   },
   "checkout": {
     "title": "الدفع",
@@ -532,7 +538,10 @@
     "cardUseFormAbove": "أكمل بيانات بطاقتك بالأعلى لإتمام الدفع.",
     "paidButPending": "تمّ الدفع، لكن تعذّر تأكيد حجزك تلقائياً. سيظهر خلال قليل — راسلنا إن لم يظهر.",
     "perVisitPrice": "سعر الزيارة",
-    "visitCount": "عدد الزيارات"
+    "visitCount": "عدد الزيارات",
+    "taxesAndFee": "الضرائب والرسوم",
+    "whatIsTaxesAndFee": "ما هي الضرائب والرسوم؟",
+    "okayGotIt": "حسناً، فهمت"
   },
   "cta": {
     "title": "جاهز لحجز خدمتك الأولى؟",

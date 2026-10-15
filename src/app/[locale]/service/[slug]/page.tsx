@@ -430,6 +430,7 @@ export default async function ServicePage({
           currency={currency}
           currencyCode={String(config.currency_code ?? "AED")}
           vatPercent={toNumber(config.vat_percentage)}
+          taxAndFeeNote={config.tax_and_fee_note ?? null}
           serviceFee={toNumber(config.additional_charge_fee_amount)}
           materialCharge={toNumber(config.material_charge)}
           professionalTiers={config.professional_discount_tiers ?? []}
