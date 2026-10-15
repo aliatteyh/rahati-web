@@ -700,7 +700,13 @@ export function CheckoutClient({
                             className="h-8 w-8 object-cover"
                           />
                         ) : (
-                          (cleaner.name ?? "?").slice(0, 1).toUpperCase()
+                          /* One quiet mark rather than an initial: a monogram
+                             looks like a person in particular, and a row of
+                             them reads as data somebody entered on purpose. */
+                          <svg viewBox="0 0 24 24" className="h-4 w-4 text-ink/40" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                            <circle cx="12" cy="8" r="3.4" />
+                            <path d="M5 19.5c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5" strokeLinecap="round" />
+                          </svg>
                         )}
                       </span>
                       {cleaner.name}
