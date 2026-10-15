@@ -429,16 +429,6 @@ export default async function HomePage({
         </section>
       )}
 
-      {/* The team. What this company sells is these particular women, and
-          somebody booking from a desktop saw none of them. */}
-      <CleanerRow
-        cleaners={cleaners}
-        title={dict.sections.ourCleaners}
-        subtitle={dict.sections.ourCleanersSub}
-        newLabel={dict.sections.newCleaner}
-        bookingsLabel={dict.sections.cleanerBookings}
-      />
-
       {/* Campaigns — the discount already applies at checkout; without this the
           customer only met a running promotion by opening one of its services. */}
       {/* The announced offers, between the hero and everything else: a
@@ -520,6 +510,18 @@ export default async function HomePage({
           phone={business.phone || config.business_phone}
         />
       )}
+
+      {/* The team, right before where we work: the two answer the same
+          question — who comes, and whether they reach you. What this company
+          sells is these particular women, and somebody booking from a desktop
+          saw none of them. */}
+      <CleanerRow
+        cleaners={cleaners}
+        title={dict.sections.ourCleaners}
+        subtitle={dict.sections.ourCleanersSub}
+        newLabel={dict.sections.newCleaner}
+        bookingsLabel={dict.sections.cleanerBookings}
+      />
 
       {/* Where we work — handoff §4 §06, from the panel's service areas. */}
       <AreasSection
