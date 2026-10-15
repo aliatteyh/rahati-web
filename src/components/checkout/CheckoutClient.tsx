@@ -72,6 +72,9 @@ export function CheckoutClient({
   cashAllowed = true,
   offlineMethods = [],
   serviceFee,
+  taxAndFeeNote,
+  tipOptions = [],
+  maxTip = 0,
   vatPercent,
   serverTotal,
   quote,
@@ -93,6 +96,11 @@ export function CheckoutClient({
   cashAllowed?: boolean;
   offlineMethods?: OfflineMethod[];
   serviceFee: number;
+  /** What the office says the taxes and the fee are for. Null hides the link. */
+  taxAndFeeNote?: string | null;
+  /** The tip amounts the panel offers; the leading 0 is "no tip". */
+  tipOptions?: number[];
+  maxTip?: number;
   /** Global VAT rate; charged on the service fee only. */
   vatPercent: number;
   serverTotal: number;
@@ -128,6 +136,11 @@ export function CheckoutClient({
     })}`;
 
   const [addressList, setAddressList] = useState(addresses);
+
+  /// What the customer is adding for the team, and what they typed when they
+  /// wanted an amount the panel does not offer.
+  const [tip, setTip] = useState(0);
+  const [tipOther, setTipOther] = useState("");
   const [addressId, setAddressId] = useState<number | undefined>(addresses[0]?.id);
   const [adding, setAdding] = useState(addresses.length === 0);
   const [newLoc, setNewLoc] = useState<ResolvedLocation | null>(null);
@@ -184,14 +197,19 @@ export function CheckoutClient({
       vat += num(c.tax_amount);  // zero now — VAT moved to the fee
       items += num(c.total_cost);
     }
-    // VAT is charged on the service fee only, once per booking.
-    vat += (num(serviceFee) * num(vatPercent)) / 100;
+    // The fee is charged once a visit, and VAT rides on the fee alone —
+    // service prices are quoted VAT-inclusive, so taxing them again would tax
+    // the same money twice. Multiplied out before the tax is rounded, which is
+    // the order the backend uses.
+    const visits = Math.max(1, Array.isArray(dates) ? dates.length : 1);
+    const fees = num(serviceFee) * visits;
+    vat += Math.round(((fees * num(vatPercent)) / 100) * 100) / 100;
 
     return {
-      serviceAmount, profDiscount, material, addon, discount, coupon, vat,
-      grand: serverTotal > 0 ? serverTotal : items + num(serviceFee) + vat,
+      serviceAmount, profDiscount, material, addon, discount, coupon, vat, fees,
+      grand: (serverTotal > 0 ? serverTotal : items + fees + vat) + num(tip),
     };
-  }, [cart, serviceFee, vatPercent, serverTotal, dates]);
+  }, [cart, serviceFee, vatPercent, serverTotal, dates, tip]);
 
   // Announced once, when there is a real amount to pay. Firing on mount would
   // report a checkout worth nothing while the quote is still loading, and
@@ -268,6 +286,7 @@ export function CheckoutClient({
           payment_method: offlineChosen ? "offline_payment" : method,
           zone_id: zoneId,
           ...(isRepeat ? { service_type: "repeat", dates } : {}),
+          tip_amount: tip,
         }),
       });
       const data = await res.json();
@@ -592,6 +611,60 @@ export function CheckoutClient({
             })}
           </div>
         </section>
+
+        {/* A tip, offered where the money is being settled.
+            The amounts are the panel's, and the leading zero is "no tip" — a
+            chip rather than an omission, so declining is something the
+            customer does rather than something they fail to do. */}
+        {tipOptions.length > 0 && (
+          <section className="space-y-3 rounded-2xl border border-border bg-primary-light/20 p-5">
+            <div>
+              <h2 className="text-lg font-bold text-ink">{dict.addATip}</h2>
+              <p className="text-sm text-ink/70">{dict.tipHint}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {tipOptions.map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  onClick={() => {
+                    setTip(amount);
+                    setTipOther("");
+                  }}
+                  className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+                    tip === amount && tipOther === ""
+                      ? "border-primary bg-primary text-white"
+                      : "border-border bg-surface text-ink"
+                  }`}
+                >
+                  {amount === 0 ? dict.noTip : money(amount)}
+                </button>
+              ))}
+              <input
+                type="number"
+                min={0}
+                max={maxTip || undefined}
+                inputMode="decimal"
+                value={tipOther}
+                placeholder={dict.other}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  setTipOther(raw);
+                  const value = Number(raw);
+                  // Above the ceiling the server keeps nothing at all, so the
+                  // page does not let the customer agree to a number that
+                  // would quietly become zero.
+                  setTip(
+                    Number.isFinite(value) && value > 0
+                      ? Math.min(value, maxTip || value)
+                      : 0
+                  );
+                }}
+                className="w-28 rounded-xl border border-border bg-surface px-4 py-2 text-sm text-ink"
+              />
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Summary */}
@@ -612,11 +685,14 @@ export function CheckoutClient({
               {quote.total_discount_amount > 0 && (
                 <Line label={dict.discount} value={`- ${money(quote.total_discount_amount)}`} />
               )}
-              {quote.extra_fee > 0 && (
-                <Line label={dict.serviceFee} value={`+ ${money(quote.extra_fee)}`} />
-              )}
-              {quote.total_tax_amount > 0 && (
-                <Line label={dict.vat} value={`+ ${money(quote.total_tax_amount)}`} />
+              {quote.extra_fee + quote.total_tax_amount > 0 && (
+                <TaxesAndFeeLine
+                  label={dict.taxesAndFee}
+                  value={`+ ${money(quote.extra_fee + quote.total_tax_amount)}`}
+                  title={dict.whatIsTaxesAndFee}
+                  note={taxAndFeeNote}
+                  dismiss={dict.okayGotIt}
+                />
               )}
             </>
           ) : (
@@ -627,10 +703,18 @@ export function CheckoutClient({
           {totals.addon > 0 && <Line label={dict.addons} value={`+ ${money(totals.addon)}`} />}
           {totals.discount > 0 && <Line label={dict.discount} value={`- ${money(totals.discount)}`} />}
           {totals.coupon > 0 && <Line label={dict.coupon} value={`- ${money(totals.coupon)}`} />}
-          {serviceFee > 0 && <Line label={dict.serviceFee} value={`+ ${money(serviceFee)}`} />}
-          {totals.vat > 0 && <Line label={dict.vat} value={`+ ${money(totals.vat)}`} />}
+          {totals.fees + totals.vat > 0 && (
+            <TaxesAndFeeLine
+              label={dict.taxesAndFee}
+              value={`+ ${money(totals.fees + totals.vat)}`}
+              title={dict.whatIsTaxesAndFee}
+              note={taxAndFeeNote}
+              dismiss={dict.okayGotIt}
+            />
+          )}
             </>
           )}
+          {tip > 0 && <Line label={dict.tip} value={`+ ${money(tip)}`} />}
           <div className="border-t border-border pt-3">
             <div className="flex items-center justify-between text-base font-bold text-ink">
               <span>{dict.total}</span>
@@ -655,6 +739,71 @@ export function CheckoutClient({
         </div>
       </aside>
     </div>
+  );
+}
+
+/**
+ * The taxes-and-fee line, which answers for itself.
+ *
+ * Two bare numbers with no account of what they are is the part of a bill
+ * people actually question, so the office writes the answer in the panel and
+ * clicking the line shows it. No note means no dotted underline and nothing to
+ * click, rather than a dialog that opens on nothing.
+ */
+function TaxesAndFeeLine({
+  label,
+  value,
+  title,
+  note,
+  dismiss,
+}: {
+  label: string;
+  value: string;
+  title: string;
+  note?: string | null;
+  dismiss: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (!note) return <Line label={label} value={value} />;
+
+  return (
+    <>
+      <div className="flex justify-between gap-4">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-start text-ink/80 underline decoration-dotted underline-offset-4"
+        >
+          {label}
+        </button>
+        <span className="text-end text-ink">{value}</span>
+      </div>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="mb-3 text-lg font-semibold text-ink">{title}</h3>
+            <p className="text-sm leading-relaxed text-ink/70">{note}</p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="mt-5 w-full rounded-xl bg-primary px-4 py-3 font-semibold text-white"
+            >
+              {dismiss}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -285,6 +285,10 @@ export interface BusinessConfig {
    * in the panel, per language; absent when nobody has written it.
    */
   tax_and_fee_note?: string | null;
+  /** The tip amounts offered at checkout; the leading 0 is "no tip". */
+  tip_options?: number[];
+  /** The most a tip may be, enforced on the server. */
+  max_tip_amount?: number;
   /** Seconds between campaign slides; 0 stops the auto-advance. */
   campaign_slider_interval?: number | string;
   wallet_status?: number | string;

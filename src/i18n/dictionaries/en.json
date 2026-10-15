@@ -228,7 +228,12 @@
     "offerApplied": "Offer applied automatically",
     "taxesAndFee": "Taxes and Fee",
     "whatIsTaxesAndFee": "What is Taxes and Fee?",
-    "okayGotIt": "Okay, got it"
+    "okayGotIt": "Okay, got it",
+    "addATip": "Add a tip",
+    "tipHint": "A thank-you for the team who cleans your home.",
+    "noTip": "No tip",
+    "tip": "Tip",
+    "other": "Other"
   },
   "hero": {
     "badge": "Trusted home services",
@@ -493,7 +498,12 @@
     "planBandRange": "A {length} visit is booked from {min} to {max} days a week.",
     "taxesAndFee": "Taxes and Fee",
     "whatIsTaxesAndFee": "What is Taxes and Fee?",
-    "okayGotIt": "Okay, got it"
+    "okayGotIt": "Okay, got it",
+    "addATip": "Add a tip",
+    "tipHint": "A thank-you for the team who cleans your home.",
+    "noTip": "No tip",
+    "tip": "Tip",
+    "other": "Other"
   },
   "checkout": {
     "title": "Checkout",
@@ -541,7 +551,12 @@
     "visitCount": "Visits",
     "taxesAndFee": "Taxes and Fee",
     "whatIsTaxesAndFee": "What is Taxes and Fee?",
-    "okayGotIt": "Okay, got it"
+    "okayGotIt": "Okay, got it",
+    "addATip": "Add a tip",
+    "tipHint": "A thank-you for the team who cleans your home.",
+    "noTip": "No tip",
+    "tip": "Tip",
+    "other": "Other"
   },
   "cta": {
     "title": "Ready to book your first service?",

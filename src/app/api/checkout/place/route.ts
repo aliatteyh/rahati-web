@@ -19,6 +19,10 @@ export async function POST(request: Request) {
   const addressId = body.service_address_id;
   const isRepeat = String(body.service_type ?? "") === "repeat";
   const dates = String(body.dates ?? "");
+  // Rounded and floored here as well as on the server: a negative tip is not a
+  // discount, and the server refuses one, but a page that sends it has already
+  // shown the customer a total they will not be charged.
+  const tip = Math.max(0, Math.round(Number(body.tip_amount ?? 0) * 100) / 100);
 
   if (!addressId) {
     return NextResponse.json({ ok: false, message: "Address required" }, { status: 400 });
@@ -45,6 +49,7 @@ export async function POST(request: Request) {
       // card payment to ?flag=fail before a gateway was ever reached. We only
       // ever send someone to the customer's own address.
       `&service_location=customer` +
+      `&tip_amount=${encodeURIComponent(String(tip))}` +
       (isRepeat
         ? `&service_type=repeat&dates=${encodeURIComponent(dates)}`
         : `&service_schedule=${encodeURIComponent(schedule)}`) +
@@ -62,6 +67,7 @@ export async function POST(request: Request) {
       service_address_id: addressId,
       service_location: "customer",
       is_partial: 0,
+      tip_amount: tip,
       ...(isRepeat
         ? { service_type: "repeat", dates }
         : { service_type: "regular", service_schedule: schedule }),

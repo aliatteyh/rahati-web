@@ -138,6 +138,9 @@ export default async function CheckoutPage({
           })),
         }))}
         serviceFee={serviceFee}
+        taxAndFeeNote={config.tax_and_fee_note ?? null}
+        tipOptions={config.tip_options ?? []}
+        maxTip={Number(config.max_tip_amount ?? 0)}
         vatPercent={Number(config.vat_percentage ?? 0)}
         serverTotal={serverTotal}
         quote={quote}
