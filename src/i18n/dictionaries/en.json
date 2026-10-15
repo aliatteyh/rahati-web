@@ -233,7 +233,12 @@
     "tipHint": "A thank-you for the team who cleans your home.",
     "noTip": "No tip",
     "tip": "Tip",
-    "other": "Other"
+    "other": "Other",
+    "whoShouldCome": "Who should come?",
+    "anyAvailable": "Any available cleaner",
+    "myFavourite": "My favourite",
+    "noPreviousCleaners": "Nobody has cleaned your home yet — your first booking will introduce you.",
+    "officeAssigns": "The office assigns the cleaner and will honour this where it can."
   },
   "hero": {
     "badge": "Trusted home services",
@@ -503,7 +508,12 @@
     "tipHint": "A thank-you for the team who cleans your home.",
     "noTip": "No tip",
     "tip": "Tip",
-    "other": "Other"
+    "other": "Other",
+    "whoShouldCome": "Who should come?",
+    "anyAvailable": "Any available cleaner",
+    "myFavourite": "My favourite",
+    "noPreviousCleaners": "Nobody has cleaned your home yet — your first booking will introduce you.",
+    "officeAssigns": "The office assigns the cleaner and will honour this where it can."
   },
   "checkout": {
     "title": "Checkout",
@@ -556,7 +566,12 @@
     "tipHint": "A thank-you for the team who cleans your home.",
     "noTip": "No tip",
     "tip": "Tip",
-    "other": "Other"
+    "other": "Other",
+    "whoShouldCome": "Who should come?",
+    "anyAvailable": "Any available cleaner",
+    "myFavourite": "My favourite",
+    "noPreviousCleaners": "Nobody has cleaned your home yet — your first booking will introduce you.",
+    "officeAssigns": "The office assigns the cleaner and will honour this where it can."
   },
   "cta": {
     "title": "Ready to book your first service?",

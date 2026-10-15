@@ -141,6 +141,15 @@ export function CheckoutClient({
   /// wanted an amount the panel does not offer.
   const [tip, setTip] = useState(0);
   const [tipOther, setTipOther] = useState("");
+
+  /// Who the customer would like. The office assigns the cleaner either way —
+  /// this is a preference, which is why naming nobody is a complete answer.
+  const [preference, setPreference] = useState<"any" | "favourite">("any");
+  const [preferredId, setPreferredId] = useState("");
+  const [cleaners, setCleaners] = useState<
+    { id?: string; name?: string; image_full_path?: string | null }[]
+  >([]);
+  const [cleanersLoaded, setCleanersLoaded] = useState(false);
   const [addressId, setAddressId] = useState<number | undefined>(addresses[0]?.id);
   const [adding, setAdding] = useState(addresses.length === 0);
   const [newLoc, setNewLoc] = useState<ResolvedLocation | null>(null);
@@ -210,6 +219,33 @@ export function CheckoutClient({
       grand: (serverTotal > 0 ? serverTotal : items + fees + vat) + num(tip),
     };
   }, [cart, serviceFee, vatPercent, serverTotal, dates, tip]);
+
+  // Fetched when the customer first asks for a name, not on page load: most
+  // bookings never open this, and a first-time customer has nobody to fetch.
+  useEffect(() => {
+    if (preference !== "favourite" || cleanersLoaded) return;
+
+    let alive = true;
+    setCleanersLoaded(true);
+
+    fetch("/api/cleaners/previous", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (alive && Array.isArray(data?.cleaners)) setCleaners(data.cleaners);
+      })
+      .catch(() => {
+        // An empty list reads the same as none to ask for, and the booking
+        // goes through either way.
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [preference, cleanersLoaded, locale]);
 
   // Announced once, when there is a real amount to pay. Firing on mount would
   // report a checkout worth nothing while the quote is still loading, and
@@ -287,6 +323,8 @@ export function CheckoutClient({
           zone_id: zoneId,
           ...(isRepeat ? { service_type: "repeat", dates } : {}),
           tip_amount: tip,
+          cleaner_preference: preference,
+          preferred_serviceman_id: preference === "favourite" ? preferredId : "",
         }),
       });
       const data = await res.json();
@@ -610,6 +648,69 @@ export function CheckoutClient({
               );
             })}
           </div>
+        </section>
+
+        {/* Who comes. Two chips, and names only once the second is chosen —
+            a list of faces above a question nobody asked is noise. */}
+        <section className="space-y-3 rounded-2xl border border-border bg-surface p-5">
+          <h2 className="text-lg font-bold text-ink">{dict.whoShouldCome}</h2>
+          <div className="flex flex-wrap gap-2">
+            {(["any", "favourite"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setPreference(value);
+                  if (value === "any") setPreferredId("");
+                }}
+                className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+                  preference === value
+                    ? "border-primary bg-primary text-white"
+                    : "border-border bg-surface text-ink"
+                }`}
+              >
+                {value === "any" ? dict.anyAvailable : dict.myFavourite}
+              </button>
+            ))}
+          </div>
+
+          {preference === "favourite" && (
+            <>
+              {cleaners.length === 0 ? (
+                <p className="text-sm text-ink/70">{dict.noPreviousCleaners}</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {cleaners.map((cleaner) => (
+                    <button
+                      key={cleaner.id ?? cleaner.name}
+                      type="button"
+                      onClick={() => setPreferredId(cleaner.id ?? "")}
+                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
+                        preferredId === cleaner.id
+                          ? "border-primary bg-primary-light/30 text-ink"
+                          : "border-border bg-surface text-ink"
+                      }`}
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary-light/40 text-xs font-bold text-ink">
+                        {cleaner.image_full_path ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={cleaner.image_full_path}
+                            alt=""
+                            className="h-8 w-8 object-cover"
+                          />
+                        ) : (
+                          (cleaner.name ?? "?").slice(0, 1).toUpperCase()
+                        )}
+                      </span>
+                      {cleaner.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted">{dict.officeAssigns}</p>
+            </>
+          )}
         </section>
 
         {/* A tip, offered where the money is being settled.

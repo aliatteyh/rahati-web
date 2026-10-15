@@ -23,6 +23,12 @@ export async function POST(request: Request) {
   // discount, and the server refuses one, but a page that sends it has already
   // shown the customer a total they will not be charged.
   const tip = Math.max(0, Math.round(Number(body.tip_amount ?? 0) * 100) / 100);
+  // Who the customer would like, when they have someone in mind. The office
+  // assigns the cleaner either way — this is a preference, not a booking of a
+  // particular person — so an id that no longer works there costs nothing.
+  const preference =
+    String(body.cleaner_preference ?? "any") === "favourite" ? "favourite" : "any";
+  const preferredServiceman = String(body.preferred_serviceman_id ?? "");
 
   if (!addressId) {
     return NextResponse.json({ ok: false, message: "Address required" }, { status: 400 });
@@ -68,6 +74,10 @@ export async function POST(request: Request) {
       service_location: "customer",
       is_partial: 0,
       tip_amount: tip,
+      cleaner_preference: preference,
+      ...(preference === "favourite" && preferredServiceman
+        ? { preferred_serviceman_id: preferredServiceman }
+        : {}),
       ...(isRepeat
         ? { service_type: "repeat", dates }
         : { service_type: "regular", service_schedule: schedule }),
