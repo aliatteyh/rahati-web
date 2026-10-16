@@ -446,6 +446,11 @@ export default async function ServicePage({
           currencyCode={String(config.currency_code ?? "AED")}
           vatPercent={toNumber(config.vat_percentage)}
           taxAndFeeNote={config.tax_and_fee_note ?? null}
+          schedulesByLength={config.cleaning_schedule_by_duration ?? []}
+          scheduleShares={config.cleaning_schedule_tasks ?? []}
+          scheduleTitle={dict.site.svcScheduleTitle}
+          scheduleNote={dict.site.svcScheduleNote}
+          scheduleMinutesLabel={dict.site.svcMinutes}
           serviceFee={toNumber(config.additional_charge_fee_amount)}
           materialCharge={toNumber(config.material_charge)}
           professionalTiers={config.professional_discount_tiers ?? []}
@@ -514,18 +519,11 @@ export default async function ServicePage({
                 ? { title: dict.site.svcTrustTitle, points: credentials, image: trustImage }
                 : null
             }
-            schedule={
-              scheduleRows.length
-                ? {
-                    title: dict.site.svcScheduleTitle.replace(
-                      "{hours}",
-                      hoursPhrase(Math.round((sampleMinutes / 60) * 10) / 10)
-                    ),
-                    note: dict.site.svcScheduleNote,
-                    rows: scheduleRows,
-                  }
-                : null
-            }
+            // The schedule moved into the booking form, where the length is
+            // chosen: two schedules on one page, one of them frozen at the
+            // shortest visit, disagree the moment somebody picks anything
+            // else.
+            schedule={null}
             materials={
               materialItems.length
                 ? {

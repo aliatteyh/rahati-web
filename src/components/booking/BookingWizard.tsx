@@ -49,6 +49,16 @@ export interface BookingWizardProps {
   vatPercent: number;
   /** What the office says the taxes and the fee are for. Null hides the link. */
   taxAndFeeNote?: string | null;
+  /** Every schedule the office has written, by visit length in minutes. */
+  schedulesByLength?: {
+    minutes: number;
+    tasks: { label: string; minutes: number }[];
+  }[];
+  /** The reference shares, for a length with no schedule of its own. */
+  scheduleShares?: { label: string; share?: number | null }[];
+  scheduleTitle?: string;
+  scheduleNote?: string;
+  scheduleMinutesLabel?: string;
   serviceFee: number;
   /** Materials rate per hour — a 2-hour variant is charged twice this. */
   materialCharge: number;
@@ -184,6 +194,11 @@ export function BookingWizard({
   currencyCode,
   vatPercent,
   taxAndFeeNote,
+  schedulesByLength = [],
+  scheduleShares = [],
+  scheduleTitle = "",
+  scheduleNote = "",
+  scheduleMinutesLabel = "min",
   serviceFee,
   materialCharge,
   professionalTiers,
@@ -1071,6 +1086,33 @@ export function BookingWizard({
   }
   // Shown instantly while the server quote is in flight; the server's number
   // replaces it as soon as it arrives, and is what the customer is charged.
+  // What this visit covers, for the length actually chosen.
+  //
+  // The page used to print the shortest visit's schedule whatever the customer
+  // picked, so eight hours showed the two-hour plan. A length with its own
+  // list in the panel shows that one; a length without is scaled from the
+  // reference shares, which is all the office has said about it.
+  const scheduleRows = useMemo(() => {
+    const minutes = Number(variant.durationMinutes ?? 0);
+    if (!minutes) return [];
+
+    const own = schedulesByLength.find((row) => Number(row.minutes) === minutes);
+
+    if (own) {
+      return own.tasks
+        .filter((task) => task.label && task.minutes > 0)
+        .map((task) => ({ label: task.label, minutes: task.minutes }));
+    }
+
+    return scheduleShares
+      .filter((row) => row.label)
+      .map((row) => ({
+        label: row.label,
+        minutes: Math.round((Number(row.share ?? 0) / 100) * minutes),
+      }))
+      .filter((row) => row.minutes > 0);
+  }, [variant.durationMinutes, schedulesByLength, scheduleShares]);
+
   // The service fee is charged once a visit, and VAT rides on the fee alone:
   // service prices are quoted VAT-inclusive, so taxing them again would tax
   // the same money twice. Both are multiplied out before the tax is rounded,
@@ -2945,6 +2987,34 @@ export function BookingWizard({
               <span className="text-xl font-bold text-primary">{priceExact(grandTotal)}</span>
             </div>
           </div>
+
+          {/* What the visit covers, for the length chosen above.
+              It belongs beside the price because it answers the question the
+              price raises — what am I getting for this — and it has to follow
+              the choice: the page below prints the shortest visit's plan
+              whatever is picked, which is right for a description and wrong
+              for a booking. */}
+          {scheduleRows.length > 0 && scheduleTitle && (
+            <div className="mt-4 rounded-2xl border border-border bg-surface p-5 text-sm">
+              <h2 className="text-base font-bold text-ink">
+                {scheduleTitle.replace(
+                  "{hours}",
+                  String(Math.round((Number(variant.durationMinutes ?? 0) / 60) * 10) / 10)
+                )}
+              </h2>
+              {scheduleNote && <p className="mt-1 text-muted">{scheduleNote}</p>}
+
+              <dl className="mt-3 space-y-2">
+                {scheduleRows.map((row) => (
+                  <Row
+                    key={row.label}
+                    label={row.label}
+                    value={`${row.minutes} ${scheduleMinutesLabel}`}
+                  />
+                ))}
+              </dl>
+            </div>
+          )}
 
           {/* The link back to the service used to sit here. The service is
               this page: the form and the service's own description are one
