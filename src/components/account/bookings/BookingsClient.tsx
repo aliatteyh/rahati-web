@@ -9,6 +9,7 @@ import { intlLocale } from "@/lib/intl";
 // exports the server-side fetchers, which reach for next/headers and
 // cannot be pulled into a client component at all.
 import { formatNumber } from "@/lib/currency";
+import { ReviewForm } from "@/components/account/ReviewForm";
 import { ReschedulePicker } from "./ReschedulePicker";
 import type { BookingAddress, BookingRow, Cleaner, PlanSummary, PlanVisit } from "./types";
 
@@ -479,6 +480,38 @@ function BookingSheet({
         <Fact label={dict.address} value={fmt.address(row.address)} />
         <Money dict={dict} money={money} row={row} />
       </dl>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          href={`/${locale}/account/bookings/${row.id}/invoice`}
+          className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-primary"
+        >
+          {dict.invoice}
+        </Link>
+      </div>
+
+      {/* Rating lived on the page this sheet replaced. A booking that is
+          over is the one a customer has something to say about, and leaving
+          the form behind would have quietly removed the only way to say it
+          from the website. */}
+      {row.status === "completed" && row.serviceId && (
+        <div className="mt-3">
+          <ReviewForm
+            bookingId={row.id}
+            serviceId={row.serviceId}
+            locale={locale}
+            dict={{
+              rate: dict.rate,
+              submitReview: dict.submitReview,
+              reviewPlaceholder: dict.reviewPlaceholder,
+              reviewError: dict.reviewError,
+              processing: dict.processing,
+              cancel: dict.cancel,
+              reviewThanks: dict.reviewThanks,
+            }}
+          />
+        </div>
+      )}
 
       {canAmend && (
         <div className="mt-4 space-y-3">

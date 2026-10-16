@@ -30,8 +30,11 @@ export default async function BookingChatPage({
 
   return (
     <div className="space-y-4">
-      <Link href={`/${locale}/account/bookings/${id}`} className="text-sm text-primary">
-        ← #{b.readable_id ?? ""}
+      {/* Back to the list, not to the old detail page: the booking's own
+          screen is a sheet on the list now, and the page that used to be
+          here is the one design this replaced. */}
+      <Link href={`/${locale}/account/bookings`} className="text-sm text-primary">
+        ← {a.bookings} {b.readable_id ? `· #${b.readable_id}` : ""}
       </Link>
       <div>
         <h1 className="text-xl font-bold text-ink">{a.messages}</h1>
