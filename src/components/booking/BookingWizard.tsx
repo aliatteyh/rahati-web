@@ -52,6 +52,7 @@ export interface BookingWizardProps {
   /** Every schedule the office has written, by visit length in minutes. */
   schedulesByLength?: {
     minutes: number;
+    title?: string | null;
     tasks: { label: string; minutes: number }[];
   }[];
   /** The reference shares, for a length with no schedule of its own. */
@@ -1103,6 +1104,7 @@ export function BookingWizard({
         .filter((task) => task.label && task.minutes > 0)
         .map((task) => ({ label: task.label, minutes: task.minutes }));
     }
+
 
     return scheduleShares
       .filter((row) => row.label)
@@ -2997,10 +2999,16 @@ export function BookingWizard({
           {scheduleRows.length > 0 && scheduleTitle && (
             <div className="mt-4 rounded-2xl border border-border bg-surface p-5 text-sm">
               <h2 className="text-base font-bold text-ink">
-                {scheduleTitle.replace(
-                  "{hours}",
-                  String(Math.round((Number(variant.durationMinutes ?? 0) / 60) * 10) / 10)
-                )}
+                {/* The office's own heading where they wrote one: Arabic has
+                    a dual and a plural, and no composed phrase suits every
+                    length. */}
+                {schedulesByLength.find(
+                  (row) => Number(row.minutes) === Number(variant.durationMinutes ?? 0)
+                )?.title ||
+                  scheduleTitle.replace(
+                    "{hours}",
+                    String(Math.round((Number(variant.durationMinutes ?? 0) / 60) * 10) / 10)
+                  )}
               </h2>
               {scheduleNote && <p className="mt-1 text-muted">{scheduleNote}</p>}
 

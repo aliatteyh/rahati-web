@@ -245,6 +245,8 @@ export interface BusinessConfig {
    */
   cleaning_schedule_by_duration?: {
     minutes: number;
+    /** The heading the office wrote; empty means compose one. */
+    title?: string | null;
     tasks: { label: string; minutes: number; icon?: string | null }[];
   }[];
   cleaning_materials?: { label: string; image_full_path?: string | null }[];
