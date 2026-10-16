@@ -18,6 +18,41 @@ type Dict = Record<string, string>;
 /** Anything still to come; everything else is history. */
 const UPCOMING = ["pending", "accepted", "ongoing"];
 
+/**
+ * The tax invoice, as the panel issues it.
+ *
+ * Not a receipt drawn here: there is one invoice document, built from
+ * InvoiceDocument and laid out in one partial, and it is the one the app
+ * opens and the office prints. A second version on the website would be a
+ * second answer to "what was I charged", and the two would drift.
+ *
+ * Three addresses because a plan is three different documents: the whole
+ * subscription, one visit of it, and a booking that is neither.
+ */
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
+
+function invoiceHref(
+  kind: "customer-invoice" | "customer-fullbooking-invoice" | "customer-fullbooking-single-invoice",
+  id: string,
+  locale: Locale
+): string {
+  return `${API_BASE}/admin/booking/${kind}/${encodeURIComponent(id)}/${locale}`;
+}
+
+/** Opens in its own tab, because an invoice is a thing people print. */
+function InvoiceLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-primary"
+    >
+      {label}
+    </a>
+  );
+}
+
 export function BookingsClient({
   locale,
   dict,
@@ -482,12 +517,7 @@ function BookingSheet({
       </dl>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link
-          href={`/${locale}/account/bookings/${row.id}/invoice`}
-          className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-primary"
-        >
-          {dict.invoice}
-        </Link>
+        <InvoiceLink href={invoiceHref("customer-invoice", row.id, locale)} label={dict.invoice} />
       </div>
 
       {/* Rating lived on the page this sheet replaced. A booking that is
@@ -684,6 +714,13 @@ function PlanSheet({
         </div>
       </dl>
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        <InvoiceLink
+          href={invoiceHref("customer-fullbooking-invoice", plan.id, locale)}
+          label={dict.invoice}
+        />
+      </div>
+
       {plan.visits_left > 0 && (
         <div className="mt-4">
           {state === "idle" && (
@@ -832,6 +869,13 @@ function VisitSheet({
           <span dir="auto">{money(visit.amount)}</span>
         </div>
       </dl>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <InvoiceLink
+          href={invoiceHref("customer-fullbooking-single-invoice", visit.id, locale)}
+          label={dict.invoice}
+        />
+      </div>
 
       {(visit.can_reschedule || visit.can_skip) && (
         <div className="mt-4 space-y-3">
