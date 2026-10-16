@@ -593,6 +593,16 @@ function PlanSheet({
             }}
           />
           <p className="mt-1 text-sm font-medium text-primary">{dict.sameCleanerPlan}</p>
+          {/* The same way out as on a single booking: a customer looking at
+              one visit is the likeliest of all to have something to say about
+              it, and the sheet used to offer no way to say it. The thread
+              belongs to the plan, which is where the office answers. */}
+          <Link
+            href={`/${locale}/account/bookings/${plan.id}/chat`}
+            className="mt-3 inline-flex rounded-xl border border-primary px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-light"
+          >
+            {dict.message}
+          </Link>
         </div>
       )}
 
@@ -751,6 +761,16 @@ function VisitSheet({
             }}
           />
           <p className="mt-1 text-sm font-medium text-primary">{dict.sameCleanerPlan}</p>
+          {/* The same way out as on a single booking: a customer looking at
+              one visit is the likeliest of all to have something to say about
+              it, and the sheet used to offer no way to say it. The thread
+              belongs to the plan, which is where the office answers. */}
+          <Link
+            href={`/${locale}/account/bookings/${plan.id}/chat`}
+            className="mt-3 inline-flex rounded-xl border border-primary px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-light"
+          >
+            {dict.message}
+          </Link>
         </div>
       )}
 
