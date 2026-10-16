@@ -237,7 +237,16 @@ export interface BusinessConfig {
    * The schedule carries a `share` of the visit rather than minutes, so one
    * list describes a two-hour clean and an eight-hour one.
    */
-  cleaning_schedule_tasks?: { label: string; share?: number | null }[];
+  cleaning_schedule_tasks?: { label: string; share?: number | null; icon?: string | null }[];
+  /**
+   * Schedules written for particular visit lengths. A longer visit is not the
+   * same jobs stretched — it is more jobs — so a length may carry its own list
+   * in minutes; one with none is still scaled from the shares above.
+   */
+  cleaning_schedule_by_duration?: {
+    minutes: number;
+    tasks: { label: string; minutes: number; icon?: string | null }[];
+  }[];
   cleaning_materials?: { label: string; image_full_path?: string | null }[];
   customer_provides?: { label: string }[];
   cleaner_credentials?: { label: string }[];

@@ -302,16 +302,31 @@ export default async function ServicePage({
     .map((v) => Number(v.duration_minutes))
     .filter((m) => Number.isFinite(m) && m > 0);
   const sampleMinutes = durations.length ? Math.min(...durations) : 0;
-  const scheduleRows = sampleMinutes
-    ? (config.cleaning_schedule_tasks ?? [])
-        .filter((row) => row.label)
-        .map((row) => ({
-          label: row.label,
-          minutes: Math.round((Number(row.share ?? 0) / 100) * sampleMinutes),
-        }))
-        .filter((row) => row.minutes > 0)
-        .map((row) => ({ label: row.label, value: `${row.minutes} ${dict.site.svcMinutes}` }))
-    : [];
+  // This length's own list where the office wrote one, and the scaled shares
+  // otherwise. A longer visit is not the same jobs stretched: six hours adds
+  // dusting, folding and the stairs, which no percentage of a shorter list
+  // can produce.
+  const ownSchedule = (config.cleaning_schedule_by_duration ?? []).find(
+    (row) => Number(row.minutes) === sampleMinutes
+  );
+
+  const scheduleRows = !sampleMinutes
+    ? []
+    : ownSchedule
+      ? ownSchedule.tasks
+          .filter((row) => row.label && row.minutes > 0)
+          .map((row) => ({
+            label: row.label,
+            value: `${row.minutes} ${dict.site.svcMinutes}`,
+          }))
+      : (config.cleaning_schedule_tasks ?? [])
+          .filter((row) => row.label)
+          .map((row) => ({
+            label: row.label,
+            minutes: Math.round((Number(row.share ?? 0) / 100) * sampleMinutes),
+          }))
+          .filter((row) => row.minutes > 0)
+          .map((row) => ({ label: row.label, value: `${row.minutes} ${dict.site.svcMinutes}` }));
 
   const materialItems = (config.cleaning_materials ?? [])
     .filter((row) => row.label)
