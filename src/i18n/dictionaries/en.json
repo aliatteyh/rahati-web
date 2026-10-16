@@ -517,7 +517,8 @@
     "anyAvailable": "Any available cleaner",
     "myFavourite": "My favourite",
     "noPreviousCleaners": "Nobody has cleaned your home yet — your first booking will introduce you.",
-    "officeAssigns": "The office assigns the cleaner and will honour this where it can."
+    "officeAssigns": "The office assigns the cleaner and will honour this where it can.",
+    "perHourRate": "{rate} / hour"
   },
   "checkout": {
     "title": "Checkout",

@@ -1863,6 +1863,19 @@ export function BookingWizard({
                             {isSubscriptionFlow
                               ? `${dict.fromPrice} ${priceExact(fromPrice(v.price))}`
                               : priceExact(v.price)}
+                            {/* And what that works out at an hour, which is
+                                the only figure that compares two lengths. The
+                                app shows it on the same chips; without it the
+                                customer has to divide eight prices by eight
+                                durations in their head. */}
+                            {!isSubscriptionFlow && !isUnitFlow && v.durationMinutes > 0 && (
+                              <span className="block opacity-80">
+                                {dict.perHourRate.replace(
+                                  "{rate}",
+                                  priceExact(Number(v.price) / (v.durationMinutes / 60))
+                                )}
+                              </span>
+                            )}
                           </span>
                         </>
                       )}
