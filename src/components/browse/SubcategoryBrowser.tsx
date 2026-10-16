@@ -50,10 +50,26 @@ export function SubcategoryBrowser({
     durations.length > 0 ? durations[0] : null
   );
 
+  // The hours word for a count. Arabic has a dual, so two hours is "ساعتان"
+  // and not "2 ساعات", and eleven upwards takes the singular again.
+  function hoursWord(h: number) {
+    if (h === 1) return dict.hour ?? dict.hours;
+    if (h === 2) return dict.hoursTwo ?? dict.hours;
+    if (h <= 10) return dict.hoursFew ?? dict.hours;
+    return dict.hoursMany ?? dict.hours;
+  }
+
   function label(minutes: number) {
-    if (minutes % 60 === 0) {
+    // An hour and a half belongs with the hours, not among the minutes: the
+    // row read "1 ساعة · 90 دقيقة · 2 ساعات · 150 دقيقة", which asks the
+    // reader to convert every other tile. Below an hour the minutes are the
+    // honest unit — an add-on is half an hour, not 0.5 hours.
+    if (minutes >= 60) {
       const h = minutes / 60;
-      return { big: String(h), unit: h === 1 ? dict.hour : dict.hours };
+      return {
+        big: Number.isInteger(h) ? String(h) : String(Math.round(h * 10) / 10),
+        unit: hoursWord(h),
+      };
     }
     return { big: String(minutes), unit: dict.min };
   }
@@ -143,6 +159,11 @@ export function SubcategoryBrowser({
                   priceLabel={money(priceFor(s))}
                   durationMinutes={minutes}
                   minutesLabel={dict.min}
+                  durationText={
+                    minutes != null
+                      ? `${label(minutes).big} ${label(minutes).unit}`
+                      : undefined
+                  }
                   featuredLabel={s.isFeatured ? s.badgeText || dict.featured : undefined}
                   favouriteLabel={dict.favourite}
                   locale={locale}

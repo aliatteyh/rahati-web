@@ -25,6 +25,7 @@ export function ServiceCard({
   href,
   durationMinutes = null,
   minutesLabel,
+  durationText,
   featuredLabel,
   favouriteLabel,
   locale,
@@ -37,6 +38,12 @@ export function ServiceCard({
   /** Minutes for the cheapest option; omitted hides the pill. */
   durationMinutes?: number | null;
   minutesLabel?: string;
+  /**
+   * The length already written out, where the caller words it better than
+   * "{n} min" can — a page counting in hours should not put the minutes back
+   * on the card underneath.
+   */
+  durationText?: string;
   /** Shown only when the caller says this service is featured. */
   featuredLabel?: string;
   /** Both required to show the heart; omitted leaves the card as it was. */
@@ -122,7 +129,7 @@ export function ServiceCard({
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              {durationMinutes} {minutesLabel}
+              {durationText ?? `${durationMinutes} ${minutesLabel}`}
             </span>
           )}
         </div>

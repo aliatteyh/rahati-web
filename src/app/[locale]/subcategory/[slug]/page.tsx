@@ -175,6 +175,7 @@ export default async function SubcategoryPage({ params }: { params: Params }) {
       variantKey: String(v.variant_key ?? ""),
       minutes: Number(v.duration_minutes),
       price: toNumber(v.price),
+      label: v.variant ?? null,
     }))
     .sort((a, b) => a.minutes - b.minutes);
 

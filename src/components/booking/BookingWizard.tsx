@@ -580,13 +580,42 @@ export function BookingWizard({
   );
   const missingAddOnMinutes = Math.max(0, addonsMinMinutes - addOnMinutes);
 
+  // The hours word for a count. Arabic has four forms where English has two:
+  // one hour, two hours (a dual word of its own), three to ten, and eleven
+  // upwards, which takes the singular again. "2 ساعات" is the kind of
+  // mistake a reader notices immediately.
+  function hoursWord(h: number): string {
+    if (h === 1) return dict.hour ?? dict.hours;
+    if (h === 2) return dict.hoursTwo ?? dict.hours;
+    if (h <= 10) return dict.hoursFew ?? dict.hours;
+    return dict.hoursMany ?? dict.hours;
+  }
+
   function fmtDuration(minutes: number): string {
     // "1 hours" reads as a bug on a card the customer is judging the service
     // by, and add-ons put one-hour durations on the screen constantly.
-    const hourWord = (h: number) => (h === 1 ? dict.hour ?? dict.hours : dict.hours);
+    const hourWord = (h: number) => hoursWord(h);
     if (minutes < 60) return `${minutes} ${dict.min}`;
     if (minutes % 60 === 0) return `${minutes / 60} ${hourWord(minutes / 60)}`;
     return `${Math.floor(minutes / 60)} ${hourWord(Math.floor(minutes / 60))} ${minutes % 60} ${dict.min}`;
+  }
+
+  // What the panel calls this length, and only our own phrasing when it has
+  // said nothing.
+  //
+  // Composing it here produced "2 ساعات" — Arabic has a dual, so two of
+  // anything is "ساعتان", and half an hour is a word rather than "30
+  // دقيقة" tacked on. The office has already written every length's
+  // name, in both languages, and the app reads it; the website spelling its
+  // own was the one place the two surfaces disagreed.
+  function durationLabel(v: WizardVariant): string {
+    const label = (v.label ?? '').trim();
+    // A name nobody has typed yet is still the key the row was created with
+    // — "2-hours", "2-5-hours" — and printing that to a customer is worse
+    // than our own wording. The panel is where it gets fixed; this only keeps
+    // the page readable until it is.
+    const isKey = label === '' || label === v.key || /^\d+([-_]\d+)?[-_]h(ou)?rs?$/i.test(label);
+    return isKey ? fmtDuration(v.durationMinutes) : label;
   }
 
   // The days the server says are bookable, once it has been asked; until then
@@ -1800,7 +1829,7 @@ export function BookingWizard({
                 <div className="rounded-xl border border-border bg-surface-soft p-4">
                   <p className="text-sm text-muted">{dict.hoursQuestion}</p>
                   <p className="mt-1 text-lg font-bold text-ink">
-                    {fmtDuration(variant.durationMinutes)}
+                    {durationLabel(variant)}
                   </p>
                 </div>
               ) : (
@@ -1837,7 +1866,7 @@ export function BookingWizard({
                             {/* Its hours, its cleaners and that the materials are
                                 in the price — the panel's numbers, not ours. */}
                             <span className="block text-xs text-muted">
-                              {fmtDuration(v.durationMinutes)}
+                              {durationLabel(v)}
                               {v.cleanersCount ? ` · ${v.cleanersCount} ${dict.cleaners}` : ""}
                               {` · ${dict.materialsIncluded}`}
                             </span>
@@ -1846,7 +1875,7 @@ export function BookingWizard({
                         </>
                       ) : (
                         <>
-                          {fmtDuration(v.durationMinutes)}
+                          {durationLabel(v)}
                           {/* What this length costs, on the card that offers
                               it: comparing two options should not require
                               choosing one and watching the total move. On a
@@ -1946,7 +1975,7 @@ export function BookingWizard({
                     {(bandMin > 1 || bandMax < maxDaysPerWeek) && (
                       <p className="mb-2 rounded-lg bg-primary-light px-3 py-2 text-xs text-primary-dark">
                         {(bandMin === bandMax ? dict.planBandOnly : dict.planBandRange)
-                          .replace("{length}", fmtDuration(variant.durationMinutes))
+                          .replace("{length}", durationLabel(variant))
                           .replace("{days}", String(bandMin))
                           .replace("{min}", String(bandMin))
                           .replace("{max}", String(bandMax))}
@@ -2159,7 +2188,7 @@ export function BookingWizard({
                                   {planDaysPerWeek === 1 ? dict.visitAWeek : dict.visitsAWeek}
                                 </span>
                                 <span className="block">
-                                  • {fmtDuration(variant.durationMinutes)} {dict.perVisit}
+                                  • {durationLabel(variant)} {dict.perVisit}
                                 </span>
                                 <span className="block">• {dict.sameCleaner}</span>
                                 <span className="block">
@@ -2854,9 +2883,11 @@ export function BookingWizard({
                   gone before half the work was done. */}
               <Row
                 label={dict.duration}
-                value={fmtDuration(
-                  isAddonsFlow && addOnMinutes > 0 ? addOnMinutes : variant.durationMinutes
-                )}
+                value={
+                  isAddonsFlow && addOnMinutes > 0
+                    ? fmtDuration(addOnMinutes)
+                    : durationLabel(variant)
+                }
               />
               {/* A unit brings the crew its price includes, so showing the
                   screen's unused "1" contradicts the card the customer just
@@ -3018,10 +3049,7 @@ export function BookingWizard({
                 {schedulesByLength.find(
                   (row) => Number(row.minutes) === Number(variant.durationMinutes ?? 0)
                 )?.title ||
-                  scheduleTitle.replace(
-                    "{hours}",
-                    String(Math.round((Number(variant.durationMinutes ?? 0) / 60) * 10) / 10)
-                  )}
+                  scheduleTitle.replace("{hours}", durationLabel(variant))}
               </h2>
               {scheduleNote && <p className="mt-1 text-muted">{scheduleNote}</p>}
 

@@ -12,6 +12,8 @@ export interface SubscriptionDuration {
   variantKey: string;
   minutes: number;
   price: number;
+  /** What the panel calls this length, in the reader's own language. */
+  label?: string | null;
 }
 
 interface Quote {
@@ -100,6 +102,29 @@ export function SubscriptionBrowser({
   const hours = (minutes: number) => {
     const h = minutes / 60;
     return Number.isInteger(h) ? String(h) : (minutes / 60).toFixed(1);
+  };
+
+  // The hours word for a count. Arabic has a dual — two hours is "ساعتان",
+  // not "2 ساعات" — and three to ten take a different form again from
+  // eleven upwards.
+  const hoursWord = (h: number) => {
+    if (h === 1) return dict.hour ?? dict.hours;
+    if (h === 2) return dict.hoursTwo ?? dict.hours;
+    if (h <= 10) return dict.hoursFew ?? dict.hours;
+    return dict.hoursMany ?? dict.hours;
+  };
+
+  // The office's own name for a length, which is the one the app prints and
+  // the only one that gets a half hour right in Arabic ("ساعتان ونصف").
+  const lengthName = (minutes: number) => {
+    const row = durations.find((d) => d.minutes === minutes);
+    const own = (row?.label ?? '').trim();
+    // Not the key it was created with: "2-hours" is not a name.
+    const isKey =
+      own === '' || own === row?.variantKey || /^\d+([-_]\d+)?[-_]h(ou)?rs?$/i.test(own);
+    if (!isKey) return own;
+    const h = minutes / 60;
+    return `${hours(minutes)} ${hoursWord(Number.isInteger(h) ? h : 0)}`;
   };
 
   useEffect(() => {
@@ -213,7 +238,7 @@ export function SubscriptionBrowser({
                 {hours(d.minutes)}
               </span>
               <span className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">
-                {dict.hours}
+                {hoursWord(d.minutes / 60)}
               </span>
             </button>
           );
@@ -336,7 +361,7 @@ export function SubscriptionBrowser({
                           label={dict.packageVisits}
                           value={(dict.visitsEach ?? "")
                             .replace("{count}", String(visits))
-                            .replace("{hours}", `${hours(visitMinutes)} ${dict.hours}`)}
+                            .replace("{hours}", lengthName(visitMinutes))}
                         />
                         <SpecRow
                           label={dict.packageValidity}
