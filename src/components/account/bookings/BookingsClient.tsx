@@ -94,7 +94,11 @@ export function BookingsClient({
                 />
 
                 {visits.length > 0 && (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  // Two across, not three. The account column is narrow, and
+                  // a third card took each one down to about 230 points —
+                  // enough for four lines of title and an ellipsis through
+                  // the cleaner's name.
+                  <div className="grid gap-4 sm:grid-cols-2">
                     {visits.map((visit) => (
                       <VisitCard
                         key={visit.id}
@@ -261,14 +265,17 @@ function VisitCard({
     <article className="rounded-2xl border border-border bg-surface p-4">
       <button type="button" onClick={onOpen} className="block w-full text-start">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-ink">
-            {plan.service_name} · {fmt.duration(visit.duration_minutes ?? plan.duration_minutes, dict)}{" "}
-            {dict.perVisitShort}
-          </h3>
+          {/* The service alone on the title line. Hung together with the
+              length and "per visit", it ran to four lines in a card this
+              wide and pushed the price off the fold — and the length is the
+              same on every card of a plan, which makes it a detail, not a
+              name. */}
+          <h3 className="text-sm font-semibold leading-snug text-ink">{plan.service_name}</h3>
           <StatusChip dict={dict} status={visit.booking_status} />
         </div>
-        <p className="mt-1 text-sm text-muted">
-          {fmt.dateTime(visit.service_schedule)}
+        <p className="mt-1 text-xs text-muted">
+          {fmt.duration(visit.duration_minutes ?? plan.duration_minutes, dict)}{" "}
+          {dict.perVisitShort}
           {visit.visit_number != null && (
             <>
               {" · "}
@@ -278,6 +285,7 @@ function VisitCard({
             </>
           )}
         </p>
+        <p className="mt-0.5 text-xs text-muted">{fmt.dateTime(visit.service_schedule)}</p>
 
         {plan.serviceman && (
           <div className="mt-3 rounded-xl bg-surface-soft p-2">
@@ -325,16 +333,16 @@ function BookingCard({
   onOpen: () => void;
 }) {
   return (
-    <article className="max-w-md rounded-2xl border border-border bg-surface p-4">
+    <article className="rounded-2xl border border-border bg-surface p-4 sm:max-w-[calc(50%-0.5rem)]">
       <button type="button" onClick={onOpen} className="block w-full text-start">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-ink">
-            {row.serviceName}
-            {row.durationMinutes > 0 && ` · ${fmt.duration(row.durationMinutes, dict)}`}
-          </h3>
+          <h3 className="text-sm font-semibold leading-snug text-ink">{row.serviceName}</h3>
           <StatusChip dict={dict} status={row.status} />
         </div>
-        <p className="mt-1 text-sm text-muted">{fmt.dateTime(row.schedule)}</p>
+        <p className="mt-1 text-xs text-muted">
+          {row.durationMinutes > 0 && `${fmt.duration(row.durationMinutes, dict)} · `}
+          {fmt.dateTime(row.schedule)}
+        </p>
 
         {row.cleaner && (
           <div className="mt-3 rounded-xl bg-surface-soft p-2">
@@ -872,7 +880,9 @@ function StatusChip({ dict, status }: { dict: Dict; status: string }) {
           : "bg-primary-light text-primary-dark";
 
   return (
-    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${tone}`}>
+    <span
+      className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${tone}`}
+    >
       {dict[`status_${status}`] ?? status}
     </span>
   );
