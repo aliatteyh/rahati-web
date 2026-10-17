@@ -83,6 +83,8 @@ export interface PlanSummary {
   per_visit: number | null;
   totals: {
     plan_total: number;
+    /** The service before any discount: where the column of money starts. */
+    service_amount: number;
     service_fee: number;
     tax: number;
     tip: number;

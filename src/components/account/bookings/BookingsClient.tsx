@@ -693,19 +693,23 @@ function PlanSheet({
           label={dict.materials}
           value={plan.with_materials ? dict.withMaterials : dict.withoutMaterials}
         />
-        {plan.add_ons.map((addOn) => (
+        {/* Named, not priced again: what they cost is already inside the
+            service amount below. */}
+        {plan.add_ons.length > 0 && (
           <Fact
-            key={addOn.name ?? ""}
-            label={addOn.name ?? ""}
-            value={`${addOn.quantity} × ${money(addOn.price)}`}
+            label={dict.addOns}
+            value={plan.add_ons
+              .map((addOn) => `${addOn.quantity} × ${addOn.name ?? ""}`)
+              .join(" · ")}
           />
-        ))}
+        )}
         <Fact label={dict.address} value={fmt.address(plan.address)} />
 
-        {t.service_fee > 0 && <Fact label={dict.serviceFee} value={money(t.service_fee)} />}
-        {t.tax > 0 && <Fact label={dict.tax} value={money(t.tax)} />}
-        {t.tip > 0 && <Fact label={dict.tip} value={money(t.tip)} />}
+        <Fact label={dict.subtotal} value={money(t.service_amount)} />
         {t.discount > 0 && <Fact label={dict.discount} value={`- ${money(t.discount)}`} />}
+        {t.service_fee > 0 && <Fact label={dict.serviceFee} value={money(t.service_fee)} />}
+        {t.tip > 0 && <Fact label={dict.tip} value={money(t.tip)} />}
+        {t.tax > 0 && <Fact label={dict.tax} value={money(t.tax)} />}
         <Fact label={dict.paymentMethod} value={fmt.payment(plan.payment_method, dict)} />
 
         <div className="mt-2 flex items-center justify-between border-t border-border pt-3 font-bold text-ink">
@@ -1052,12 +1056,17 @@ function Money({
 }) {
   return (
     <>
-      <Fact label={dict.subtotal} value={money(row.subtotal)} />
-      {row.addOnTotal > 0 && <Fact label={dict.addOns} value={money(row.addOnTotal)} />}
+      {/* The column adds up to the total under it: the service before any
+          discount, then what was taken off, then what was charged on top.
+          Add-ons and materials are inside the service amount, and listing
+          them again put a receipt on screen that did not reach its own
+          total — 86.25 + 25 + 6 + 15 + 0.30 − 28.75 against a total of
+          107.55. */}
+      <Fact label={dict.subtotal} value={money(row.subtotal + row.discount)} />
+      {row.discount > 0 && <Fact label={dict.discount} value={`- ${money(row.discount)}`} />}
       {row.fee > 0 && <Fact label={dict.serviceFee} value={money(row.fee)} />}
       {row.tip > 0 && <Fact label={dict.tip} value={money(row.tip)} />}
       {row.tax > 0 && <Fact label={dict.tax} value={money(row.tax)} />}
-      {row.discount > 0 && <Fact label={dict.discount} value={`- ${money(row.discount)}`} />}
       <Fact label={dict.paymentMethod} value={dict[`pay_${row.paymentMethod}`] ?? dict.paymentMethod} />
       <div className="mt-2 flex items-center justify-between border-t border-border pt-3 font-bold text-ink">
         <span>{dict.total}</span>
