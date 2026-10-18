@@ -18,10 +18,22 @@ export async function POST(request: Request) {
     locale
   );
 
-  // The backend returns 200 with a "already accepted/ongoing/completed" message
-  // when the booking can no longer be canceled — surface that as not-canceled.
-  const code = String((json as { response_code?: string })?.response_code ?? "");
-  const canceled = ok && !/already/i.test(code);
+  // The backend refuses with a 400 and a reason key, and reports on success
+  // how many visits it actually called off — a plan is cancelled visit by
+  // visit, and one too close to its time stays. Both are passed straight
+  // through so the sheet can say which happened instead of closing in silence.
+  const content = (json as { content?: Record<string, unknown> })?.content ?? {};
+  const cancelled = Number(content.cancelled ?? 0);
+  const canceled = ok && cancelled > 0;
 
-  return NextResponse.json({ ok: canceled }, { status: canceled ? 200 : 400 });
+  return NextResponse.json(
+    {
+      ok: canceled,
+      cancelled,
+      kept: Number(content.kept ?? 0),
+      hours: Number(content.hours ?? 0),
+      reason: typeof content.reason === "string" ? content.reason : null,
+    },
+    { status: canceled ? 200 : 400 }
+  );
 }

@@ -278,7 +278,7 @@
     "skipping": "Postponing…",
     "skipFailed": "This visit could not be postponed.",
     "cancelRemaining": "Cancel remaining visits",
-    "onlyUpcomingCancelled": "Only upcoming visits are cancelled.",
+    "onlyUpcomingCancelled": "Upcoming visits are cancelled. A visit within {hours} hours of its time stays.",
     "changesThisVisit": "Changes apply to this visit only · free skip up to {hours}h before.",
     "freeChanges": "Cancelling and rescheduling are free.",
     "close": "Close",
@@ -301,7 +301,12 @@
     "hoursFew": "hours",
     "hoursMany": "hours",
     "refused_outside_booking_window": "That date is outside the window we take bookings in.",
-    "daysLabel": "Days"
+    "daysLabel": "Days",
+    "freeCancellation": "Free to cancel up to {hours} hours before the visit.",
+    "cancelWindowPassed": "A visit can no longer be cancelled within {hours} hours of its time. Message us and we will see what we can do.",
+    "nothingLeftToCancel": "There is nothing left to cancel on this plan.",
+    "visitAlreadyUnderWay": "This visit is already under way.",
+    "somethingWentWrong": "Something went wrong. Please try again."
   },
   "hero": {
     "badge": "Trusted home services",

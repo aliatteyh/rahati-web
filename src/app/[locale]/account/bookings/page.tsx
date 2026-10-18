@@ -27,6 +27,13 @@ export default async function BookingsPage({
 
   const rows = toRows(bookings);
 
+  // The office's own cancellation window, read from settings rather than
+  // written here: it is policy, it differs between servers, and the sentence
+  // the customer reads must be the rule the server enforces.
+  const cancelNoticeHours = Number(
+    (config as unknown as Record<string, unknown>)?.booking_cancel_notice_hours ?? 24
+  ) || 24;
+
   // Each plan answered by the server rather than assembled from the list: the
   // days, what one visit costs, how many are left, and what may be done to
   // each of them. Fetched here so the page arrives drawn — a plan card that
@@ -55,6 +62,7 @@ export default async function BookingsPage({
         rows={rows}
         plans={plans}
         bookHref={`/${locale}/services`}
+        cancelNoticeHours={cancelNoticeHours}
       />
     </div>
   );

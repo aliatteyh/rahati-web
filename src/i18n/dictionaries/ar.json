@@ -278,7 +278,7 @@
     "skipping": "جارٍ التأجيل…",
     "skipFailed": "تعذّر تأجيل هذه الزيارة.",
     "cancelRemaining": "إلغاء الزيارات المتبقّية",
-    "onlyUpcomingCancelled": "تُلغى الزيارات القادمة وحدها.",
+    "onlyUpcomingCancelled": "تُلغى الزيارات القادمة، وتبقى الزيارة التي بقي على موعدها أقل من {hours} ساعة.",
     "changesThisVisit": "التغيير يخصّ هذه الزيارة وحدها · التخطّي مجّاني قبل {hours} ساعة.",
     "freeChanges": "الإلغاء وإعادة الجدولة مجّانيان.",
     "close": "إغلاق",
@@ -301,7 +301,12 @@
     "hoursFew": "ساعات",
     "hoursMany": "ساعة",
     "refused_outside_booking_window": "هذا التاريخ خارج المدّة التي نستقبل فيها الحجوزات.",
-    "daysLabel": "الأيام"
+    "daysLabel": "الأيام",
+    "freeCancellation": "الإلغاء مجّاني حتى {hours} ساعة قبل موعد الزيارة.",
+    "cancelWindowPassed": "لا يمكن إلغاء الزيارة قبل موعدها بأقل من {hours} ساعة. راسلنا وسنرى ما يمكن عمله.",
+    "nothingLeftToCancel": "لم يبقَ في هذا الاشتراك ما يُلغى.",
+    "visitAlreadyUnderWay": "الزيارة جارية بالفعل.",
+    "somethingWentWrong": "حدث خطأ، حاول مرة أخرى."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",

@@ -60,6 +60,7 @@ export function BookingsClient({
   rows,
   plans,
   bookHref,
+  cancelNoticeHours,
 }: {
   locale: Locale;
   dict: Dict;
@@ -68,6 +69,8 @@ export function BookingsClient({
   /** Keyed by the plan's booking id; empty for a customer with no plans. */
   plans: Record<string, PlanSummary>;
   bookHref: string;
+  /** The office's notice window for calling a visit off, from settings. */
+  cancelNoticeHours: number;
 }) {
   const [upcoming, setUpcoming] = useState(true);
   const [open, setOpen] = useState<
@@ -172,6 +175,7 @@ export function BookingsClient({
           fmt={fmt}
           money={money}
           row={open.row}
+          cancelNoticeHours={cancelNoticeHours}
           onClose={() => setOpen(null)}
         />
       )}
@@ -184,6 +188,7 @@ export function BookingsClient({
           money={money}
           plan={open.plan}
           row={open.row}
+          cancelNoticeHours={cancelNoticeHours}
           onClose={() => setOpen(null)}
         />
       )}
@@ -456,6 +461,7 @@ function BookingSheet({
   fmt,
   money,
   row,
+  cancelNoticeHours,
   onClose,
 }: {
   locale: Locale;
@@ -463,22 +469,39 @@ function BookingSheet({
   fmt: Formatters;
   money: (value: number) => string;
   row: BookingRow;
+  cancelNoticeHours: number;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [moving, setMoving] = useState(false);
   const [cancelling, setCancelling] = useState<"idle" | "confirm" | "sending">("idle");
+  const [refusal, setRefusal] = useState<string | null>(null);
   const canAmend = UPCOMING.includes(row.status) && row.status !== "ongoing";
+  const canCancel = canAmend && hasNotice(row.schedule, cancelNoticeHours);
 
   async function cancel() {
     setCancelling("sending");
-    await fetch("/api/booking/cancel", {
+    setRefusal(null);
+
+    // The answer is read, not assumed. This used to fire the request and
+    // refresh regardless, so a refused cancellation closed the sheet without
+    // a word and the booking was still there when the page came back.
+    const outcome = await fetch("/api/booking/cancel", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ booking_id: row.id, locale }),
-    }).catch(() => undefined);
-    router.refresh();
-    onClose();
+    })
+      .then((response) => response.json())
+      .catch(() => null);
+
+    if (outcome?.ok) {
+      router.refresh();
+      onClose();
+      return;
+    }
+
+    setCancelling("idle");
+    setRefusal(refusalText(dict, outcome?.reason, cancelNoticeHours));
   }
 
   return (
@@ -568,7 +591,7 @@ function BookingSheet({
             </button>
           )}
 
-          {cancelling === "idle" && (
+          {cancelling === "idle" && canCancel && (
             <button
               type="button"
               onClick={() => setCancelling("confirm")}
@@ -576,6 +599,13 @@ function BookingSheet({
             >
               {dict.cancelBooking}
             </button>
+          )}
+          {cancelling === "idle" && !canCancel && (
+            // Once the window has passed there is nothing to press. A button
+            // whose only possible answer is a refusal is worse than none.
+            <p className="text-center text-xs text-muted">
+              {fillHours(dict.cancelWindowPassed, cancelNoticeHours)}
+            </p>
           )}
           {cancelling === "confirm" && (
             <div className="rounded-2xl border border-danger/40 bg-danger-soft p-4 text-sm">
@@ -602,7 +632,15 @@ function BookingSheet({
             <p className="text-center text-sm text-muted">{dict.cancelling}</p>
           )}
 
-          <p className="text-center text-xs text-muted">{dict.freeChanges}</p>
+          {refusal && (
+            <p className="rounded-2xl bg-danger-soft px-4 py-3 text-center text-sm text-danger">
+              {refusal}
+            </p>
+          )}
+
+          <p className="text-center text-xs text-muted">
+            {fillHours(dict.freeCancellation, cancelNoticeHours)}
+          </p>
         </div>
       )}
     </Sheet>
@@ -616,6 +654,7 @@ function PlanSheet({
   money,
   plan,
   row,
+  cancelNoticeHours,
   onClose,
 }: {
   locale: Locale;
@@ -624,20 +663,33 @@ function PlanSheet({
   money: (value: number) => string;
   plan: PlanSummary;
   row: BookingRow;
+  cancelNoticeHours: number;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [state, setState] = useState<"idle" | "confirm" | "sending">("idle");
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   async function cancelRemaining() {
     setState("sending");
-    await fetch("/api/booking/cancel", {
+    setRefusal(null);
+
+    const outcome = await fetch("/api/booking/cancel", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ booking_id: plan.id, locale }),
-    }).catch(() => undefined);
-    router.refresh();
-    onClose();
+    })
+      .then((response) => response.json())
+      .catch(() => null);
+
+    if (outcome?.ok) {
+      router.refresh();
+      onClose();
+      return;
+    }
+
+    setState("idle");
+    setRefusal(refusalText(dict, outcome?.reason, cancelNoticeHours));
   }
 
   const t = plan.totals;
@@ -758,7 +810,14 @@ function PlanSheet({
             </div>
           )}
           {state === "sending" && <p className="text-center text-sm text-muted">{dict.cancelling}</p>}
-          <p className="mt-2 text-center text-xs text-muted">{dict.onlyUpcomingCancelled}</p>
+          {refusal && (
+            <p className="mt-2 rounded-2xl bg-danger-soft px-4 py-3 text-center text-sm text-danger">
+              {refusal}
+            </p>
+          )}
+          <p className="mt-2 text-center text-xs text-muted">
+            {fillHours(dict.onlyUpcomingCancelled, cancelNoticeHours)}
+          </p>
         </div>
       )}
       <span className="sr-only">{row.readableId}</span>
@@ -1165,4 +1224,36 @@ function formatters(locale: Locale): Formatters {
     },
     payment: (method, dict) => dict[`pay_${method}`] ?? method,
   };
+}
+
+/* ----------------------------------------------------------- cancelling */
+
+/** Whether a visit is still far enough away for the office to accept a cancellation. */
+function hasNotice(schedule: string | null, hours: number): boolean {
+  if (!schedule) return false;
+
+  const at = new Date(schedule.replace(' ', 'T'));
+
+  if (Number.isNaN(at.getTime())) return false;
+
+  return at.getTime() - Date.now() > hours * 3600_000;
+}
+
+/** A refusal key from the server, said in the reader's language. */
+function refusalText(dict: Dict, reason: unknown, hours: number): string {
+  switch (reason) {
+    case 'inside_cancel_window':
+      return fillHours(dict.cancelWindowPassed, hours);
+    case 'nothing_left_to_cancel':
+      return dict.nothingLeftToCancel;
+    case 'visit_already_started_or_closed':
+      return dict.visitAlreadyUnderWay;
+    default:
+      return dict.somethingWentWrong;
+  }
+}
+
+/** The one placeholder these sentences carry. */
+function fillHours(text: string, hours: number): string {
+  return (text ?? '').replace('{hours}', String(hours));
 }
