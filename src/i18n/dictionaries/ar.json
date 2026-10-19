@@ -322,7 +322,10 @@
     "cancelled_by_serviceman": "أُلغي من العاملة",
     "today": "اليوم",
     "tomorrow": "غداً",
-    "yesterday": "أمس"
+    "yesterday": "أمس",
+    "prepaid": "مدفوع مقدماً",
+    "paymentToCollect": "يجب تحصيل المبلغ",
+    "transferNotReceived": "لم يصل التحويل بعد"
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",

@@ -322,7 +322,10 @@
     "cancelled_by_serviceman": "Cancelled by the cleaner",
     "today": "Today",
     "tomorrow": "Tomorrow",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "prepaid": "Prepaid",
+    "paymentToCollect": "Payment to collect",
+    "transferNotReceived": "Transfer not received yet"
   },
   "hero": {
     "badge": "Trusted home services",

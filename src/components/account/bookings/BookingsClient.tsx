@@ -943,6 +943,13 @@ function PlanSheet({
         </div>
       </dl>
 
+      <PaymentNote
+        dict={dict}
+        method={plan.payment_method}
+        isPaid={Number(plan.is_paid) === 1}
+        amount={money(t.plan_total)}
+      />
+
       <div className="mt-4 flex flex-wrap gap-2">
         <InvoiceLink
           href={invoiceHref("customer-fullbooking-invoice", plan.id, locale)}
@@ -1318,6 +1325,13 @@ function Money({
         <span>{dict.total}</span>
         <span dir="auto">{money(row.total)}</span>
       </div>
+      {/* Said under the total, where the eye already is. */}
+      <PaymentNote
+        dict={dict}
+        method={row.paymentMethod}
+        isPaid={row.isPaid}
+        amount={money(row.total)}
+      />
     </>
   );
 }
@@ -1473,4 +1487,53 @@ function groupByDay<T extends { day: number | null }>(
     if (b === null) return -1;
     return direction === "asc" ? a - b : b - a;
   });
+}
+
+/* --------------------------------------------------------------- the money */
+
+/**
+ * What the customer should expect to happen about the money.
+ *
+ * The payment method answers "how" — wallet, card, cash — which is not the
+ * question anyone has when a cleaner is at the door. "Prepaid" and "have the
+ * amount ready" are, and they were nowhere on the sheet: the customer had to
+ * read "Cash After Service" and work it out.
+ */
+function paymentState(
+  dict: Dict,
+  method: string,
+  isPaid: boolean
+): { label: string; collect: boolean } {
+  if (isPaid) return { label: dict.prepaid, collect: false };
+
+  if (method === "offline_payment") {
+    return { label: dict.transferNotReceived, collect: true };
+  }
+
+  return { label: dict.paymentToCollect, collect: true };
+}
+
+function PaymentNote({
+  dict,
+  method,
+  isPaid,
+  amount,
+}: {
+  dict: Dict;
+  method: string;
+  isPaid: boolean;
+  amount: string;
+}) {
+  const state = paymentState(dict, method, isPaid);
+
+  return (
+    <div
+      className={`mt-3 flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold ${
+        state.collect ? "bg-sand text-sand-ink" : "bg-primary-light text-primary-dark"
+      }`}
+    >
+      <span>{state.label}</span>
+      {state.collect && <span dir="auto">{amount}</span>}
+    </div>
+  );
 }
