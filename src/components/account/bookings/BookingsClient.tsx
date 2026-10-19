@@ -638,9 +638,14 @@ function BookingSheet({
             </p>
           )}
 
-          <p className="text-center text-xs text-muted">
-            {fillHours(dict.freeCancellation, cancelNoticeHours)}
-          </p>
+          {/* Only while cancelling is still possible. Printed under the
+              refusal it contradicted it: "you can no longer cancel" with
+              "cancelling is free up to 24 hours before" beneath. */}
+          {canCancel && (
+            <p className="text-center text-xs text-muted">
+              {fillHours(dict.freeCancellation, cancelNoticeHours)}
+            </p>
+          )}
         </div>
       )}
     </Sheet>
