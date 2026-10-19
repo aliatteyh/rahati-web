@@ -21,6 +21,8 @@ export interface BookingRow {
   discount: number;
   paymentMethod: string;
   isPaid: boolean;
+  /** customer | company | serviceman, when it was called off. */
+  cancelledBy: string | null;
   address: BookingAddress | null;
   cleaner: Cleaner | null;
 }
@@ -58,6 +60,7 @@ export interface PlanVisit {
   can_skip: boolean;
   skip_refused: string | null;
   skip_notice_hours: number;
+  cancelled_by: string | null;
 }
 
 /** The subscription as the server answers it, in one call. */
@@ -65,6 +68,7 @@ export interface PlanSummary {
   id: string;
   readable_id: string | number;
   booking_status: string;
+  cancelled_by: string | null;
   service_name: string | null;
   duration_minutes: number | null;
   cleaners_count: number;

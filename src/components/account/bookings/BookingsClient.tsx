@@ -19,6 +19,50 @@ type Dict = Record<string, string>;
 const UPCOMING = ["pending", "accepted", "ongoing"];
 
 /**
+ * The five questions a customer asks of this page — not the backend's six
+ * statuses, which are a vocabulary for the office.
+ */
+const TABS = ["upcoming", "subscription", "pending", "cancelled", "past"] as const;
+type TabKey = (typeof TABS)[number];
+
+const isCancelled = (status: string) =>
+  status === "canceled" || status === "cancelled";
+
+/**
+ * Placed, but the money has not arrived. Paying by transfer leaves a booking
+ * in hand with nothing taken, and it had no place of its own on this page.
+ */
+const awaitingPayment = (row: BookingRow) =>
+  row.paymentMethod === "offline_payment" && !row.isPaid && !isCancelled(row.status);
+
+/** The day a row belongs under, as midnight local time. */
+function dayOf(schedule: string | null): number | null {
+  if (!schedule) return null;
+
+  const at = new Date(schedule.replace(" ", "T"));
+  if (Number.isNaN(at.getTime())) return null;
+
+  return new Date(at.getFullYear(), at.getMonth(), at.getDate()).getTime();
+}
+
+/** Exactly one tab per booking, so nothing is listed twice or lost between. */
+function tabFor(row: BookingRow): TabKey {
+  if (isCancelled(row.status)) return "cancelled";
+  if (awaitingPayment(row)) return "pending";
+  if (row.isPlan) return "subscription";
+
+  const day = dayOf(row.schedule);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+  // Today's finished visit stays where the customer last looked for it; what
+  // finished before today is history.
+  return day !== null && day < today && !UPCOMING.includes(row.status)
+    ? "past"
+    : "upcoming";
+}
+
+/**
  * The tax invoice, as the panel issues it.
  *
  * Not a receipt drawn here: there is one invoice document, built from
@@ -72,7 +116,7 @@ export function BookingsClient({
   /** The office's notice window for calling a visit off, from settings. */
   cancelNoticeHours: number;
 }) {
-  const [upcoming, setUpcoming] = useState(true);
+  const [tab, setTab] = useState<TabKey>("upcoming");
   const [open, setOpen] = useState<
     | { kind: "booking"; row: BookingRow }
     | { kind: "plan"; plan: PlanSummary; row: BookingRow }
@@ -90,14 +134,49 @@ export function BookingsClient({
       maximumFractionDigits: 2,
     })}`;
 
-  const visible = rows.filter((row) => UPCOMING.includes(row.status) === upcoming);
+  const visible = rows.filter((row) => tabFor(row) === tab);
+
+  // The cancelled tab is not a list of bookings: a plan is called off visit by
+  // visit, so what belongs here is the visits, each carrying its plan's name.
+  const cancelledVisits =
+    tab === "cancelled"
+      ? rows.flatMap((row) => {
+          const plan = row.isPlan ? plans[row.id] : undefined;
+          if (!plan) return [];
+
+          return plan.visits
+            .filter((visit) => isCancelled(visit.booking_status))
+            .map((visit) => ({ plan, visit, row }));
+        })
+      : [];
+
+  /** "Today", "Tomorrow", or the date — the way someone reads a diary. */
+  const dayLabel = (day: number) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const difference = Math.round((day - today) / 86_400_000);
+
+    if (difference === 0) return dict.today;
+    if (difference === 1) return dict.tomorrow;
+    if (difference === -1) return dict.yesterday;
+
+    return fmt.day(new Date(day));
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          <Tab label={dict.upcoming} on={upcoming} onClick={() => setUpcoming(true)} />
-          <Tab label={dict.past} on={!upcoming} onClick={() => setUpcoming(false)} />
+        {/* Five of them do not fit across a phone, so the row scrolls
+            rather than wrapping into a block of chips. */}
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {TABS.map((key) => (
+            <Tab
+              key={key}
+              label={dict[`tab_${key}`] ?? key}
+              on={tab === key}
+              onClick={() => setTab(key)}
+            />
+          ))}
         </div>
         <Link
           href={bookHref}
@@ -107,18 +186,98 @@ export function BookingsClient({
         </Link>
       </div>
 
-      {visible.length === 0 && <p className="text-sm text-muted">{dict.noBookings}</p>}
+      {visible.length === 0 && cancelledVisits.length === 0 && (
+        <p className="text-sm text-muted">{dict[`empty_${tab}`] ?? dict.noBookings}</p>
+      )}
 
+      {/* The cancelled tab reads as a diary, newest first: a cancellation is
+          something that happened, not something that is coming. */}
+      {tab === "cancelled" ? (
+        <div className="space-y-8">
+          {groupByDay(
+            [
+              ...visible.map((row) => ({
+                day: dayOf(row.schedule),
+                key: row.id,
+                node: (
+                  <BookingCard
+                    dict={dict}
+                    fmt={fmt}
+                    money={money}
+                    row={row}
+                    onOpen={() => setOpen({ kind: "booking", row })}
+                  />
+                ),
+              })),
+              ...cancelledVisits.map(({ plan, visit, row }) => ({
+                day: dayOf(visit.service_schedule),
+                key: visit.id,
+                node: (
+                  <VisitCard
+                    dict={dict}
+                    fmt={fmt}
+                    money={money}
+                    plan={plan}
+                    visit={visit}
+                    onOpen={() => setOpen({ kind: "visit", plan, visit, row })}
+                  />
+                ),
+              })),
+            ],
+            "desc"
+          ).map(([day, entries]) => (
+            <section key={day ?? "undated"} className="space-y-4">
+              {day !== null && (
+                <h2 className="text-sm font-semibold text-ink">{dayLabel(day)}</h2>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {entries.map((entry) => (
+                  <div key={entry.key}>{entry.node}</div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : tab === "upcoming" ? (
+        <div className="space-y-8">
+          {groupByDay(
+            visible.map((row) => ({
+              day: dayOf(row.schedule),
+              key: row.id,
+              node: (
+                <BookingCard
+                  dict={dict}
+                  fmt={fmt}
+                  money={money}
+                  row={row}
+                  onOpen={() => setOpen({ kind: "booking", row })}
+                />
+              ),
+            })),
+            "asc"
+          ).map(([day, entries]) => (
+            <section key={day ?? "undated"} className="space-y-4">
+              {day !== null && (
+                <h2 className="text-sm font-semibold text-ink">{dayLabel(day)}</h2>
+              )}
+              {entries.map((entry) => (
+                <div key={entry.key}>{entry.node}</div>
+              ))}
+            </section>
+          ))}
+        </div>
+      ) : (
       <div className="space-y-8">
         {visible.map((row) => {
           const plan = row.isPlan ? plans[row.id] : undefined;
 
           if (plan) {
-            // Only the visits that belong in the tab being read: a plan with
-            // four visits behind it and eight ahead belongs in both, showing
-            // different halves of itself.
+            // The whole plan, in order. It has a tab to itself now, so there
+            // is no half to choose — a finished visit vanishing from view is
+            // what sent Ali looking for visit one of twelve. The called-off
+            // ones are read in the cancelled tab, beside the reason.
             const visits = plan.visits.filter(
-              (visit) => UPCOMING.includes(visit.booking_status) === upcoming
+              (visit) => !isCancelled(visit.booking_status)
             );
 
             return (
@@ -167,6 +326,7 @@ export function BookingsClient({
           );
         })}
       </div>
+      )}
 
       {open?.kind === "booking" && (
         <BookingSheet
@@ -312,7 +472,11 @@ function VisitCard({
               same on every card of a plan, which makes it a detail, not a
               name. */}
           <h3 className="text-sm font-semibold leading-snug text-ink">{plan.service_name}</h3>
-          <StatusChip dict={dict} status={visit.booking_status} />
+          <StatusChip
+            dict={dict}
+            status={visit.booking_status}
+            cancelledBy={visit.cancelled_by}
+          />
         </div>
         <p className="mt-1 text-xs text-muted">
           {fmt.duration(visit.duration_minutes ?? plan.duration_minutes, dict)}{" "}
@@ -378,7 +542,7 @@ function BookingCard({
       <button type="button" onClick={onOpen} className="block w-full text-start">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-semibold leading-snug text-ink">{row.serviceName}</h3>
-          <StatusChip dict={dict} status={row.status} />
+          <StatusChip dict={dict} status={row.status} cancelledBy={row.cancelledBy} />
         </div>
         <p className="mt-1 text-xs text-muted">
           {row.durationMinutes > 0 && `${fmt.duration(row.durationMinutes, dict)} · `}
@@ -412,6 +576,7 @@ function Sheet({
   title,
   kicker,
   status,
+  cancelledBy,
   dict,
   children,
   onClose,
@@ -419,6 +584,7 @@ function Sheet({
   title: string;
   kicker: string;
   status: string;
+  cancelledBy?: string | null;
   dict: Dict;
   children: React.ReactNode;
   onClose: () => void;
@@ -437,7 +603,7 @@ function Sheet({
         <div className="flex items-start justify-between gap-3">
           <p className="font-mono text-xs text-muted">{kicker}</p>
           <div className="flex items-center gap-2">
-            <StatusChip dict={dict} status={status} />
+            <StatusChip dict={dict} status={status} cancelledBy={cancelledBy} />
             <button
               type="button"
               onClick={onClose}
@@ -509,6 +675,7 @@ function BookingSheet({
       dict={dict}
       kicker={`#${row.readableId}`}
       status={row.status}
+      cancelledBy={row.cancelledBy}
       title={`${row.serviceName}${row.durationMinutes ? ` · ${fmt.duration(row.durationMinutes, dict)}` : ""}`}
       onClose={onClose}
     >
@@ -704,6 +871,7 @@ function PlanSheet({
       dict={dict}
       kicker={`#${plan.readable_id}`}
       status={plan.booking_status}
+      cancelledBy={plan.cancelled_by}
       title={`${plan.service_name} · ${fmt.duration(plan.duration_minutes, dict)} ${dict.perVisitShort}`}
       onClose={onClose}
     >
@@ -887,6 +1055,7 @@ function VisitSheet({
         visit.visit_number != null ? `#${visit.visit_number}` : visit.readable_id
       }`}
       status={visit.booking_status}
+      cancelledBy={visit.cancelled_by}
       title={`${plan.service_name} · ${fmt.duration(
         visit.duration_minutes ?? plan.duration_minutes,
         dict
@@ -1014,7 +1183,16 @@ function Tab({ label, on, onClick }: { label: string; on: boolean; onClick: () =
   );
 }
 
-function StatusChip({ dict, status }: { dict: Dict; status: string }) {
+function StatusChip({
+  dict,
+  status,
+  cancelledBy,
+}: {
+  dict: Dict;
+  status: string;
+  /** Who called it off, when it was called off at all. */
+  cancelledBy?: string | null;
+}) {
   const tone =
     status === "canceled" || status === "cancelled"
       ? "bg-danger-soft text-danger"
@@ -1028,7 +1206,11 @@ function StatusChip({ dict, status }: { dict: Dict; status: string }) {
     <span
       className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${tone}`}
     >
-      {dict[`status_${status}`] ?? status}
+      {/* A bare "cancelled" leaves the customer to work out whether they
+          did it themselves — which is the only question they have. */}
+      {(status === "canceled" || status === "cancelled") && cancelledBy
+        ? dict[`cancelled_by_${cancelledBy}`] ?? dict.status_canceled
+        : dict[`status_${status}`] ?? status}
     </span>
   );
 }
@@ -1143,6 +1325,8 @@ function Money({
 /* ------------------------------------------------------------- formatting */
 
 interface Formatters {
+  /** A date on its own, for the headings a diary is read under. */
+  day: (date: Date) => string;
   dateTime: (value: string | null) => string;
   time: (value: string | null) => string;
   duration: (minutes: number | null, dict: Dict) => string;
@@ -1172,6 +1356,7 @@ function formatters(locale: Locale): Formatters {
   const MONDAY = new Date("2024-01-01T00:00:00");
 
   return {
+    day: (date) => dayPart.format(date),
     dateTime: (value) => {
       if (!value) return "";
       const date = new Date(value.replace(" ", "T"));
@@ -1261,4 +1446,31 @@ function refusalText(dict: Dict, reason: unknown, hours: number): string {
 /** The one placeholder these sentences carry. */
 function fillHours(text: string, hours: number): string {
   return (text ?? '').replace('{hours}', String(hours));
+}
+
+/* ------------------------------------------------------------- the diary */
+
+/**
+ * Rows under the day they happen on, in order.
+ *
+ * Undated rows keep their place at the end rather than being dropped: a
+ * booking with no schedule is a fault worth seeing, not one to hide.
+ */
+function groupByDay<T extends { day: number | null }>(
+  entries: T[],
+  direction: "asc" | "desc"
+): [number | null, T[]][] {
+  const groups = new Map<number | null, T[]>();
+
+  for (const entry of entries) {
+    const list = groups.get(entry.day);
+    if (list) list.push(entry);
+    else groups.set(entry.day, [entry]);
+  }
+
+  return [...groups.entries()].sort(([a], [b]) => {
+    if (a === null) return 1;
+    if (b === null) return -1;
+    return direction === "asc" ? a - b : b - a;
+  });
 }
