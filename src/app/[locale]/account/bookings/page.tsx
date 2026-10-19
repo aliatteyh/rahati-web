@@ -34,6 +34,10 @@ export default async function BookingsPage({
     (config as unknown as Record<string, unknown>)?.booking_cancel_notice_hours ?? 24
   ) || 24;
 
+  const rescheduleNoticeHours = Number(
+    (config as unknown as Record<string, unknown>)?.visit_reschedule_notice_hours ?? 24
+  ) || 24;
+
   // Each plan answered by the server rather than assembled from the list: the
   // days, what one visit costs, how many are left, and what may be done to
   // each of them. Fetched here so the page arrives drawn — a plan card that
@@ -63,6 +67,7 @@ export default async function BookingsPage({
         plans={plans}
         bookHref={`/${locale}/services`}
         cancelNoticeHours={cancelNoticeHours}
+        rescheduleNoticeHours={rescheduleNoticeHours}
       />
     </div>
   );

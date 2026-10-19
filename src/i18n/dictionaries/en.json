@@ -326,7 +326,8 @@
     "prepaid": "Prepaid",
     "paymentToCollect": "Payment to collect",
     "transferNotReceived": "Transfer not received yet",
-    "pay_wallet_payment": "Wallet"
+    "pay_wallet_payment": "Wallet",
+    "rescheduleWindowPassed": "A visit can no longer be moved within {hours} hours of its time. Message us and we will see what we can do."
   },
   "hero": {
     "badge": "Trusted home services",

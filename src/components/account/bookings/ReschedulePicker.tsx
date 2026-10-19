@@ -67,6 +67,11 @@ export function ReschedulePicker({
             variantKey,
             professionalCount: professionals,
             needMaterials: withMaterials,
+            // So the times come from this booking's own team, and are sized
+            // to its real length rather than to a line rebuilt without its
+            // add-ons.
+            bookingId,
+            visitId,
           }),
         });
         const json = await res.json().catch(() => ({}));
@@ -79,7 +84,7 @@ export function ReschedulePicker({
     return () => {
       cancelled = true;
     };
-  }, [locale, serviceId, variantKey, professionals, withMaterials]);
+  }, [locale, serviceId, variantKey, professionals, withMaterials, bookingId, visitId]);
 
   const dayFormat = useMemo(
     () =>

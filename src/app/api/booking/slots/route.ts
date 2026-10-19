@@ -26,6 +26,8 @@ export async function POST(request: Request) {
           }))
         : [],
       weekdays: Array.isArray(body.weekdays) ? body.weekdays.map(String) : [],
+      bookingId: body.bookingId ? String(body.bookingId) : undefined,
+      visitId: body.visitId ? String(body.visitId) : undefined,
     },
     locale
   );

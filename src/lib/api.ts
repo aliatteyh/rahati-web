@@ -355,6 +355,10 @@ export async function fetchAvailableSlots(
     needMaterials?: boolean;
     addOns?: { id: string; quantity: number }[];
     weekdays?: string[];
+    /** A move, not a purchase: the server then answers for this booking's own
+     *  team and its own length, add-ons included. */
+    bookingId?: string;
+    visitId?: string;
   },
   locale: Locale
 ): Promise<AvailableDay[]> {
@@ -366,6 +370,8 @@ export async function fetchAvailableSlots(
   });
   if (input.addOns?.length) query.set("add_ons", JSON.stringify(input.addOns));
   if (input.weekdays?.length) query.set("weekdays", input.weekdays.join(","));
+  if (input.bookingId) query.set("booking_id", input.bookingId);
+  if (input.visitId) query.set("visit_id", input.visitId);
 
   const content = await apiGet<{ days?: AvailableDay[] } | null>(
     `/api/v1/customer/booking/available-slots?${query.toString()}`,

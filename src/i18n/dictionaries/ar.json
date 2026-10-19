@@ -326,7 +326,8 @@
     "prepaid": "مدفوع مقدماً",
     "paymentToCollect": "يجب تحصيل المبلغ",
     "transferNotReceived": "لم يصل التحويل بعد",
-    "pay_wallet_payment": "المحفظة"
+    "pay_wallet_payment": "المحفظة",
+    "rescheduleWindowPassed": "لا يمكن تغيير موعد الزيارة قبل موعدها بأقل من {hours} ساعة. راسلنا وسنرى ما يمكن عمله."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",

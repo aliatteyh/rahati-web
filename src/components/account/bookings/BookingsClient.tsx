@@ -109,6 +109,7 @@ export function BookingsClient({
   plans,
   bookHref,
   cancelNoticeHours,
+  rescheduleNoticeHours,
 }: {
   locale: Locale;
   dict: Dict;
@@ -119,6 +120,8 @@ export function BookingsClient({
   bookHref: string;
   /** The office's notice window for calling a visit off, from settings. */
   cancelNoticeHours: number;
+  /** And the one for moving it, which the single-booking sheet never read. */
+  rescheduleNoticeHours: number;
 }) {
   const [tab, setTab] = useState<TabKey>("upcoming");
   const [open, setOpen] = useState<
@@ -340,6 +343,7 @@ export function BookingsClient({
           money={money}
           row={open.row}
           cancelNoticeHours={cancelNoticeHours}
+          rescheduleNoticeHours={rescheduleNoticeHours}
           onClose={() => setOpen(null)}
         />
       )}
@@ -632,6 +636,7 @@ function BookingSheet({
   money,
   row,
   cancelNoticeHours,
+  rescheduleNoticeHours,
   onClose,
 }: {
   locale: Locale;
@@ -640,6 +645,7 @@ function BookingSheet({
   money: (value: number) => string;
   row: BookingRow;
   cancelNoticeHours: number;
+  rescheduleNoticeHours: number;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -648,6 +654,7 @@ function BookingSheet({
   const [refusal, setRefusal] = useState<string | null>(null);
   const canAmend = UPCOMING.includes(row.status) && row.status !== "ongoing";
   const canCancel = canAmend && hasNotice(row.schedule, cancelNoticeHours);
+  const canReschedule = canAmend && hasNotice(row.schedule, rescheduleNoticeHours);
 
   async function cancel() {
     setCancelling("sending");
@@ -762,7 +769,7 @@ function BookingSheet({
                 onDone={onClose}
               />
             </div>
-          ) : (
+          ) : canReschedule ? (
             <button
               type="button"
               onClick={() => setMoving(true)}
@@ -770,6 +777,14 @@ function BookingSheet({
             >
               {dict.reschedule}
             </button>
+          ) : (
+            // The same window the server enforces. Without this the button
+            // was offered on a booking two hours away, the picker loaded a
+            // full calendar, and only after the customer had chosen a time
+            // did anyone say it was too late to move it.
+            <p className="text-center text-xs text-muted">
+              {fillHours(dict.refused_inside_reschedule_window, rescheduleNoticeHours)}
+            </p>
           )}
 
           {cancelling === "idle" && canCancel && (
