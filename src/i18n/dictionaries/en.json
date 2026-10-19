@@ -325,7 +325,8 @@
     "yesterday": "Yesterday",
     "prepaid": "Prepaid",
     "paymentToCollect": "Payment to collect",
-    "transferNotReceived": "Transfer not received yet"
+    "transferNotReceived": "Transfer not received yet",
+    "pay_wallet_payment": "Wallet"
   },
   "hero": {
     "badge": "Trusted home services",

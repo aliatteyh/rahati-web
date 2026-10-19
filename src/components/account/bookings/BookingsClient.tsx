@@ -679,6 +679,16 @@ function BookingSheet({
       title={`${row.serviceName}${row.durationMinutes ? ` · ${fmt.duration(row.durationMinutes, dict)}` : ""}`}
       onClose={onClose}
     >
+      {/* Above the fold, deliberately. Under the total it sat off the bottom
+          of the sheet, and this is the one line about money a customer reads
+          before somebody knocks. */}
+      <PaymentNote
+        dict={dict}
+        method={row.paymentMethod}
+        isPaid={row.isPaid}
+        amount={money(row.total)}
+      />
+
       {row.cleaner && (
         <div className="mt-4 rounded-2xl bg-surface p-4">
           <CleanerLine dict={dict} cleaner={row.cleaner} big />
@@ -875,6 +885,13 @@ function PlanSheet({
       title={`${plan.service_name} · ${fmt.duration(plan.duration_minutes, dict)} ${dict.perVisitShort}`}
       onClose={onClose}
     >
+      <PaymentNote
+        dict={dict}
+        method={plan.payment_method}
+        isPaid={Number(plan.is_paid) === 1}
+        amount={money(plan.totals.plan_total)}
+      />
+
       {plan.serviceman && (
         <div className="mt-4 rounded-2xl bg-surface p-4">
           <CleanerLine
@@ -943,12 +960,6 @@ function PlanSheet({
         </div>
       </dl>
 
-      <PaymentNote
-        dict={dict}
-        method={plan.payment_method}
-        isPaid={Number(plan.is_paid) === 1}
-        amount={money(t.plan_total)}
-      />
 
       <div className="mt-4 flex flex-wrap gap-2">
         <InvoiceLink
@@ -1325,13 +1336,6 @@ function Money({
         <span>{dict.total}</span>
         <span dir="auto">{money(row.total)}</span>
       </div>
-      {/* Said under the total, where the eye already is. */}
-      <PaymentNote
-        dict={dict}
-        method={row.paymentMethod}
-        isPaid={row.isPaid}
-        amount={money(row.total)}
-      />
     </>
   );
 }

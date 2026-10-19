@@ -325,7 +325,8 @@
     "yesterday": "أمس",
     "prepaid": "مدفوع مقدماً",
     "paymentToCollect": "يجب تحصيل المبلغ",
-    "transferNotReceived": "لم يصل التحويل بعد"
+    "transferNotReceived": "لم يصل التحويل بعد",
+    "pay_wallet_payment": "المحفظة"
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
