@@ -25,16 +25,18 @@ export async function POST(request: Request) {
     locale
   );
 
-  const code = String((json as { response_code?: string })?.response_code ?? "");
-  const refused = /refused/i.test(code);
   const content = (json as { content?: { reason?: string; moved_to?: string } })?.content;
+
+  // The date it landed on is the proof it moved. Reading only the absence of
+  // the word "refused" called a 204 and a validation failure a success.
+  const moved = ok && Boolean(content?.moved_to);
 
   return NextResponse.json(
     {
-      ok: ok && !refused,
-      reason: refused ? content?.reason ?? "refused" : null,
+      ok: moved,
+      reason: moved ? null : content?.reason ?? "refused",
       moved_to: content?.moved_to ?? null,
     },
-    { status: ok && !refused ? 200 : 400 }
+    { status: moved ? 200 : 400 }
   );
 }

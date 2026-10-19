@@ -30,12 +30,17 @@ export async function POST(request: Request) {
     : `/api/v1/customer/booking/single/${encodeURIComponent(bookingId)}/reschedule`;
 
   const { ok, json } = await authSend("POST", path, { service_schedule: schedule }, locale);
-  const code = String((json as { response_code?: string })?.response_code ?? "");
-  const refused = /refused/i.test(code);
-  const content = (json as { content?: { reason?: string } })?.content;
+  const content = (json as { content?: { reason?: string; service_schedule?: string } })?.content;
+
+  // Success is the new time coming back, not the absence of the word
+  // "refused". The backend answers a validation failure with response_code
+  // "default_400" carried on an HTTP 200, and an unknown visit with a 204 —
+  // neither contains "refused", and both looked like success here: the sheet
+  // closed, the page refreshed, and the old time was still there.
+  const moved = ok && Boolean(content?.service_schedule);
 
   return NextResponse.json(
-    { ok: ok && !refused, reason: refused ? content?.reason ?? "refused" : null },
-    { status: ok && !refused ? 200 : 400 }
+    { ok: moved, reason: moved ? null : content?.reason ?? "refused" },
+    { status: moved ? 200 : 400 }
   );
 }

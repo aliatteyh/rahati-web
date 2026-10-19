@@ -51,15 +51,19 @@ function tabFor(row: BookingRow): TabKey {
   if (awaitingPayment(row)) return "pending";
   if (row.isPlan) return "subscription";
 
+  // The status decides, and the date only says whether it is still today.
+  //
+  // Reading the date first put a finished booking dated next week under
+  // "upcoming": the office marked one completed from the panel and the screen
+  // went on saying somebody was coming on Wednesday.
+  if (UPCOMING.includes(row.status)) return "upcoming";
+
   const day = dayOf(row.schedule);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-  // Today's finished visit stays where the customer last looked for it; what
-  // finished before today is history.
-  return day !== null && day < today && !UPCOMING.includes(row.status)
-    ? "past"
-    : "upcoming";
+  // Today's finished visit stays where the customer last looked for it.
+  return day === today ? "upcoming" : "past";
 }
 
 /**
