@@ -262,7 +262,7 @@
     "addOns": "Add-ons",
     "visits": "Visits",
     "time": "Time",
-    "monthsCount": "{n} month(s)",
+    "monthsCount": "{n} months",
     "timesAWeek": "{n}x / week",
     "planTotal": "Plan total",
     "visitPrice": "Visit price",
@@ -327,7 +327,18 @@
     "paymentToCollect": "Payment to collect",
     "transferNotReceived": "Transfer not received yet",
     "pay_wallet_payment": "Wallet",
-    "rescheduleWindowPassed": "A visit can no longer be moved within {hours} hours of its time. Message us and we will see what we can do."
+    "rescheduleWindowPassed": "A visit can no longer be moved within {hours} hours of its time. Message us and we will see what we can do.",
+    "monthsCountOne": "1 month",
+    "monthsCountTwo": "2 months",
+    "monthsCountFew": "{n} months",
+    "timesAWeekOne": "once a week",
+    "timesAWeekTwo": "2x / week",
+    "timesAWeekFew": "{n}x / week",
+    "minuteWord": "minute",
+    "minutesTwo": "minutes",
+    "minutesFew": "minutes",
+    "minutesMany": "minutes",
+    "durationAnd": "{h} {m}"
   },
   "hero": {
     "badge": "Trusted home services",

@@ -945,7 +945,15 @@ function PlanSheet({
         <Fact label={dict.time} value={fmt.time(plan.time)} />
         <Fact
           label={dict.duration}
-          value={(dict.monthsCount ?? "{n}").replace("{n}", String(plan.months))}
+          value={(
+            arabicPlural(
+              plan.months,
+              dict.monthsCountOne,
+              dict.monthsCountTwo,
+              dict.monthsCountFew,
+              dict.monthsCount
+            ) ?? "{n}"
+          ).replace("{n}", String(plan.months))}
         />
         <Fact label={dict.visits} value={`${plan.visits_done} / ${plan.visits_total}`} />
         {plan.per_visit != null && <Fact label={dict.perVisit} value={money(plan.per_visit)} />}
@@ -1374,6 +1382,30 @@ interface Formatters {
   payment: (method: string, dict: Dict) => string;
 }
 
+/**
+ * The form of a counted noun for this number.
+ *
+ * Arabic has one for one, another for two, a third for three to ten and a
+ * fourth beyond that; English fills all four with the same word. The caller
+ * passes whichever keys it has and the last one stands in for any that are
+ * missing, so a dictionary that has not been extended yet still reads.
+ */
+function arabicPlural(
+  count: number,
+  one?: string,
+  two?: string,
+  few?: string,
+  many?: string
+): string | undefined {
+  const fallback = many ?? few ?? two ?? one;
+
+  if (count === 1) return one ?? fallback;
+  if (count === 2) return two ?? few ?? fallback;
+  if (count <= 10) return few ?? fallback;
+
+  return fallback;
+}
+
 function formatters(locale: Locale): Formatters {
   const tag = intlLocale(locale);
   // The day and the hour are formatted apart and joined, because one
@@ -1386,7 +1418,10 @@ function formatters(locale: Locale): Formatters {
     month: "short",
   });
   const clock = new Intl.DateTimeFormat(tag, { hour: "numeric", minute: "2-digit" });
-  const weekday = new Intl.DateTimeFormat(tag, { weekday: "short" });
+  // Long names, not abbreviations. Arabic short weekdays come back clipped —
+  // "إثن", "أرب" — which is not how anybody writes a day, and the plan-shape
+  // line has room for the whole word in either language.
+  const weekday = new Intl.DateTimeFormat(tag, { weekday: "long" });
 
   // A Monday, so an ISO weekday can be turned into its name without a table
   // of names in two languages that would then have to be kept in step.
@@ -1406,19 +1441,29 @@ function formatters(locale: Locale): Formatters {
       return Number.isNaN(date.getTime()) ? value : clock.format(date);
     },
     duration: (minutes, dict) => {
-      const total = Number(minutes ?? 0);
+      const total = Math.round(Number(minutes ?? 0));
       if (total <= 0) return "";
-      const hours = total / 60;
-      const whole = Number.isInteger(hours) ? String(hours) : String(Math.round(hours * 10) / 10);
-      const word =
-        hours === 1
-          ? dict.hourWord
-          : hours === 2
-            ? dict.hoursTwo
-            : hours <= 10
-              ? dict.hoursFew
-              : dict.hoursMany;
-      return `${whole} ${word ?? ""}`.trim();
+
+      // Hours and minutes, not a decimal: a hundred and five minutes read
+      // "1.8 ساعات", which is neither a length anybody books nor a phrase in
+      // Arabic. An hour and three quarters is said as an hour and 45 minutes.
+      const hours = Math.floor(total / 60);
+      const rest = total % 60;
+
+      const hourText =
+        hours > 0
+          ? `${hours} ${arabicPlural(hours, dict.hourWord, dict.hoursTwo, dict.hoursFew, dict.hoursMany)}`.trim()
+          : "";
+      const minuteText =
+        rest > 0
+          ? `${rest} ${arabicPlural(rest, dict.minuteWord, dict.minutesTwo, dict.minutesFew, dict.minutesMany)}`.trim()
+          : "";
+
+      if (hourText && minuteText) {
+        return (dict.durationAnd ?? "{h} {m}").replace("{h}", hourText).replace("{m}", minuteText);
+      }
+
+      return hourText || minuteText;
     },
     cleaners: (count, dict) =>
       ((count === 1 ? dict.cleanerOne : dict.cleanersMany) ?? "{n}").replace("{n}", String(count)),
@@ -1438,7 +1483,16 @@ function formatters(locale: Locale): Formatters {
       return parts.length > 0 ? parts.join(" · ") : (address.address ?? "");
     },
     frequency: (plan, dict) => {
-      const days = (dict.timesAWeek ?? "{n}").replace("{n}", String(plan.days_per_week));
+      // "2 أسبوعياً" said two of nothing: the counted noun was missing, and
+      // Arabic needs a different one for one, two and a few.
+      const perWeek = arabicPlural(
+        plan.days_per_week,
+        dict.timesAWeekOne,
+        dict.timesAWeekTwo,
+        dict.timesAWeekFew,
+        dict.timesAWeek
+      );
+      const days = (perWeek ?? "{n}").replace("{n}", String(plan.days_per_week));
       const names = plan.weekdays
         .map((day) => {
           const date = new Date(MONDAY);
