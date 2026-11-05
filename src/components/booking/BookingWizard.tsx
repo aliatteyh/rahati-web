@@ -10,7 +10,7 @@ import type {
   ServicePackage,
 } from "@/lib/api";
 import type { AvailableDay, DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
-import { formatNumber } from "@/lib/currency";
+import { formatNumber, formatPrice } from "@/lib/currency";
 import { trackAddToCart } from "@/lib/analytics";
 import { intlLocale } from "@/lib/intl";
 
@@ -61,6 +61,12 @@ export interface BookingWizardProps {
   scheduleNote?: string;
   scheduleMinutesLabel?: string;
   serviceFee: number;
+  /** Cancel this many hours ahead or more and it costs nothing. */
+  cancelFreeHours: number;
+  /** What a later cancellation costs, from the panel. */
+  cancelFee: number;
+  /** Closer than this and a booking can no longer be cancelled at all. */
+  cancelNoticeHours: number;
   /** Materials rate per hour — a 2-hour variant is charged twice this. */
   materialCharge: number;
   professionalTiers: ProfessionalTier[];
@@ -201,6 +207,9 @@ export function BookingWizard({
   scheduleNote = "",
   scheduleMinutesLabel = "min",
   serviceFee,
+  cancelFreeHours,
+  cancelFee,
+  cancelNoticeHours,
   materialCharge,
   professionalTiers,
   serviceDiscount,
@@ -2747,8 +2756,15 @@ export function BookingWizard({
                 </div>
               </div>
 
+              {/* The promise a customer reads before paying. It used to say
+                  "free cancellation up to 6 hours", a figure written into the
+                  sentence and matching no setting — so it was wrong the day
+                  the window was changed, and would be wrong again. */}
               <div className="rounded-xl bg-surface-soft p-4 text-sm text-muted">
-                {dict.freeCancellation}
+                {(dict.freeCancellation ?? "")
+                  .replace("{free}", String(cancelFreeHours))
+                  .replace("{fee}", formatPrice(cancelFee, currency) ?? String(cancelFee))
+                  .replace("{notice}", String(cancelNoticeHours))}
               </div>
             </div>
           )}

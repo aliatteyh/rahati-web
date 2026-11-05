@@ -289,6 +289,9 @@ export interface BusinessConfig {
   professional_discount_tiers?: ProfessionalTier[];
   material_charge?: number | string;
   additional_charge_fee_amount?: number | string;
+  booking_cancel_notice_hours?: number | string;
+  booking_cancel_fee_free_hours?: number | string;
+  booking_cancel_fee_amount?: number | string;
   /** Global VAT rate; charged on the service fee only. */
   vat_percentage?: number | string;
   /**

@@ -452,6 +452,9 @@ export default async function ServicePage({
           scheduleNote={dict.site.svcScheduleNote}
           scheduleMinutesLabel={dict.site.svcMinutes}
           serviceFee={toNumber(config.additional_charge_fee_amount)}
+          cancelFreeHours={toNumber(config.booking_cancel_fee_free_hours) || 24}
+          cancelFee={toNumber(config.booking_cancel_fee_amount)}
+          cancelNoticeHours={toNumber(config.booking_cancel_notice_hours) || 2}
           materialCharge={toNumber(config.material_charge)}
           professionalTiers={config.professional_discount_tiers ?? []}
           serviceDiscount={service.service_discount ?? []}
