@@ -373,8 +373,47 @@ export async function fetchAvailableSlots(
   if (input.bookingId) query.set("booking_id", input.bookingId);
   if (input.visitId) query.set("visit_id", input.visitId);
 
+  // A move has to ask as the customer.
+  //
+  // The server reads `booking_id` only for a signed-in caller — it answers
+  // "whose booking is this?" before it answers "when is it free?" — and an
+  // anonymous request has the id thrown away. The picker then quietly fell
+  // back to the new-booking branch: every team in the zone instead of the
+  // one doing the work, no add-on minutes, and days the team is closed on.
+  // The customer picked one of those days and the move was refused.
+  const path = `/api/v1/customer/booking/available-slots?${query.toString()}`;
+  const isMove = Boolean(input.bookingId || input.visitId);
+
+  // Not `authGet`: that redirects to the login page when there is no token,
+  // and this runs inside an API route where a redirect is no answer. A token
+  // that is missing simply falls back to the anonymous request, which is the
+  // right reply for a new booking and the best available one for a move.
+  const token = isMove ? await getToken() : null;
+
+  if (token) {
+    try {
+      const zoneId = await getZoneId();
+      const res = await fetch(`${API_BASE}${path}`, {
+        headers: {
+          Accept: "application/json",
+          "X-localization": locale,
+          Authorization: `Bearer ${token}`,
+          zoneId,
+        },
+        cache: "no-store",
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        return (json?.content?.days ?? []) as AvailableDay[];
+      }
+    } catch {
+      // Fall through to the anonymous request below.
+    }
+  }
+
   const content = await apiGet<{ days?: AvailableDay[] } | null>(
-    `/api/v1/customer/booking/available-slots?${query.toString()}`,
+    path,
     locale,
     null,
     { cache: "no-store" }

@@ -9,7 +9,14 @@ export async function POST(request: Request) {
 
   const serviceId = String(body.serviceId ?? "");
   const variantKey = String(body.variantKey ?? "");
-  if (!serviceId || !variantKey) {
+  const bookingId = body.bookingId ? String(body.bookingId) : "";
+  const visitId = body.visitId ? String(body.visitId) : "";
+
+  // A move names the booking, and the server reads its length and its team
+  // off that booking's own lines. Demanding a service and a variant as well
+  // turned an add-ons booking — which has no variant — into a 400, and the
+  // picker showed no times on any date rather than saying why.
+  if (!bookingId && !visitId && (!serviceId || !variantKey)) {
     return NextResponse.json({ error: "Missing service" }, { status: 400 });
   }
 
@@ -26,8 +33,8 @@ export async function POST(request: Request) {
           }))
         : [],
       weekdays: Array.isArray(body.weekdays) ? body.weekdays.map(String) : [],
-      bookingId: body.bookingId ? String(body.bookingId) : undefined,
-      visitId: body.visitId ? String(body.visitId) : undefined,
+      bookingId: bookingId || undefined,
+      visitId: visitId || undefined,
     },
     locale
   );
