@@ -534,7 +534,21 @@ export function BookingWizard({
    * the rest. Listing every plan under both meant the same package, at the same
    * price, met the customer twice — which reads as two different offers.
    */
-  const isPackageMode = !isFlowDriven && (bookingMode === "package" || bookingMode === "weekly");
+  /**
+   * A package chosen by name wins over the flow's own ladder.
+   *
+   * `bookingFlow` says how a sub-category is sold when nobody has chosen —
+   * and for a subscription sub-category that is the commitment ladder. But a
+   * package is an explicit offer the panel made for this very sub-category,
+   * and arriving with `?package=` is the customer taking it. Suppressing
+   * package mode here meant the id was carried through four steps and then
+   * dropped at the cart: the booking was created as an ordinary subscription,
+   * priced on the ladder, and no package was ever bought. Six packages could
+   * be built in the panel and none of them sold.
+   */
+  const packageChosen = Boolean(packageId) && (isSubscriptionFlow || !isFlowDriven);
+  const isPackageMode =
+    (!isFlowDriven && (bookingMode === "package" || bookingMode === "weekly")) || packageChosen;
   const weeklyPackages = servicePackages.filter((p) => p.max_days_per_week <= 1);
   const multiDayPackages = servicePackages.filter((p) => p.max_days_per_week > 1);
   const allModePackages = bookingMode === "weekly" ? weeklyPackages : multiDayPackages;
@@ -712,7 +726,11 @@ export function BookingWizard({
         professionals,
         materials ? 1 : 0,
         addOnKey,
-        isSubscriptionFlow ? [...planWeekdays].sort().join(",") : "",
+        packageChosen
+          ? [...packageWeekdayList].sort().join(",")
+          : isSubscriptionFlow
+            ? [...planWeekdays].sort().join(",")
+            : "",
       ].join("|")
     : "";
 
@@ -734,9 +752,11 @@ export function BookingWizard({
         professionalCount: isUnitFlow || isAddonsFlow ? 1 : professionals,
         needMaterials: isUnitFlow || isAddonsFlow ? false : materials,
         addOns: addOnPayload,
-        weekdays: isSubscriptionFlow
-          ? planWeekdays.map((iso) => weekdayNamesIso[iso - 1]).filter(Boolean)
-          : [],
+        weekdays: packageChosen
+          ? [...packageWeekdays].map((d) => weekdayNamesIso[(d + 6) % 7]).filter(Boolean)
+          : isSubscriptionFlow
+            ? planWeekdays.map((iso) => weekdayNamesIso[iso - 1]).filter(Boolean)
+            : [],
       }),
     })
       .then((r) => r.json())
@@ -887,8 +907,10 @@ export function BookingWizard({
           // applies the package discount instead of the commitment tier.
           // Only when the customer actually chose; otherwise the server picks.
           provider_id: chosenProviderId,
-          plan_days_per_week: isSubscriptionFlow ? planDaysPerWeek : null,
-          plan_months: isSubscriptionFlow ? planMonths : null,
+          // A package prices itself; sending the ladder's answers alongside
+          // would have the server discount it twice over.
+          plan_days_per_week: isSubscriptionFlow && !packageChosen ? planDaysPerWeek : null,
+          plan_months: isSubscriptionFlow && !packageChosen ? planMonths : null,
           service_package_id: isPackageMode ? packageId : null,
           package_days_per_week:
             isPackageMode ? packageQuote?.days_per_week ?? null : null,
@@ -1729,7 +1751,13 @@ export function BookingWizard({
   // it resolves to any dates at all.
   // Weekly and fortnightly both take their day from the date picked below, so
   // there is nothing left that could be half-answered.
-  const recurringValid = !isSubscriptionFlow || planWeekdays.length === planDaysPerWeek;
+  // A package answers this question itself: its own weekday picker fills
+  // `packageWeekdays`, and the ladder's `planWeekdays` stays empty on purpose.
+  // Judging a package by the ladder's answer left the Next button dead with
+  // nothing on screen explaining what was missing.
+  const recurringValid = packageChosen
+    ? packageWeekdays.size > 0
+    : !isSubscriptionFlow || planWeekdays.length === planDaysPerWeek;
 
   // Which questions this service asks, in order. A unit is one question; add-ons
   // on their own are one; everything else keeps the three it had.
@@ -1972,8 +2000,11 @@ export function BookingWizard({
                 )}
               </div>
 
-              {/* A subscription: how many days a week, which days, how long. */}
-              {isSubscriptionFlow && (
+              {/* A subscription: how many days a week, which days, how long.
+                  Hidden once a package is chosen — the package carries its own
+                  days and its own length, and asking twice invites the customer
+                  to answer the question the price will not be taken from. */}
+              {isSubscriptionFlow && !packageChosen && (
                 <div className="space-y-4 rounded-xl border border-border bg-surface-soft p-4">
                   <div>
                     <p className="mb-2 text-sm font-semibold text-ink">{dict.daysPerWeekQuestion}</p>
@@ -2147,7 +2178,7 @@ export function BookingWizard({
                   whole plan, and a plan priced without the materials the
                   customer is about to add shows a total they will never be
                   charged. The app asks in this order for the same reason. */}
-              {isSubscriptionFlow && subscriptionMonths.length > 1 && (
+              {isSubscriptionFlow && !packageChosen && subscriptionMonths.length > 1 && (
                     <div>
                       <p className="mb-2 text-sm font-semibold text-ink">{dict.planLengthQuestion}</p>
                       <div className="flex flex-wrap gap-2">
@@ -2418,7 +2449,7 @@ export function BookingWizard({
                 </div>
               </div>
 
-                {!isFlowDriven && isPackageMode && modePackages.length > 0 && (
+                {isPackageMode && modePackages.length > 0 && (
                   <div className="mt-4 space-y-4 rounded-xl border border-border bg-surface-soft p-4">
                     {/* Choose the plan */}
                     <div className="space-y-2">
