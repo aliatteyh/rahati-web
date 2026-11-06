@@ -109,6 +109,8 @@ export function BookingsClient({
   plans,
   bookHref,
   cancelNoticeHours,
+  cancelFreeHours,
+  cancelFee,
   rescheduleNoticeHours,
 }: {
   locale: Locale;
@@ -120,6 +122,11 @@ export function BookingsClient({
   bookHref: string;
   /** The office's notice window for calling a visit off, from settings. */
   cancelNoticeHours: number;
+  /** How long cancelling stays free, and what it costs after that. Both are
+      policy, both come from settings, and the sentence that quotes them had
+      neither — so it printed its own placeholders at the customer. */
+  cancelFreeHours: number;
+  cancelFee: number;
   /** And the one for moving it, which the single-booking sheet never read. */
   rescheduleNoticeHours: number;
 }) {
@@ -343,6 +350,8 @@ export function BookingsClient({
           money={money}
           row={open.row}
           cancelNoticeHours={cancelNoticeHours}
+          cancelFreeHours={cancelFreeHours}
+          cancelFee={cancelFee}
           rescheduleNoticeHours={rescheduleNoticeHours}
           onClose={() => setOpen(null)}
         />
@@ -636,6 +645,8 @@ function BookingSheet({
   money,
   row,
   cancelNoticeHours,
+  cancelFreeHours,
+  cancelFee,
   rescheduleNoticeHours,
   onClose,
 }: {
@@ -645,6 +656,8 @@ function BookingSheet({
   money: (value: number) => string;
   row: BookingRow;
   cancelNoticeHours: number;
+  cancelFreeHours: number;
+  cancelFee: number;
   rescheduleNoticeHours: number;
   onClose: () => void;
 }) {
@@ -839,7 +852,11 @@ function BookingSheet({
               "cancelling is free up to 24 hours before" beneath. */}
           {canCancel && (
             <p className="text-center text-xs text-muted">
-              {fillHours(dict.freeCancellation, cancelNoticeHours)}
+              {cancellationPolicy(dict.freeCancellation, {
+                free: cancelFreeHours,
+                fee: money(cancelFee),
+                notice: cancelNoticeHours,
+              })}
             </p>
           )}
         </div>
@@ -1534,9 +1551,32 @@ function refusalText(dict: Dict, reason: unknown, hours: number): string {
   }
 }
 
-/** The one placeholder these sentences carry. */
+/** The one placeholder most of these sentences carry. */
 function fillHours(text: string, hours: number): string {
   return (text ?? '').replace('{hours}', String(hours));
+}
+
+/**
+ * The cancellation rule, which carries three figures rather than one.
+ *
+ * It was filled by `fillHours`, which only knows `{hours}` — a placeholder
+ * this sentence does not contain. So every customer who opened an upcoming
+ * booking read the template source: "Free cancellation up to {free} hours
+ * before your booking. Later than that a {fee} fee applies, and inside
+ * {notice} hours it can no longer be cancelled."
+ *
+ * All three are the office's settings, which is why they are passed in
+ * rather than written here: the sentence must state the rule the server
+ * actually enforces.
+ */
+function cancellationPolicy(
+  text: string,
+  values: { free: number; fee: string; notice: number }
+): string {
+  return (text ?? '')
+    .replace('{free}', String(values.free))
+    .replace('{fee}', values.fee)
+    .replace('{notice}', String(values.notice));
 }
 
 /* ------------------------------------------------------------- the diary */

@@ -38,6 +38,17 @@ export default async function BookingsPage({
     (config as unknown as Record<string, unknown>)?.visit_reschedule_notice_hours ?? 24
   ) || 24;
 
+  // The other two halves of the same rule. The sentence that quotes all
+  // three was only ever given the notice window, so it printed its own
+  // `{free}` and `{fee}` at the customer. Same keys the service page reads.
+  const cancelFreeHours = Number(
+    (config as unknown as Record<string, unknown>)?.booking_cancel_fee_free_hours ?? 24
+  ) || 24;
+
+  const cancelFee = Number(
+    (config as unknown as Record<string, unknown>)?.booking_cancel_fee_amount ?? 0
+  ) || 0;
+
   // Each plan answered by the server rather than assembled from the list: the
   // days, what one visit costs, how many are left, and what may be done to
   // each of them. Fetched here so the page arrives drawn — a plan card that
@@ -67,6 +78,8 @@ export default async function BookingsPage({
         plans={plans}
         bookHref={`/${locale}/services`}
         cancelNoticeHours={cancelNoticeHours}
+        cancelFreeHours={cancelFreeHours}
+        cancelFee={cancelFee}
         rescheduleNoticeHours={rescheduleNoticeHours}
       />
     </div>
