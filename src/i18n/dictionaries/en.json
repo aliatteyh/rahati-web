@@ -560,7 +560,7 @@
     "refunded": "Refunded",
     "cancelPackage": "Cancel package",
     "confirmCancelPackage": "Yes, cancel it",
-    "refundGoesToWallet": "Remaining visits will be cancelled and your balance added to your wallet, minus the discount on visits already taken.",
+    "refundGoesToWallet": "Remaining visits are cancelled at once, and your balance is added to your wallet once we review the refund, minus the discount on visits already taken.",
     "noChargeAfterCancel": "Remaining visits will be cancelled. You won't be charged for them.",
     "active": "Active",
     "expired": "Expired",
