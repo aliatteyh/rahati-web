@@ -1024,8 +1024,39 @@ function PlanSheet({
         />
       </div>
 
-      {plan.visits_left > 0 && (
+      {/* Outside the `visits_left` guard on purpose. It was inside it, and
+          `cancelRemaining` refreshes the page before it sets this state — so
+          a plan whose every remaining visit was just cancelled came back with
+          visits_left of zero, the guard went false, and the panel saying what
+          had happened was unmounted before anyone could read it. The common
+          case told the customer nothing at all; only a partial cancellation,
+          where a visit survives, ever showed. */}
+      {state === "done" && result && (
+        <div className="mt-4 rounded-2xl bg-surface-soft p-4 text-center text-sm">
+          <p className="text-ink">
+            {result.kept > 0
+              ? (dict.visitsCancelledSomeKept ?? "")
+                  .replace("{count}", String(result.cancelled))
+                  .replace("{kept}", String(result.kept))
+              : (dict.visitsCancelled ?? "").replace("{count}", String(result.cancelled))}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-3 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-ink"
+          >
+            {dict.close}
+          </button>
+        </div>
+      )}
+
+      {plan.visits_left > 0 && state !== "done" && (
         <div className="mt-4">
+          {/* Above the button, not below it. Below is the same failure in a
+              politer form: a figure under the thing it is meant to inform,
+              near the bottom of a sheet, is a figure the person has already
+              decided without. */}
+          <RefundQuote dict={dict} money={money} quote={plan.refund_if_cancelled} />
           {state === "idle" && (
             <button
               type="button"
@@ -1057,24 +1088,6 @@ function PlanSheet({
             </div>
           )}
           {state === "sending" && <p className="text-center text-sm text-muted">{dict.cancelling}</p>}
-          {state === "done" && result && (
-            <div className="rounded-2xl bg-surface-soft p-4 text-center text-sm">
-              <p className="text-ink">
-                {result.kept > 0
-                  ? (dict.visitsCancelledSomeKept ?? "")
-                      .replace("{count}", String(result.cancelled))
-                      .replace("{kept}", String(result.kept))
-                  : (dict.visitsCancelled ?? "").replace("{count}", String(result.cancelled))}
-              </p>
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-3 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-ink"
-              >
-                {dict.close}
-              </button>
-            </div>
-          )}
           {refusal && (
             <p className="mt-2 rounded-2xl bg-danger-soft px-4 py-3 text-center text-sm text-danger">
               {refusal}
@@ -1086,14 +1099,9 @@ function PlanSheet({
               own, because a plan's refund takes off the visits already
               delivered at their no-commitment price, and that is not
               arithmetic to repeat here. */}
-          {state !== "done" && (
-            <>
-              <RefundQuote dict={dict} money={money} quote={plan.refund_if_cancelled} />
-              <p className="mt-2 text-center text-xs text-muted">
-                {fillHours(dict.onlyUpcomingCancelled, cancelNoticeHours)}
-              </p>
-            </>
-          )}
+          <p className="mt-2 text-center text-xs text-muted">
+            {fillHours(dict.onlyUpcomingCancelled, cancelNoticeHours)}
+          </p>
         </div>
       )}
       <span className="sr-only">{row.readableId}</span>
