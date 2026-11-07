@@ -11,6 +11,7 @@ import type {
 } from "@/lib/api";
 import type { AvailableDay, DiscountLike, ProfessionalTier, RepeatTier } from "@/lib/types";
 import { formatNumber, formatPrice } from "@/lib/currency";
+import { cancellationSentence } from "@/lib/cancellation";
 import { trackAddToCart } from "@/lib/analytics";
 import { intlLocale } from "@/lib/intl";
 
@@ -2790,12 +2791,17 @@ export function BookingWizard({
               {/* The promise a customer reads before paying. It used to say
                   "free cancellation up to 6 hours", a figure written into the
                   sentence and matching no setting — so it was wrong the day
-                  the window was changed, and would be wrong again. */}
+                  the window was changed, and would be wrong again.
+
+                  Shared with the booking sheet now: the same rule written in
+                  two places is how the two came to disagree. */}
               <div className="rounded-xl bg-surface-soft p-4 text-sm text-muted">
-                {(dict.freeCancellation ?? "")
-                  .replace("{free}", String(cancelFreeHours))
-                  .replace("{fee}", formatPrice(cancelFee, currency) ?? String(cancelFee))
-                  .replace("{notice}", String(cancelNoticeHours))}
+                {cancellationSentence(dict.freeCancellation, dict.freeCancellationNoFee, {
+                  freeHours: cancelFreeHours,
+                  fee: cancelFee,
+                  noticeHours: cancelNoticeHours,
+                  money: (value) => formatPrice(value, currency) ?? String(value),
+                })}
               </div>
             </div>
           )}

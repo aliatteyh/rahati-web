@@ -338,7 +338,8 @@
     "minutesTwo": "minutes",
     "minutesFew": "minutes",
     "minutesMany": "minutes",
-    "durationAnd": "{h} {m}"
+    "durationAnd": "{h} {m}",
+    "freeCancellationNoFee": "Free cancellation up to {free} hours before your booking. Inside {notice} hours it can no longer be cancelled."
   },
   "hero": {
     "badge": "Trusted home services",
@@ -624,7 +625,8 @@
     "myFavourite": "My favourite",
     "noPreviousCleaners": "Nobody has cleaned your home yet — your first booking will introduce you.",
     "officeAssigns": "The office assigns the cleaner and will honour this where it can.",
-    "perHourRate": "{rate} / hour"
+    "perHourRate": "{rate} / hour",
+    "freeCancellationNoFee": "Free cancellation up to {free} hours before your booking. Inside {notice} hours it can no longer be cancelled."
   },
   "checkout": {
     "title": "Checkout",

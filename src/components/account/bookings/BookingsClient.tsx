@@ -9,6 +9,7 @@ import { intlLocale } from "@/lib/intl";
 // exports the server-side fetchers, which reach for next/headers and
 // cannot be pulled into a client component at all.
 import { formatNumber } from "@/lib/currency";
+import { cancellationSentence } from "@/lib/cancellation";
 import { ReviewForm } from "@/components/account/ReviewForm";
 import { ReschedulePicker } from "./ReschedulePicker";
 import type { BookingAddress, BookingRow, Cleaner, PlanSummary, PlanVisit } from "./types";
@@ -852,10 +853,11 @@ function BookingSheet({
               "cancelling is free up to 24 hours before" beneath. */}
           {canCancel && (
             <p className="text-center text-xs text-muted">
-              {cancellationPolicy(dict.freeCancellation, {
-                free: cancelFreeHours,
-                fee: money(cancelFee),
-                notice: cancelNoticeHours,
+              {cancellationSentence(dict.freeCancellation, dict.freeCancellationNoFee, {
+                freeHours: cancelFreeHours,
+                fee: cancelFee,
+                noticeHours: cancelNoticeHours,
+                money,
               })}
             </p>
           )}
@@ -1556,28 +1558,6 @@ function fillHours(text: string, hours: number): string {
   return (text ?? '').replace('{hours}', String(hours));
 }
 
-/**
- * The cancellation rule, which carries three figures rather than one.
- *
- * It was filled by `fillHours`, which only knows `{hours}` — a placeholder
- * this sentence does not contain. So every customer who opened an upcoming
- * booking read the template source: "Free cancellation up to {free} hours
- * before your booking. Later than that a {fee} fee applies, and inside
- * {notice} hours it can no longer be cancelled."
- *
- * All three are the office's settings, which is why they are passed in
- * rather than written here: the sentence must state the rule the server
- * actually enforces.
- */
-function cancellationPolicy(
-  text: string,
-  values: { free: number; fee: string; notice: number }
-): string {
-  return (text ?? '')
-    .replace('{free}', String(values.free))
-    .replace('{fee}', values.fee)
-    .replace('{notice}', String(values.notice));
-}
 
 /* ------------------------------------------------------------- the diary */
 

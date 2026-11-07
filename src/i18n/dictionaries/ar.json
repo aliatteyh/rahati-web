@@ -338,7 +338,8 @@
     "minutesTwo": "دقيقتان",
     "minutesFew": "دقائق",
     "minutesMany": "دقيقة",
-    "durationAnd": "{h} و{m}"
+    "durationAnd": "{h} و{m}",
+    "freeCancellationNoFee": "الإلغاء مجّاني حتى {free} ساعة قبل موعد حجزك. وداخل {notice} ساعة لا يمكن الإلغاء."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
@@ -624,7 +625,8 @@
     "myFavourite": "عاملتي المفضّلة",
     "noPreviousCleaners": "لم تنظّف منزلك عاملة بعد — أول حجز يعرّفك عليهنّ.",
     "officeAssigns": "المكتب يُسند العاملة، ويراعي اختيارك قدر الإمكان.",
-    "perHourRate": "{rate} / ساعة"
+    "perHourRate": "{rate} / ساعة",
+    "freeCancellationNoFee": "الإلغاء مجّاني حتى {free} ساعة قبل موعد حجزك. وداخل {notice} ساعة لا يمكن الإلغاء."
   },
   "checkout": {
     "title": "الدفع",
