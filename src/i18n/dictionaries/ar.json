@@ -339,7 +339,15 @@
     "minutesFew": "دقائق",
     "minutesMany": "دقيقة",
     "durationAnd": "{h} و{m}",
-    "freeCancellationNoFee": "الإلغاء مجّاني حتى {free} ساعة قبل موعد حجزك. وداخل {notice} ساعة لا يمكن الإلغاء."
+    "freeCancellationNoFee": "الإلغاء مجّاني حتى {free} ساعة قبل موعد حجزك. وداخل {notice} ساعة لا يمكن الإلغاء.",
+    "planRefundNow": "يعود إليك {amount} بعد المراجعة",
+    "planRefundNothing": "لا شيء يعود: الزيارات التي تمّت استوفت ما دُفع.",
+    "planRefundUnpaid": "لم يُدفع شيء عن هذه الخطة، فلا شيء يعود.",
+    "planRefundPaid": "المدفوع · {amount}",
+    "planRefundDelivered": "{count} زيارة تمّت · {amount}",
+    "planRefundFee": "رسوم الإلغاء المتأخر · {amount}",
+    "visitsCancelled": "أُلغيت {count} زيارة.",
+    "visitsCancelledSomeKept": "أُلغيت {count} زيارة، و{kept} قريبة جدًّا من موعدها فبقيت."
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",

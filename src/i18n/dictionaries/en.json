@@ -339,7 +339,15 @@
     "minutesFew": "minutes",
     "minutesMany": "minutes",
     "durationAnd": "{h} {m}",
-    "freeCancellationNoFee": "Free cancellation up to {free} hours before your booking. Inside {notice} hours it can no longer be cancelled."
+    "freeCancellationNoFee": "Free cancellation up to {free} hours before your booking. Inside {notice} hours it can no longer be cancelled.",
+    "planRefundNow": "{amount} comes back once we review it",
+    "planRefundNothing": "Nothing comes back: the visits already done have used up what was paid.",
+    "planRefundUnpaid": "Nothing was paid for this plan, so nothing comes back.",
+    "planRefundPaid": "Paid · {amount}",
+    "planRefundDelivered": "{count} visits already done · {amount}",
+    "planRefundFee": "Late-cancellation fee · {amount}",
+    "visitsCancelled": "{count} visits cancelled.",
+    "visitsCancelledSomeKept": "{count} visits cancelled. {kept} is too close to call off and still stands."
   },
   "hero": {
     "badge": "Trusted home services",

@@ -96,6 +96,27 @@ export interface PlanSummary {
     add_ons: number;
     discount: number;
   };
+  /**
+   * What cancelling the rest of the plan right now would return, quoted by
+   * the server rather than worked out here.
+   *
+   * A plan's refund is not "what was paid, less the fee": it also takes off
+   * the visits already delivered at their no-commitment price and the
+   * gratuity earned by whoever worked them. Four rules that live on the
+   * server and change there. Absent on a plan answered before the server
+   * carried the figure.
+   */
+  refund_if_cancelled?: {
+    paid: number;
+    amount: number;
+    consumed: number;
+    forfeited: number;
+    cancel_fee: number;
+    tip_returned: number;
+    visits_cancelled: number;
+    visits_delivered: number;
+    reason: string | null;
+  } | null;
   payment_method: string;
   is_paid: number;
   address: BookingAddress | null;

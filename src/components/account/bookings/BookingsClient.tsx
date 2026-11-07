@@ -887,8 +887,9 @@ function PlanSheet({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [state, setState] = useState<"idle" | "confirm" | "sending">("idle");
+  const [state, setState] = useState<"idle" | "confirm" | "sending" | "done">("idle");
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [result, setResult] = useState<{ cancelled: number; kept: number } | null>(null);
 
   async function cancelRemaining() {
     setState("sending");
@@ -903,8 +904,17 @@ function PlanSheet({
       .catch(() => null);
 
     if (outcome?.ok) {
+      // A plan is not cancelled in one piece: a visit inside the notice
+      // window stays, and the server says how many of each. Both figures
+      // already reach this function — the sheet used to close on top of
+      // them, so a customer with two visits still standing was shown
+      // nothing and would be waiting for nobody on Monday.
       router.refresh();
-      onClose();
+      setResult({
+        cancelled: Number(outcome.cancelled ?? 0),
+        kept: Number(outcome.kept ?? 0),
+      });
+      setState("done");
       return;
     }
 
@@ -1047,14 +1057,43 @@ function PlanSheet({
             </div>
           )}
           {state === "sending" && <p className="text-center text-sm text-muted">{dict.cancelling}</p>}
+          {state === "done" && result && (
+            <div className="rounded-2xl bg-surface-soft p-4 text-center text-sm">
+              <p className="text-ink">
+                {result.kept > 0
+                  ? (dict.visitsCancelledSomeKept ?? "")
+                      .replace("{count}", String(result.cancelled))
+                      .replace("{kept}", String(result.kept))
+                  : (dict.visitsCancelled ?? "").replace("{count}", String(result.cancelled))}
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-3 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-ink"
+              >
+                {dict.close}
+              </button>
+            </div>
+          )}
           {refusal && (
             <p className="mt-2 rounded-2xl bg-danger-soft px-4 py-3 text-center text-sm text-danger">
               {refusal}
             </p>
           )}
-          <p className="mt-2 text-center text-xs text-muted">
-            {fillHours(dict.onlyUpcomingCancelled, cancelNoticeHours)}
-          </p>
+          {/* What it is worth, before they decide — not after. This asked
+              for a cancellation with no money on the screen at all: press,
+              confirm, and find out afterwards. The figure is the server's
+              own, because a plan's refund takes off the visits already
+              delivered at their no-commitment price, and that is not
+              arithmetic to repeat here. */}
+          {state !== "done" && (
+            <>
+              <RefundQuote dict={dict} money={money} quote={plan.refund_if_cancelled} />
+              <p className="mt-2 text-center text-xs text-muted">
+                {fillHours(dict.onlyUpcomingCancelled, cancelNoticeHours)}
+              </p>
+            </>
+          )}
         </div>
       )}
       <span className="sr-only">{row.readableId}</span>
@@ -1551,6 +1590,62 @@ function refusalText(dict: Dict, reason: unknown, hours: number): string {
     default:
       return dict.somethingWentWrong;
   }
+}
+
+/**
+ * The money a cancellation would move, said plainly.
+ *
+ * One line when there is nothing to explain, and the subtraction under it
+ * when the figure is less than what was paid — because "47.70 comes back"
+ * out of 824.40 with nothing between the two is the sentence that makes a
+ * customer write in, and the same figure with the delivered visits named
+ * beside it is the one that does not.
+ *
+ * A plan answered by a server that does not carry the quote shows nothing
+ * here rather than a number this screen invented.
+ */
+function RefundQuote({
+  dict,
+  money,
+  quote,
+}: {
+  dict: Dict;
+  money: (value: number) => string;
+  quote: PlanSummary["refund_if_cancelled"];
+}) {
+  if (!quote) return null;
+
+  if (quote.paid <= 0) {
+    return <p className="mt-2 text-center text-xs text-muted">{dict.planRefundUnpaid}</p>;
+  }
+
+  // Only where it explains a gap. A full refund needs no workings.
+  const showWorkings = quote.consumed > 0 || quote.cancel_fee > 0;
+
+  return (
+    <div className="mt-2 text-center text-xs text-muted">
+      <p>
+        {quote.amount > 0
+          ? (dict.planRefundNow ?? "").replace("{amount}", money(quote.amount))
+          : dict.planRefundNothing}
+      </p>
+      {showWorkings && (
+        <>
+          <p>{(dict.planRefundPaid ?? "").replace("{amount}", money(quote.paid))}</p>
+          {quote.consumed > 0 && (
+            <p>
+              {(dict.planRefundDelivered ?? "")
+                .replace("{count}", String(quote.visits_delivered))
+                .replace("{amount}", money(quote.consumed))}
+            </p>
+          )}
+          {quote.cancel_fee > 0 && (
+            <p>{(dict.planRefundFee ?? "").replace("{amount}", money(quote.cancel_fee))}</p>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 /** The one placeholder most of these sentences carry. */
