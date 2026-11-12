@@ -78,27 +78,79 @@ function tabFor(row: BookingRow): TabKey {
  * Three addresses because a plan is three different documents: the whole
  * subscription, one visit of it, and a booking that is neither.
  */
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
+type InvoiceKind =
+  | "customer-invoice"
+  | "customer-fullbooking-invoice"
+  | "customer-fullbooking-single-invoice";
 
-function invoiceHref(
-  kind: "customer-invoice" | "customer-fullbooking-invoice" | "customer-fullbooking-single-invoice",
-  id: string,
-  locale: Locale
-): string {
-  return `${API_BASE}/admin/booking/${kind}/${encodeURIComponent(id)}/${locale}`;
-}
+/**
+ * Opens in its own tab, because an invoice is a thing people print.
+ *
+ * It used to be a plain link straight at the backend, with the booking id as
+ * the whole of the proof — and that link worked for anybody who ever saw it,
+ * for as long as the booking existed. Now the id buys a signed link that
+ * expires, minted only for the customer who is signed in.
+ *
+ * Fetched on the click rather than when the list renders: a link minted with
+ * the page would be stale by the time somebody scrolled to it, and would sit
+ * in the HTML of a tab that stays open.
+ *
+ * A button, not an anchor, because there is no address until the click. The
+ * tab is opened immediately and pointed afterwards, so the browser still
+ * treats it as something the customer asked for — a window opened after an
+ * await is a pop-up as far as Safari is concerned.
+ */
+function InvoiceLink({
+  kind,
+  id,
+  locale,
+  label,
+}: {
+  kind: InvoiceKind;
+  id: string;
+  locale: Locale;
+  label: string;
+}) {
+  const [busy, setBusy] = useState(false);
 
-/** Opens in its own tab, because an invoice is a thing people print. */
-function InvoiceLink({ href, label }: { href: string; label: string }) {
+  async function open() {
+    if (busy) return;
+    setBusy(true);
+
+    const tab = window.open("", "_blank");
+
+    try {
+      const res = await fetch("/api/booking/invoice-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, id, locale }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string };
+
+      if (body.ok && body.url) {
+        if (tab) tab.location.href = body.url;
+        else window.location.href = body.url;
+        return;
+      }
+
+      // Nothing to show rather than an empty tab left sitting there.
+      tab?.close();
+    } catch {
+      tab?.close();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-primary"
+    <button
+      type="button"
+      onClick={open}
+      disabled={busy}
+      className="inline-flex rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-primary disabled:opacity-60"
     >
       {label}
-    </a>
+    </button>
   );
 }
 
@@ -742,7 +794,7 @@ function BookingSheet({
       </dl>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <InvoiceLink href={invoiceHref("customer-invoice", row.id, locale)} label={dict.invoice} />
+        <InvoiceLink kind="customer-invoice" id={row.id} locale={locale} label={dict.invoice} />
       </div>
 
       {/* Rating lived on the page this sheet replaced. A booking that is
@@ -1019,7 +1071,9 @@ function PlanSheet({
 
       <div className="mt-4 flex flex-wrap gap-2">
         <InvoiceLink
-          href={invoiceHref("customer-fullbooking-invoice", plan.id, locale)}
+          kind="customer-fullbooking-invoice"
+          id={plan.id}
+          locale={locale}
           label={dict.invoice}
         />
       </div>
@@ -1220,7 +1274,9 @@ function VisitSheet({
 
       <div className="mt-4 flex flex-wrap gap-2">
         <InvoiceLink
-          href={invoiceHref("customer-fullbooking-single-invoice", visit.id, locale)}
+          kind="customer-fullbooking-single-invoice"
+          id={visit.id}
+          locale={locale}
           label={dict.invoice}
         />
       </div>
