@@ -1,6 +1,6 @@
+import { openPaymentSession } from "@/lib/payment-session";
 import { NextResponse } from "next/server";
 import { isLocale } from "@/i18n/config";
-import { authGet } from "@/lib/account";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
 
@@ -29,21 +29,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, reason: "no_method" }, { status: 400 });
   }
 
-  const info = await authGet<{ id?: string }>("/api/v1/customer/info", locale, {});
-  const userId = info?.id ?? "";
-  if (!userId) {
-    return NextResponse.json({ ok: false, reason: "unauthenticated" }, { status: 401 });
-  }
-
   const origin = request.headers.get("origin") ?? new URL(request.url).origin;
   const callback = `${origin}/${locale}/account/wallet`;
-  const accessToken = Buffer.from(userId).toString("base64url");
+  // The payment page no longer takes the payer's identity from its own URL.
+  // `access_token` was base64 of the user id and proved nothing; this spends
+  // the bearer token for a session the server minted against it.
+  const session = await openPaymentSession(locale);
+
+  if (!session) {
+    return NextResponse.json({ ok: false, reason: "unauthenticated" }, { status: 401 });
+  }
 
   const redirect =
     `${API_BASE}/payment?is_add_fund=1` +
     `&amount=${encodeURIComponent(String(amount))}` +
     `&payment_method=${encodeURIComponent(method)}` +
-    `&access_token=${encodeURIComponent(accessToken)}` +
+    `&session=${encodeURIComponent(session)}` +
     `&payment_platform=web` +
     `&callback=${encodeURIComponent(callback)}`;
 

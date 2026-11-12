@@ -1,6 +1,7 @@
+import { openPaymentSession } from "@/lib/payment-session";
 import { NextResponse } from "next/server";
 import { isLocale } from "@/i18n/config";
-import { authSend, authGet } from "@/lib/account";
+import { authSend } from "@/lib/account";
 import { apiErrorMessage } from "@/lib/apiError";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
@@ -37,18 +38,19 @@ export async function POST(request: Request) {
   // Digital gateway: hand off to the backend's hosted payment page, which
   // processes the gateway and creates the booking on success.
   if (DIGITAL.has(method)) {
-    const info = await authGet<{ id?: string }>("/api/v1/customer/info", locale, {});
-    const userId = info?.id ?? "";
     const origin = request.headers.get("origin") ?? new URL(request.url).origin;
     const callback = `${origin}/${locale}/account/bookings`;
-    // Standard base64, not base64url: the payment page decodes with PHP's
-    // base64_decode, which silently drops the "-" and "_" that base64url
-    // substitutes — corrupting the id for any user whose encoding happens to
-    // contain them. The value is URI-encoded below, so "+" and "/" travel safely.
-    const accessToken = Buffer.from(userId).toString("base64");
+    // The payment page no longer takes the payer's identity from its own URL.
+    // `access_token` was base64 of the user id and proved nothing; this spends
+    // the bearer token for a session the server minted against it.
+    const session = await openPaymentSession(locale);
+
+    if (!session) {
+      return NextResponse.json({ ok: false, reason: "unauthenticated" }, { status: 401 });
+    }
     const redirect =
       `${API_BASE}/payment?payment_method=${encodeURIComponent(method)}` +
-      `&access_token=${encodeURIComponent(accessToken)}` +
+      `&session=${encodeURIComponent(session)}` +
       `&zone_id=${encodeURIComponent(zoneId)}` +
       `&service_address_id=${encodeURIComponent(String(addressId))}` +
       // Required by the payment page's validator; omitting it bounced every
