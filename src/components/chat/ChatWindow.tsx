@@ -14,7 +14,11 @@ interface ChatUser {
 }
 interface ChatFile {
   original_file_name?: string;
-  file_full_path?: string | null;
+  // The name the API actually appends on the model. `file_full_path` was never
+  // sent, so every attachment in this window rendered as a 📎 with a dead
+  // link - the image branch could not fire. It is now a signed link that
+  // expires, because these files stopped being public ones.
+  stored_file_name_full_path?: string | null;
   file_type?: string;
 }
 interface ChatMessage {
@@ -174,18 +178,18 @@ export function ChatWindow({
                   )}
                   {m.message && <p className="whitespace-pre-wrap break-words">{m.message}</p>}
                   {(m.conversation_files ?? []).map((f, fi) =>
-                    f.file_full_path && isImage(f.file_type) ? (
+                    f.stored_file_name_full_path && isImage(f.file_type) ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         key={fi}
-                        src={f.file_full_path}
+                        src={f.stored_file_name_full_path}
                         alt={f.original_file_name ?? ""}
                         className="mt-1 max-h-40 rounded-lg"
                       />
                     ) : (
                       <a
                         key={fi}
-                        href={f.file_full_path ?? "#"}
+                        href={f.stored_file_name_full_path ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`mt-1 block text-xs underline ${l.me ? "text-white" : "text-primary"}`}
