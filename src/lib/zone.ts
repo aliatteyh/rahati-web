@@ -3,9 +3,27 @@ import { cookies } from "next/headers";
 export { ZONE_COOKIE } from "./cookies";
 import { ZONE_COOKIE } from "./cookies";
 
-/** The public/default zone used for anonymous browsing when none is chosen. */
+/**
+ * The zone an anonymous visitor browses in before they tell us where they are.
+ *
+ * It has to be a zone with cleaners in it. It used to be
+ * `a1614dbe-…` — the seeded "All over the World" zone, which covers the
+ * planet and has **no provider subscribed to anything**. Measured on
+ * production on 2026-11-13: that zone returned 0 days and 0 slots from
+ * `available-slots`, while JVC returned 13 days of 09:00–18:00. So every
+ * first-time visitor saw a booking page with no times at all and nothing
+ * explaining why — and 33 of the 56 saved customer addresses sit in that same
+ * empty zone.
+ *
+ * Rahati serves JVC today. When the service area grows, this is one of the two
+ * places to change (the other is NEXT_PUBLIC_DEFAULT_ZONE_ID in the
+ * environment, which wins).
+ */
 export const DEFAULT_ZONE_ID =
-  process.env.NEXT_PUBLIC_DEFAULT_ZONE_ID ?? "a1614dbe-4732-11ee-9702-dee6e8d77be4";
+  process.env.NEXT_PUBLIC_DEFAULT_ZONE_ID ?? "298e918a-4b3d-4ebd-8f60-12034574fa6c";
+
+/** The area we actually cover, for telling somebody outside it. */
+export const SERVED_AREA_KEY = "jvc";
 
 export interface ZoneInfo {
   id: string;

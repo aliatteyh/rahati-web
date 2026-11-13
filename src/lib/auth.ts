@@ -81,6 +81,8 @@ export async function registerRequest(
 }
 
 export interface OtpRegisterData {
+  /** The backend refuses a registration without it; see SIGNUP_TICKET_COOKIE. */
+  temporary_token: string;
   first_name: string;
   last_name: string;
   email: string;

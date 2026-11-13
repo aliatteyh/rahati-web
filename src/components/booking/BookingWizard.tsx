@@ -2766,7 +2766,17 @@ export function BookingWizard({
               {/* Time */}
               <div>
                 <p className="mb-3 font-semibold text-ink">{dict.timeQuestion}</p>
-                {isFlowDriven && !slotsLoading && timeSlots.length === 0 && (
+                {/* Two different silences, and they are not the same answer.
+                    No days at all means nobody covers this area — the page
+                    used to show an empty grid and let the customer work it out
+                    for themselves. No times on a chosen day means a busy day. */}
+                {isFlowDriven && !slotsLoading && availableDays.length === 0 && (
+                  <div className="mb-3 rounded-2xl border border-border bg-surface p-4">
+                    <p className="font-semibold text-ink">{dict.outsideAreaTitle}</p>
+                    <p className="mt-1 text-sm text-muted">{dict.outsideAreaBody}</p>
+                  </div>
+                )}
+                {isFlowDriven && !slotsLoading && availableDays.length > 0 && timeSlots.length === 0 && (
                   <p className="mb-3 text-sm text-muted">{dict.noTimesAvailable}</p>
                 )}
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
