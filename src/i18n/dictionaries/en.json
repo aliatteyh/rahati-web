@@ -347,7 +347,19 @@
     "planRefundDelivered": "{count} visits already done · {amount}",
     "planRefundFee": "Late-cancellation fee · {amount}",
     "visitsCancelled": "{count} visits cancelled.",
-    "visitsCancelledSomeKept": "{count} visits cancelled. {kept} is too close to call off and still stands."
+    "visitsCancelledSomeKept": "{count} visits cancelled. {kept} is too close to call off and still stands.",
+    "amendmentAsked": "Your cleaner needs a little longer",
+    "amendmentMaterials": "Cleaning materials",
+    "hoursShort": "hours",
+    "amendmentPayFromWallet": "Pay from wallet",
+    "amendmentPayByCard": "Pay by card",
+    "amendmentDecline": "No, thank you",
+    "amendmentNote": "Nothing changes on your booking until this is paid.",
+    "amendmentPaid": "Paid. Your booking has been updated.",
+    "amendmentDeclined": "Declined. Your booking is unchanged.",
+    "amendmentFailed": "That did not go through. Please try again.",
+    "amendmentWalletShort": "There is not enough in your wallet for this.",
+    "amendmentTopUpWallet": "Top up wallet"
   },
   "hero": {
     "badge": "Trusted home services",

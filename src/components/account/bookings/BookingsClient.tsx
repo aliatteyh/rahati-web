@@ -12,6 +12,7 @@ import { formatNumber } from "@/lib/currency";
 import { cancellationSentence } from "@/lib/cancellation";
 import { ReviewForm } from "@/components/account/ReviewForm";
 import { ReschedulePicker } from "./ReschedulePicker";
+import { AmendmentCard } from "./AmendmentCard";
 import type { BookingAddress, BookingRow, Cleaner, PlanSummary, PlanVisit } from "./types";
 
 type Dict = Record<string, string>;
@@ -764,6 +765,19 @@ function BookingSheet({
         method={row.paymentMethod}
         isPaid={row.isPaid}
         amount={money(row.total)}
+      />
+
+      {/* Directly under it, because it is the same subject: what the booking
+          costs and whether anything is owed on it. Draws nothing at all unless
+          the office is waiting on an answer. A plan's visits have no path to
+          this - a plan's price is a commitment, and lengthening one visit
+          would contradict it. */}
+      <AmendmentCard
+        dict={dict}
+        locale={locale}
+        bookingId={row.id}
+        money={money}
+        onSettled={() => router.refresh()}
       />
 
       {row.cleaner && (

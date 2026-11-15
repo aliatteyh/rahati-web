@@ -347,7 +347,19 @@
     "planRefundDelivered": "{count} زيارة تمّت · {amount}",
     "planRefundFee": "رسوم الإلغاء المتأخر · {amount}",
     "visitsCancelled": "أُلغيت {count} زيارة.",
-    "visitsCancelledSomeKept": "أُلغيت {count} زيارة، و{kept} قريبة جدًّا من موعدها فبقيت."
+    "visitsCancelledSomeKept": "أُلغيت {count} زيارة، و{kept} قريبة جدًّا من موعدها فبقيت.",
+    "amendmentAsked": "عاملة النظافة تحتاج وقتاً أطول قليلاً",
+    "amendmentMaterials": "مواد التنظيف",
+    "hoursShort": "ساعة",
+    "amendmentPayFromWallet": "ادفع من المحفظة",
+    "amendmentPayByCard": "ادفع بالبطاقة",
+    "amendmentDecline": "لا، شكراً",
+    "amendmentNote": "لا يتغيّر شيء في حجزك حتى يُدفع هذا المبلغ.",
+    "amendmentPaid": "تمّ الدفع، وحُدِّث حجزك.",
+    "amendmentDeclined": "رفضتَ الطلب، وحجزك كما هو.",
+    "amendmentFailed": "لم تتمّ العملية. حاول مرّة أخرى.",
+    "amendmentWalletShort": "رصيد محفظتك لا يكفي لهذا المبلغ.",
+    "amendmentTopUpWallet": "اشحن المحفظة"
   },
   "hero": {
     "badge": "خدمات منزلية موثوقة",
