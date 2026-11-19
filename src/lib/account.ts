@@ -3,6 +3,7 @@ import type { Locale } from "@/i18n/config";
 import { getToken } from "./session";
 import { getZoneId } from "./zone";
 
+import { viaThisSite } from "./media";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
 
 /**
@@ -25,7 +26,7 @@ export async function authGet<T>(path: string, locale: Locale, fallback: T): Pro
     });
     if (res.status === 401) redirect(`/${locale}/login`);
     if (!res.ok) return fallback;
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     return (json?.content ?? fallback) as T;
   } catch {
     return fallback;
@@ -62,7 +63,7 @@ export async function authSend(
       body: body ? JSON.stringify(body) : undefined,
       cache: "no-store",
     });
-    const json = await res.json().catch(() => ({}));
+    const json = viaThisSite(await res.json().catch(() => ({})));
     return { ok: res.ok, json };
   } catch {
     return { ok: false, json: {} };

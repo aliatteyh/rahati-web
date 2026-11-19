@@ -2,6 +2,7 @@ import type { Locale } from "@/i18n/config";
 import { getZoneId, getCustomerCoords } from "./zone";
 import { getToken } from "./session";
 import { authSend } from "./account";
+import { viaThisSite } from "./media";
 import type {
   AddOn,
   Banner,
@@ -50,7 +51,7 @@ async function apiGet<T>(
       ...init,
     });
     if (!res.ok) return fallback;
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
 
     // "Nothing here" is not a payload.
     //
@@ -268,7 +269,7 @@ export async function searchServices(
       body: JSON.stringify({ string: term, limit, offset: 1 }),
       cache: "no-store",
     });
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     // The envelope wraps the paginator under `services`, alongside price filters
     // this page does not use.
     const services = json?.content?.services;
@@ -310,7 +311,7 @@ export async function getRecentSearches(locale: Locale, limit = 8): Promise<Rece
       }
     );
     if (!res.ok) return [];
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     const rows = json?.content?.data ?? json?.content ?? [];
     if (!Array.isArray(rows)) return [];
 
@@ -404,7 +405,7 @@ export async function fetchAvailableSlots(
       });
 
       if (res.ok) {
-        const json = await res.json();
+        const json = viaThisSite(await res.json());
         return (json?.content?.days ?? []) as AvailableDay[];
       }
     } catch {
@@ -697,7 +698,7 @@ export async function getNearbyProviders(
       next: { revalidate: REVALIDATE_SECONDS },
     });
     if (!res.ok) return [];
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     const content = json?.content;
     const rows = (Array.isArray(content) ? content : content?.data ?? []) as NearbyProvider[];
 
@@ -753,7 +754,7 @@ export async function getBookableProviders(
         cache: "no-store",
       }
     );
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     const content = json?.content;
     return (Array.isArray(content) ? content : content?.data ?? []) as BookableProvider[];
   } catch {
@@ -793,7 +794,7 @@ export async function getProviderDetails(
         next: { revalidate: REVALIDATE_SECONDS },
       }
     );
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     const content = json?.content;
     if (!content?.provider) return null;
 
@@ -857,7 +858,7 @@ export async function getServicePackages(
         cache: "no-store",
       }
     );
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     const content = json?.content;
     // Paginated or plain, depending on the call — both shapes appear here.
     const rows = Array.isArray(content) ? content : content?.data;
@@ -916,7 +917,7 @@ export async function getPackageAvailability(
       headers: { Accept: "application/json", "X-localization": locale, zoneId },
       cache: "no-store",
     });
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     return json?.content ?? fallback;
   } catch {
     return fallback;
@@ -970,7 +971,7 @@ export async function fetchPackageQuote(
       }),
       cache: "no-store",
     });
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     if (json?.response_code !== "default_200" || !json?.content) return null;
     return json.content as PackageQuote;
   } catch {
@@ -1042,7 +1043,7 @@ export async function fetchBookingQuote(
       }),
       cache: "no-store",
     });
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     if (json?.response_code !== "default_200" || !json?.content) return null;
     return json.content as BookingQuote;
   } catch {
@@ -1084,7 +1085,7 @@ export async function validateCoupon(
       }),
       cache: "no-store",
     });
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     const content = (json?.content ?? json ?? {}) as Partial<CouponResult>;
     return {
       valid: Boolean(content.valid),
@@ -1302,7 +1303,7 @@ export async function getServiceAreas(
         next: { revalidate: 300 },
       }
     );
-    const json = await res.json();
+    const json = viaThisSite(await res.json());
     const content = json?.content;
     return (Array.isArray(content) ? content : content?.data) ?? [];
   } catch {

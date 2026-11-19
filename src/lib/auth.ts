@@ -1,5 +1,6 @@
 import type { Locale } from "@/i18n/config";
 
+import { viaThisSite } from "./media";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://admin.rahatics.com";
 
 async function authPost(
@@ -20,7 +21,7 @@ async function authPost(
       body: JSON.stringify(body),
       cache: "no-store",
     });
-    const json = await res.json().catch(() => ({}));
+    const json = viaThisSite(await res.json().catch(() => ({})));
     return { ok: res.ok, status: res.status, json };
   } catch {
     return { ok: false, status: 0, json: {} };

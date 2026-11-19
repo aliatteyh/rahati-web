@@ -25,6 +25,13 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Skip Next internals, API routes and files with an extension (assets)
-  matcher: ["/((?!_next|api|.*\\..*).*)"],
+  // Skip Next internals, API routes, the image proxy, and files with an
+  // extension (assets).
+  //
+  // `media` is named even though almost every path under it ends in `.webp`
+  // or `.jpg` and would be skipped by the extension rule anyway: the API does
+  // return the occasional stored file with no extension, and redirecting one
+  // of those to `/en/media/...` turns a picture into a 404 nobody would think
+  // to look for here.
+  matcher: ["/((?!_next|api|media|.*\\..*).*)"],
 };
