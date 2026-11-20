@@ -60,8 +60,36 @@ export async function getCustomerCoords(): Promise<{ lat: number; lon: number } 
   return { lat: info.lat, lon: info.lon };
 }
 
-/** Zone id for API requests — the chosen zone, else the default zone. */
+/**
+ * The zones we actually serve, and may therefore ask the API about.
+ *
+ * The zone cookie lasts 180 days, and the default it was written from used to
+ * be `a1614dbe-…`, the seeded worldwide zone that has since been switched off
+ * in the panel. A visitor from before 2026-11-13 still carries it. The API now
+ * refuses a deactivated zone consistently — it used to refuse only those whose
+ * id happened to be a version-4 UUID, and that one is not — so a stale cookie
+ * would answer `zone_404` on every call and the site would simply stop for
+ * that person.
+ *
+ * Set `NEXT_PUBLIC_SERVED_ZONE_IDS` (comma-separated) when the service area
+ * grows; the default zone is always included.
+ */
+const SERVED_ZONE_IDS = new Set(
+  [DEFAULT_ZONE_ID, ...(process.env.NEXT_PUBLIC_SERVED_ZONE_IDS ?? "").split(",")]
+    .map((id) => id.trim())
+    .filter(Boolean),
+);
+
+/**
+ * Zone id for API requests — the chosen zone, else the default zone.
+ *
+ * A cookie naming a zone we no longer serve is ignored rather than sent: the
+ * visitor gets the area we do cover instead of a dead site.
+ */
 export async function getZoneId(): Promise<string> {
   const info = await getZoneInfo();
-  return info?.id ?? DEFAULT_ZONE_ID;
+
+  if (info?.id && SERVED_ZONE_IDS.has(info.id)) return info.id;
+
+  return DEFAULT_ZONE_ID;
 }
