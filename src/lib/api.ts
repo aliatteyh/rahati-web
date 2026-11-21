@@ -1323,10 +1323,22 @@ export async function getPolicyPage(key: string, locale: Locale): Promise<string
 /**
  * The zones the business actually serves, as the panel lists them.
  *
- * `zoneId: "configuration"` is the panel's own way of saying "not scoped to a
- * zone" — asking for the list while pretending to be inside one would return
- * only that zone. The account's service-area screen already asks this way; the
- * home page now asks the same question rather than inventing a second answer.
+ * Asked with no zone header at all, which is what "not scoped to a zone"
+ * means: asking for the list while pretending to be inside one returns only
+ * that zone.
+ *
+ * Seven call sites used to send the literal `zoneId: "configuration"`, the
+ * panel's own word for the same idea, and it worked only because the API
+ * checked a zone id solely when it matched a version-4 UUID — so a word
+ * walked straight past the check. Closing that check on 2026-11-20 refused
+ * every one of them and took the customer site down. Measured on 2026-11-21,
+ * all six endpoints behind those seven sites answer byte-identically with no
+ * header, with the word, and with a real zone, so none of them ever wanted a
+ * zone at all.
+ *
+ * Do not generalise that: the catalogue endpoints — home-sections,
+ * service/detail, popular, childes — answer an empty list or a 404 with no
+ * zone set, not everything.
  */
 export async function getServiceAreas(
   locale: Locale
@@ -1339,7 +1351,6 @@ export async function getServiceAreas(
         headers: {
           Accept: "application/json",
           "X-localization": locale,
-          zoneId: "configuration",
         },
         next: { revalidate: 300 },
       }

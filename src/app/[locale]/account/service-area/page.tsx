@@ -19,7 +19,6 @@ async function getZones(locale: Locale): Promise<Zone[]> {
         headers: {
           Accept: "application/json",
           "X-localization": locale,
-          zoneId: "configuration",
         },
         cache: "no-store",
       }

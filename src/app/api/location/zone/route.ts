@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   try {
     const res = await fetch(
       `${API_BASE}/api/v1/customer/config/get-zone-id?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`,
-      { headers: { Accept: "application/json", zoneId: "configuration" }, cache: "no-store" }
+      { headers: { Accept: "application/json" }, cache: "no-store" }
     );
     const json = await res.json();
     const zone = json?.content?.zone as { id?: string; name?: string } | undefined;

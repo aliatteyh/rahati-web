@@ -14,7 +14,7 @@ const TITLE_KEY: Record<string, string> = {
 async function fetchJson(path: string) {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
-      headers: { Accept: "application/json", zoneId: "configuration" },
+      headers: { Accept: "application/json" },
       cache: "no-store",
     });
     const json = await res.json();
