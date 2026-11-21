@@ -929,5 +929,6 @@
     "svcMaterialsTitle": "مواد التنظيف لدينا",
     "svcMaterialsNote": "يرجى توفير المواد إن لم تُضف إلى الحجز",
     "svcNeedsTitle": "ما نحتاجه منك"
-  }
+  },
+  "planPriceUnavailable": "لم نتمكّن من تسعير هذه الخطة الآن. أعد المحاولة قبل الدفع."
 }

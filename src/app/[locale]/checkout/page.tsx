@@ -81,6 +81,15 @@ export default async function CheckoutPage({
 
   const quote = visitDates.length > 0 ? await fetchCartQuote(visitDates, locale) : null;
   if (quote && quote.grand_total > 0) serverTotal = quote.grand_total;
+
+  // For a plan, the cart total is not an approximation — it is one visit's
+  // price, and the comment above records it being the one wrong number in the
+  // flow. `fetchCartQuote` returns null on any refusal without a sound, so
+  // that figure is still reachable, under a working Place order button.
+  //
+  // A single booking is unaffected: for one visit the cart total is the
+  // price, and `visitDates` is empty, so no quote was ever needed.
+  const planPriceUnavailable = visitDates.length > 0 && !(quote && quote.grand_total > 0);
   const serviceFee = Number(cartResp.service_charge?.amount ?? config.additional_charge_fee_amount ?? 0);
 
   const settings = config as unknown as {
@@ -143,6 +152,7 @@ export default async function CheckoutPage({
         maxTip={Number(config.max_tip_amount ?? 0)}
         vatPercent={Number(config.vat_percentage ?? 0)}
         serverTotal={serverTotal}
+        planPriceUnavailable={planPriceUnavailable}
         quote={quote}
         zoneId={zoneId}
         schedule={schedule ?? ""}

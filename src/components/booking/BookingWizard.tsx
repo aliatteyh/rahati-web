@@ -1231,7 +1231,14 @@ export function BookingWizard({
             planMonths: isSubscriptionFlow ? planMonths : undefined,
           }),
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+          // The wizard keeps its own estimate on screen, which is honest - the
+          // server's number replaces it when it arrives and `quote` stays null
+          // until then. What was missing is anybody knowing it never arrived.
+          console.error(`[quote] ${res.status}`);
+
+          return;
+        }
         const data = (await res.json()) as BookingQuote;
         if (!cancelled) setQuote(data);
       } catch {

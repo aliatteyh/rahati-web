@@ -77,6 +77,7 @@ export function CheckoutClient({
   maxTip = 0,
   vatPercent,
   serverTotal,
+  planPriceUnavailable = false,
   quote,
   zoneId,
   schedule,
@@ -104,6 +105,8 @@ export function CheckoutClient({
   /** Global VAT rate; charged on the service fee only. */
   vatPercent: number;
   serverTotal: number;
+  /** A repeat booking whose plan price the server would not give us. */
+  planPriceUnavailable?: boolean;
   /** The server's own breakdown for a repeat booking, or null for a single one. */
   quote: CartQuote | null;
   zoneId: string;
@@ -837,11 +840,19 @@ export function CheckoutClient({
           <button
             type="button"
             onClick={placeOrder}
-            disabled={placing || !addressId}
+            disabled={placing || !addressId || planPriceUnavailable}
             className="mt-2 w-full rounded-full bg-accent px-6 py-3 font-semibold text-white transition hover:bg-accent-dark disabled:opacity-50"
           >
             {placing ? dict.placing : dict.placeOrder}
           </button>
+          )}
+
+          {planPriceUnavailable && (
+            /* Said where the price would have been. Taking money at a figure
+               we cannot stand behind is worse than asking somebody to retry. */
+            <p className="mt-2 text-center text-xs font-semibold text-danger">
+              {dict.planPriceUnavailable}
+            </p>
           )}
         </div>
       </aside>

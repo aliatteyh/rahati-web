@@ -931,5 +931,6 @@
     "svcMaterialsTitle": "Our cleaning material",
     "svcMaterialsNote": "Please provide material if not added to the booking",
     "svcNeedsTitle": "What we'll need from you"
-  }
+  },
+  "planPriceUnavailable": "We could not price this plan just now. Please try again before paying."
 }

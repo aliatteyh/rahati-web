@@ -921,8 +921,28 @@ export async function getPackageAvailability(
   off_days_iso: number[];
   max_days_per_week: number;
   provider_count?: number;
+  /** True when the server did not answer and these are assumptions. */
+  unknown?: boolean;
 }> {
-  const fallback = { selectable_weekdays: [1, 2, 3, 4, 5, 6, 7], off_days_iso: [], max_days_per_week: 6 };
+  // Marked as a guess, because that is what it is.
+  //
+  // This never checked `res.ok`, and a refused request answers
+  // `{"content": null}` — so `json?.content ?? fallback` turned a refusal into
+  // "all seven weekdays are bookable, there are no off days, and a package may
+  // run six days a week". Three confident claims from a question that was
+  // never answered, on the screen where somebody picks the days of their plan.
+  //
+  // The optimistic list stays: the booking engine refuses an off day
+  // server-side, so the cost of guessing wide is a late refusal rather than a
+  // visit nobody turns up for. But it no longer pretends to be an answer, and
+  // the refusal is said out loud.
+  const fallback = {
+    selectable_weekdays: [1, 2, 3, 4, 5, 6, 7],
+    off_days_iso: [],
+    max_days_per_week: 6,
+    unknown: true,
+  };
+
   try {
     const zoneId = await getZoneId();
     const query = subCategoryId ? `?sub_category_id=${encodeURIComponent(subCategoryId)}` : "";
@@ -930,7 +950,15 @@ export async function getPackageAvailability(
       headers: { Accept: "application/json", "X-localization": locale, zoneId },
       cache: "no-store",
     });
+
+    if (!res.ok) {
+      console.error(`[api] ${res.status} service-package/availability`);
+
+      return fallback;
+    }
+
     const json = viaThisSite(await res.json());
+
     return json?.content ?? fallback;
   } catch {
     return fallback;
