@@ -763,8 +763,8 @@ function BookingSheet({
       <PaymentNote
         dict={dict}
         method={row.paymentMethod}
-        isPaid={row.isPaid}
-        amount={money(row.total)}
+        owed={row.owed}
+        money={money}
       />
 
       {/* Directly under it, because it is the same subject: what the booking
@@ -999,11 +999,13 @@ function PlanSheet({
       title={`${plan.service_name} · ${fmt.duration(plan.duration_minutes, dict)} ${dict.perVisitShort}`}
       onClose={onClose}
     >
+      {/* A plan is settled per visit and carries no balance of its own, so
+          its sheet keeps the question it could always answer. */}
       <PaymentNote
         dict={dict}
         method={plan.payment_method}
-        isPaid={Number(plan.is_paid) === 1}
-        amount={money(plan.totals.plan_total)}
+        owed={Number(plan.is_paid) === 1 ? 0 : plan.totals.plan_total}
+        money={money}
       />
 
       {plan.serviceman && (
@@ -1772,9 +1774,13 @@ function groupByDay<T extends { day: number | null }>(
 function paymentState(
   dict: Dict,
   method: string,
-  isPaid: boolean
+  owed: number
 ): { label: string; collect: boolean } {
-  if (isPaid) return { label: dict.prepaid, collect: false };
+  // Settled is "nothing is owed", not "the paid flag is set". A booking paid
+  // in advance and then lengthened at the door is both paid and owing, and
+  // this said "prepaid" over a cleaner standing at the door waiting for the
+  // difference.
+  if (owed <= 0) return { label: dict.prepaid, collect: false };
 
   if (method === "offline_payment") {
     return { label: dict.transferNotReceived, collect: true };
@@ -1786,15 +1792,15 @@ function paymentState(
 function PaymentNote({
   dict,
   method,
-  isPaid,
-  amount,
+  owed,
+  money,
 }: {
   dict: Dict;
   method: string;
-  isPaid: boolean;
-  amount: string;
+  owed: number;
+  money: (value: number) => string;
 }) {
-  const state = paymentState(dict, method, isPaid);
+  const state = paymentState(dict, method, owed);
 
   return (
     <div
@@ -1803,7 +1809,9 @@ function PaymentNote({
       }`}
     >
       <span>{state.label}</span>
-      {state.collect && <span dir="auto">{amount}</span>}
+      {/* What is actually outstanding, which on a booking that grew is the
+          difference and not the whole amount. */}
+      {state.collect && <span dir="auto">{money(owed)}</span>}
     </div>
   );
 }

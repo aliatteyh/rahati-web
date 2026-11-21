@@ -22,6 +22,7 @@ export interface ApiBooking {
   tip_amount?: number | string;
   payment_method?: string;
   is_paid?: number;
+  owed?: number | string;
   cancelled_by?: string | null;
   service_address_location?: string | null;
   detail?: {
@@ -88,6 +89,12 @@ export function toRows(bookings: ApiBooking[]): BookingRow[] {
           num(booking.total_coupon_discount_amount),
         paymentMethod: booking.payment_method ?? "",
         isPaid: Number(booking.is_paid) === 1,
+        // The server's own figure. An older server that does not send it
+        // falls back to the question it could answer: all of it, or none.
+        owed:
+          booking.owed === undefined
+            ? (Number(booking.is_paid) === 1 ? 0 : num(booking.total_booking_amount))
+            : num(booking.owed),
         cancelledBy: booking.cancelled_by ?? null,
         address: parseAddress(booking.service_address_location),
         cleaner: name

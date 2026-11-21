@@ -13,6 +13,14 @@ export interface BookingRow {
   cleaners: number;
   withMaterials: boolean;
   total: number;
+  /**
+   * What is still to be paid on this booking, from the server.
+   *
+   * Not `total` and not `is_paid`: a booking settled in advance and then
+   * lengthened at the door owes the difference, and this sheet was printing
+   * the entire booking amount as the sum to have ready.
+   */
+  owed: number;
   subtotal: number;
   fee: number;
   tax: number;
