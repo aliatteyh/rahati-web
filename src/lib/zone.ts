@@ -15,12 +15,47 @@ import { ZONE_COOKIE } from "./cookies";
  * explaining why — and 33 of the 56 saved customer addresses sit in that same
  * empty zone.
  *
- * Rahati serves JVC today. When the service area grows, this is one of the two
- * places to change (the other is NEXT_PUBLIC_DEFAULT_ZONE_ID in the
- * environment, which wins).
+ * Rahati serves JVC today. When the service area grows, change JVC_ZONE_ID
+ * below, or list the new zones in NEXT_PUBLIC_SERVED_ZONE_IDS and point
+ * NEXT_PUBLIC_DEFAULT_ZONE_ID at one of them.
  */
-export const DEFAULT_ZONE_ID =
-  process.env.NEXT_PUBLIC_DEFAULT_ZONE_ID ?? "298e918a-4b3d-4ebd-8f60-12034574fa6c";
+const JVC_ZONE_ID = "298e918a-4b3d-4ebd-8f60-12034574fa6c";
+
+/**
+ * The zones we serve, and may therefore ask the API about.
+ *
+ * A constant first and the environment second, because the other way round
+ * took the booking page down for eight days without a word. The 2026-11-13
+ * fix changed the fallback here and in `.env.local` and left
+ * `NEXT_PUBLIC_DEFAULT_ZONE_ID` in Vercel naming the retired worldwide zone,
+ * and the environment won. Measured on 2026-11-21: `available-slots` returned
+ * 14 days and 290 slots for JVC and **0 days, 0 slots** for the retired zone,
+ * and the site answered `{"days":[]}`. Every price was readable and no time
+ * could be offered; the retired zone mirrors the services at the same prices,
+ * so nothing else gave it away.
+ *
+ * The cookie is checked against this too. It lasts 180 days and the default it
+ * was written from used to be that same retired zone, so a visitor from before
+ * 2026-11-13 still carries it.
+ */
+const SERVED_ZONE_IDS = new Set(
+  [JVC_ZONE_ID, ...(process.env.NEXT_PUBLIC_SERVED_ZONE_IDS ?? "").split(",")]
+    .map((id) => id.trim())
+    .filter(Boolean),
+);
+
+/**
+ * The zone an anonymous visitor browses in.
+ *
+ * The environment may pick which of the served zones it is. A value naming
+ * anything else is ignored rather than sent, because sending it is how the
+ * site stops.
+ */
+export const DEFAULT_ZONE_ID = (() => {
+  const asked = (process.env.NEXT_PUBLIC_DEFAULT_ZONE_ID ?? "").trim();
+
+  return SERVED_ZONE_IDS.has(asked) ? asked : JVC_ZONE_ID;
+})();
 
 /** The area we actually cover, for telling somebody outside it. */
 export const SERVED_AREA_KEY = "jvc";
@@ -59,26 +94,6 @@ export async function getCustomerCoords(): Promise<{ lat: number; lon: number } 
   if (typeof info?.lat !== "number" || typeof info?.lon !== "number") return null;
   return { lat: info.lat, lon: info.lon };
 }
-
-/**
- * The zones we actually serve, and may therefore ask the API about.
- *
- * The zone cookie lasts 180 days, and the default it was written from used to
- * be `a1614dbe-…`, the seeded worldwide zone that has since been switched off
- * in the panel. A visitor from before 2026-11-13 still carries it. The API now
- * refuses a deactivated zone consistently — it used to refuse only those whose
- * id happened to be a version-4 UUID, and that one is not — so a stale cookie
- * would answer `zone_404` on every call and the site would simply stop for
- * that person.
- *
- * Set `NEXT_PUBLIC_SERVED_ZONE_IDS` (comma-separated) when the service area
- * grows; the default zone is always included.
- */
-const SERVED_ZONE_IDS = new Set(
-  [DEFAULT_ZONE_ID, ...(process.env.NEXT_PUBLIC_SERVED_ZONE_IDS ?? "").split(",")]
-    .map((id) => id.trim())
-    .filter(Boolean),
-);
 
 /**
  * Zone id for API requests — the chosen zone, else the default zone.

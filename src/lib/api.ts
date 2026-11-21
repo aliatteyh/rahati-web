@@ -50,7 +50,20 @@ async function apiGet<T>(
       ...(init?.cache ? {} : { next: { revalidate: REVALIDATE_SECONDS } }),
       ...init,
     });
-    if (!res.ok) return fallback;
+    if (!res.ok) {
+      // Said out loud, once, where a server log can be read.
+      //
+      // Every caller here passes a fallback, so a refusal was
+      // indistinguishable from an empty answer. On 2026-11-21 every
+      // customer API call was answering 401 and the only visible symptoms
+      // were a missing favicon and a logo replaced by a letter: no logo, no
+      // business name, an address box returning nothing, a service card with
+      // no materials or hours, no content sections and an empty category bar,
+      // all of it read as "there is no data". One line would have named it.
+      console.error(`[api] ${res.status} ${path}`);
+
+      return fallback;
+    }
     const json = viaThisSite(await res.json());
 
     // "Nothing here" is not a payload.
