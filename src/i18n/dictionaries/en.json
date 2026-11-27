@@ -730,7 +730,8 @@
     "terms": "Terms and conditions",
     "privacy": "Privacy policy",
     "cancellation": "Cancellation policy",
-    "refund": "Refund policy"
+    "refund": "Refund policy",
+    "deleteAccount": "Delete your account"
   },
   "common": {
     "loading": "Loading…",
@@ -932,5 +933,42 @@
     "svcMaterialsNote": "Please provide material if not added to the booking",
     "svcNeedsTitle": "What we'll need from you"
   },
-  "planPriceUnavailable": "We could not price this plan just now. Please try again before paying."
+  "planPriceUnavailable": "We could not price this plan just now. Please try again before paying.",
+  "deleteAccount": {
+    "title": "Delete your account",
+    "intro": "You can close your Rahati account at any time. This page explains how to do it from inside the app, how to ask us to do it for you, and exactly what is removed when an account is closed.",
+    "inAppTitle": "From the app",
+    "inAppText": "This is the fastest way. The account is closed straight away — there is nothing to wait for.",
+    "inAppSteps": [
+      "Open the Rahati app and sign in.",
+      "Go to Profile.",
+      "Tap Delete account.",
+      "Read the warning and confirm."
+    ],
+    "byEmailTitle": "If you no longer have the app",
+    "byEmailText": "Write to us from any email address and tell us the mobile number the account was registered with. We will contact you on that number to confirm the request is yours, then close the account. Requests are completed within 30 days.",
+    "emailSubject": "Request to delete my Rahati account",
+    "emailUs": "Email us",
+    "callUs": "Call us",
+    "beforeTitle": "Two things stop a deletion",
+    "beforeText": "The app will refuse to close the account in either of these cases. Settle them first and the deletion goes through.",
+    "beforeItems": [
+      "A booking that is still open — anything not yet completed or cancelled. Let it finish, or cancel it.",
+      "Money still in the account — a wallet balance or loyalty points. Spend them, or ask us to return them. We do not delete money: a balance inside a closed account is one you could no longer see or reach."
+    ],
+    "removedTitle": "What is removed",
+    "removedItems": [
+      "Your name, email address, mobile number and date of birth",
+      "Your profile photo and any identity documents you uploaded",
+      "All of your saved addresses",
+      "Your notification token, so the app can no longer reach your phone",
+      "Your sign-in — the account can no longer be used, and the number is freed for a new one"
+    ],
+    "keptTitle": "What is kept",
+    "keptItems": [
+      "Your past bookings and the invoices and payments attached to them"
+    ],
+    "keptNote": "These stay because a business has to be able to say what it charged and why, for as long as the law requires. They are no longer attached to your name, email or number — those have already been overwritten.",
+    "privacyNote": "For everything else we do with your data, see our"
+  }
 }

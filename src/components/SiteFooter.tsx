@@ -30,6 +30,9 @@ export function SiteFooter({
     { href: `${base}/privacy-policy`, label: dict.footer.privacy },
     { href: `${base}/cancellation-policy`, label: dict.footer.cancellation },
     { href: `${base}/refund-policy`, label: dict.footer.refund },
+    // Play requires this one to be reachable on the web, not only from
+    // inside the app, and the footer is where a person looks for it.
+    { href: `${base}/delete-account`, label: dict.footer.deleteAccount },
   ];
 
   // The design closes on ink, not on a pale band: the page's last block is the one
